@@ -1,0 +1,410 @@
+*{
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body
+{
+background-image: url(Assets/Fondo.jpg) ;
+background-size: 100%;
+}
+
+.header{
+/*	background-color: aliceblue;*/
+	align-content: center;
+	align-items:end;
+	justify-content: center;
+	display: flex;
+	width: 100%;
+	height: 250px;
+}
+.ADN{
+
+	width: 400px;
+	align-content: center;
+}
+
+
+.nav{
+/*	background:#090808;*/
+	width: 100%;
+	height: 5px;
+}
+
+.main{
+	/*background:#FE0004;*/
+	width: 100%;
+	height: calc(100vh - 300px);
+	display:flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.section{
+	width: 400px;
+	background:hsla(0,0%,0%,0.75);
+	padding: 30px;
+	margin: auto;
+	border-radius: 10px;
+	font-family: 'calibri';
+
+}
+
+.section p{
+	margin: 20px;
+	text-align: center;
+}
+.controls{
+	/*controls w-full p-2 mb-3 border border-gray-300 rounded*/
+	width: 100%;
+	padding: 10px;
+	border-radius: 4px;
+	margin-bottom: 16px;
+	font-family: 'calibri';
+	font-size: 18px;
+}
+
+
+.butom{
+	background:#313131;
+	letter-spacing: 1px;
+	color: white;
+	width: 100%;
+	padding: 12px;
+	margin: 16px 0;
+	font-family: 'calibri';
+	font-size: 18px;
+	border: 1px solid #000000;
+	cursor: pointer;
+	box-shadow: inset 0 0 0 0 #FE0004;
+ 	-webkit-transition: ease-out 0.4s;
+ 	-moz-transition: ease-out 0.4s;
+  	transition: ease-out 0.4s;
+	
+
+}
+
+.butom:hover{
+	box-shadow: inset 400px 0 0 0 #FE0004;
+	color: #313131;
+}
+
+.footer{
+	align-items: center;
+	justify-content: center;
+	display: flex;
+/*	background:#FF00D9;*/
+	width: 100%;
+	height: 100px;
+}
+
+
+/*Pagina Recuperacion de contraseña     <-------------------------*/
+
+
+.header1{
+	background-color:#262626;
+	align-items:flex-start;;
+	justify-content: center;
+	display: flex;
+	width: 100%;
+	height: 150px;
+	
+}
+
+.ADN1{
+
+	width: 350px;
+}
+.nav1{
+background:#090808;
+	width: 100%;
+	height: 5px;
+}
+.main1{
+/*	background:#FE0004;*/
+	width: 100%;
+	height: calc(100vh - 300px);
+
+
+}
+.controls1{
+
+	width: 100%;
+	padding: 10px;
+	border-radius: 4px;
+	margin-bottom: 16px;
+	font-family: 'calibri';
+	font-size: 18px;
+}
+
+.section1{
+	width: 600px;
+	background:hsla(0,0%,0%,0.75);
+	padding: 30px;
+	margin: 30px auto;
+	border-radius: 10px;
+	font-family: 'calibri';
+}
+
+.section1 p{
+	color: white;
+}
+
+.label1{
+	color: white;
+}
+
+.butom1{
+	background:#313131;
+	color: white;
+	letter-spacing: 1px;
+	width: auto;
+	height: auto;
+	padding: 12px;
+	margin: 16px 0;
+	font-family: 'calibri';
+	font-size: 18px;
+	border-radius: 0px;
+	border: 2px;
+	display: flex;
+	align-items: flex-start;
+	cursor: pointer;
+	box-shadow: inset 0 0 0 0 #FE0004;
+ 	-webkit-transition: ease-out 0.4s;
+ 	-moz-transition: ease-out 0.4s;
+  	transition: ease-out 0.4s;
+}
+.butom1:hover{
+	box-shadow: inset 400px 0 0 0 #FE0004;
+	color: #313131;
+}
+
+/*Perfil usaurio*/
+
+.section2{
+	display: flex;
+	justify-content: space-around;
+	width: 800px;
+	height: 355px;
+	background:hsla(0,0%,0%,0.75);
+	padding: 30px;
+	margin: 30px auto;
+	border-radius: 10px;
+	font-family: 'calibri';
+}
+
+.ContenedorFoto{
+/*	background-color: aqua;*/
+	width: 300px;
+	height: 60%;
+	align-self:center;
+	justify-content: center;
+	display: flex;
+
+
+}
+.FotoPerfil{
+	border-radius: 50%;
+	border: 3px solid #FA070B;
+	padding: 7px;
+	display: flex;
+	align-self: center;
+	align-content: center;
+	justify-content: center;
+	width: 197px;
+	height: 200px;
+
+
+}
+
+.ContenedorInformacion{
+	align-self:center;
+
+/*	background-color: aqua;*/
+	height: 60%;
+	color: white;
+	width: 230px;
+
+}
+.Textoh1{
+	margin-bottom: 2px;
+}
+.Textop{
+	margin-bottom: 10px;
+}
+.butom2{
+	background:#313131;
+	color: white;
+	letter-spacing: 1px;
+	width: auto;
+	height: 50px;
+	padding: 12px;
+	margin: 16px 0;
+	font-family: 'calibri';
+	font-size: 18px;
+	border-radius: 0px;
+	border: 2px;
+	display: flex;
+	cursor: pointer;
+	box-shadow: inset 0 0 0 0 #FE0004;
+ 	-webkit-transition: ease-out 0.4s;
+ 	-moz-transition: ease-out 0.4s;
+  	transition: ease-out 0.4s;
+	justify-content: center;
+	align-self: flex-end;
+	align-content: center;
+	
+}
+.butom2:hover{
+	box-shadow: inset 400px 0 0 0 #FE0004;
+	color: #313131;
+}
+
+
+/*Despiece*/
+
+.header2{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color:#262626;
+	width: 100%;
+	height: 40px
+}
+
+.logo2 img:first-child{
+
+	width: 55px;
+	margin-right: auto;
+	margin-left: auto;
+}
+.iconousuario{
+	display: flex;
+	margin: auto 15px auto 520px;
+
+}
+
+.iconousuario img:first-child{
+
+	width: 35px;
+}
+
+.menu{
+	display: flex;
+	margin: auto 520px auto 15px;
+}
+
+.menu img:first-child{
+	width: 35px;
+}
+.main2{
+	display: flex;
+	align-items: center;
+/*	background:#FE0004;*/
+	width: 100%;
+	height: calc(100vh - 300px);
+
+
+}
+
+.section3{
+	display: flex;
+	align-self: flex-start;
+	justify-content: space-around;
+	width: 900px;
+	height: 800px;
+	background:hsla(0,0%,0%,0.75);
+	padding: 10px 10px 10px 10px;
+	margin: 15px 10px auto 10px;
+	border-radius: 10px;
+	font-family: 'calibri';
+}
+.section3-2{
+	display: flex;
+	align-self: flex-start;
+	width: 300px;
+	height: 500px;
+	background:hsla(0,0%,0%,0.75);
+	padding: 30px 20px;
+	margin: 15px 10px auto 10px;
+	border-radius: 10px;
+	color: white;
+	
+
+}
+
+.label{
+	text-align: center;
+}
+
+.cantidad {
+	font-size: 11px;
+	color:white;
+	width: 50px;
+
+}
+.cnt{
+	text-align: center;
+	width: 50px;
+
+}
+.largo {
+	font-size: 11px;
+	color:white;
+	width: 50px;
+}
+.la{
+	text-align: center;
+	width: 50px;
+}
+.detalle {
+	font-size: 11px;
+	color:white;
+	width: 400px;
+}
+.dm{
+	text-align: center;
+	resize: horizontal;
+	width: 400px;
+}
+.rotar {
+	font-size: 11px;
+	color:white;
+	width: 50px;
+}
+.rt{
+	text-align: center;
+	resize: horizontal;
+	width: 50px;
+}
+.LYA {
+	font-size: 11px;
+	color:white;
+	width: 50px;
+}
+.l1{
+	text-align: center;
+	resize: horizontal;
+	width: 50px;
+}
+.l2{
+	text-align: center;
+	resize: horizontal;
+	width: 50px;
+}
+.A1{
+	text-align: center;
+	resize: horizontal;
+	width: 50px;
+}
+.A2{
+	text-align: center;
+	resize: horizontal;
+	width: 50px;
+}
+
+.servicios{
+	font-size: 22px;
+}
