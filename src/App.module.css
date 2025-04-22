@@ -1,61 +1,62 @@
-*{
+/* === Contenido de App.module.css === */
+
+/* Estilos Globales y de otras páginas (proporcionados por ti) */
+* {
 	margin: 0;
 	padding: 0;
 	box-sizing: border-box;
-}
-
-body
-{
-background-image: url(Assets/Fondo.jpg) ;
-background-size: 100%;
-}
-
-.header{
-/*	background-color: aliceblue;*/
+  }
+  
+  body {
+	background-image: url(Assets/Fondo.jpg); /* Considera usar variables CSS para esto si quieres que cambie con el tema */
+	background-size: 100%;
+	/* Asegúrate que los estilos base del body y padding-top estén en index.css/App.css global */
+  }
+  
+  .header {
+	/*  background-color: aliceblue;*/
 	align-content: center;
-	align-items:end;
+	align-items: end;
 	justify-content: center;
 	display: flex;
 	width: 100%;
 	height: 250px;
-}
-.ADN{
-
+  }
+  .ADN {
 	width: 400px;
 	align-content: center;
-}
-
-
-.nav{
-/*	background:#090808;*/
+  }
+  
+  .nav {
+	/*  background:#090808;*/
 	width: 100%;
 	height: 5px;
-}
-
-.main{
+  }
+  
+  .main {
 	/*background:#FE0004;*/
 	width: 100%;
-	height: calc(100vh - 300px);
-	display:flex;
+	height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+	display: flex;
 	justify-content: center;
 	align-items: center;
-}
-
-.section{
+  }
+  
+  .section {
 	width: 400px;
-	background:hsla(0,0%,0%,0.75);
+	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
 	padding: 30px;
 	margin: auto;
 	border-radius: 10px;
 	font-family: 'calibri';
-
-}
-
-.section p{
+  }
+  
+  .section p {
 	margin: 20px;
 	text-align: center;
-}
-.controls{
+	color: white; /* Asumiendo texto blanco sobre fondo oscuro */
+  }
+  .controls {
 	/*controls w-full p-2 mb-3 border border-gray-300 rounded*/
 	width: 100%;
 	padding: 10px;
@@ -63,13 +64,13 @@ background-size: 100%;
 	margin-bottom: 16px;
 	font-family: 'calibri';
 	font-size: 18px;
-}
-
-
-.butom{
-	background:#313131;
+	/* Considera colores de borde/fondo/texto con variables CSS */
+  }
+  
+  .butom {
+	background: #313131; /* Considera usar variables CSS */
 	letter-spacing: 1px;
-	color: white;
+	color: white; /* Considera usar variables CSS */
 	width: 100%;
 	padding: 12px;
 	margin: 16px 0;
@@ -77,88 +78,79 @@ background-size: 100%;
 	font-size: 18px;
 	border: 1px solid #000000;
 	cursor: pointer;
-	box-shadow: inset 0 0 0 0 #FE0004;
- 	-webkit-transition: ease-out 0.4s;
- 	-moz-transition: ease-out 0.4s;
-  	transition: ease-out 0.4s;
-	
-
-}
-
-.butom:hover{
-	box-shadow: inset 400px 0 0 0 #FE0004;
+	box-shadow: inset 0 0 0 0 #fe0004;
+	-webkit-transition: ease-out 0.4s;
+	-moz-transition: ease-out 0.4s;
+	transition: ease-out 0.4s;
+  }
+  
+  .butom:hover {
+	box-shadow: inset 400px 0 0 0 #fe0004;
 	color: #313131;
-}
-
-.footer{
+  }
+  
+  .footer {
 	align-items: center;
 	justify-content: center;
 	display: flex;
-/*	background:#FF00D9;*/
+	/*  background:#FF00D9;*/
 	width: 100%;
 	height: 100px;
-}
-
-
-/*Pagina Recuperacion de contraseña     <-------------------------*/
-
-
-.header1{
-	background-color:#262626;
-	align-items:flex-start;;
+  }
+  
+  /*Pagina Recuperacion de contraseña     <-------------------------*/
+  
+  .header1 {
+	background-color: #262626; /* Considera usar variables CSS */
+	align-items: flex-start;
 	justify-content: center;
 	display: flex;
 	width: 100%;
 	height: 150px;
-	
-}
-
-.ADN1{
-
+  }
+  
+  .ADN1 {
 	width: 350px;
-}
-.nav1{
-background:#090808;
+  }
+  .nav1 {
+	background: #090808;
 	width: 100%;
 	height: 5px;
-}
-.main1{
-/*	background:#FE0004;*/
+  }
+  .main1 {
+	/*  background:#FE0004;*/
 	width: 100%;
-	height: calc(100vh - 300px);
-
-
-}
-.controls1{
-
+	height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+  }
+  .controls1 {
 	width: 100%;
 	padding: 10px;
 	border-radius: 4px;
 	margin-bottom: 16px;
 	font-family: 'calibri';
 	font-size: 18px;
-}
-
-.section1{
+  }
+  
+  .section1 {
 	width: 600px;
-	background:hsla(0,0%,0%,0.75);
+	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
 	padding: 30px;
 	margin: 30px auto;
 	border-radius: 10px;
 	font-family: 'calibri';
-}
-
-.section1 p{
-	color: white;
-}
-
-.label1{
-	color: white;
-}
-
-.butom1{
-	background:#313131;
-	color: white;
+  }
+  
+  .section1 p {
+	color: white; /* Considera usar variables CSS */
+  }
+  
+  .label1 {
+	color: white; /* Considera usar variables CSS */
+  }
+  
+  .butom1 {
+	background: #313131; /* Considera usar variables CSS */
+	color: white; /* Considera usar variables CSS */
 	letter-spacing: 1px;
 	width: auto;
 	height: auto;
@@ -171,43 +163,38 @@ background:#090808;
 	display: flex;
 	align-items: flex-start;
 	cursor: pointer;
-	box-shadow: inset 0 0 0 0 #FE0004;
- 	-webkit-transition: ease-out 0.4s;
- 	-moz-transition: ease-out 0.4s;
-  	transition: ease-out 0.4s;
-}
-.butom1:hover{
-	box-shadow: inset 400px 0 0 0 #FE0004;
+	box-shadow: inset 0 0 0 0 #fe0004;
+	-webkit-transition: ease-out 0.4s;
+	-moz-transition: ease-out 0.4s;
+	transition: ease-out 0.4s;
+  }
+  .butom1:hover {
+	box-shadow: inset 400px 0 0 0 #fe0004;
 	color: #313131;
-}
-
-/*Perfil usaurio*/
-
-.section2{
+  }
+  
+  /*Perfil usaurio*/
+  
+  .section2 {
 	display: flex;
 	justify-content: space-around;
 	width: 800px;
 	height: 355px;
-	background:hsla(0,0%,0%,0.75);
+	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
 	padding: 30px;
 	margin: 30px auto;
 	border-radius: 10px;
 	font-family: 'calibri';
-}
-
-.ContenedorFoto{
-/*	background-color: aqua;*/
-	width: 300px;
-	height: 60%;
-	align-self:center;
+  }
+  
+  .ContenedorFoto {
+	align-self: center;
 	justify-content: center;
 	display: flex;
-
-
-}
-.FotoPerfil{
+  }
+  .FotoPerfil {
 	border-radius: 50%;
-	border: 3px solid #FA070B;
+	border: 3px solid #fa070b;
 	padding: 7px;
 	display: flex;
 	align-self: center;
@@ -215,28 +202,24 @@ background:#090808;
 	justify-content: center;
 	width: 197px;
 	height: 200px;
-
-
-}
-
-.ContenedorInformacion{
-	align-self:center;
-
-/*	background-color: aqua;*/
+  }
+  
+  .ContenedorInformacion {
+	align-self: center;
+	margin: auto 0 auto 20px;
 	height: 60%;
-	color: white;
+	color: white; /* Considera usar variables CSS */
 	width: 230px;
-
-}
-.Textoh1{
+  }
+  .Textoh1 {
 	margin-bottom: 2px;
-}
-.Textop{
+  }
+  .Textop {
 	margin-bottom: 10px;
-}
-.butom2{
-	background:#313131;
-	color: white;
+  }
+  .butom2 {
+	background: #313131; /* Considera usar variables CSS */
+	color: white; /* Considera usar variables CSS */
 	letter-spacing: 1px;
 	width: auto;
 	height: 50px;
@@ -248,163 +231,324 @@ background:#090808;
 	border: 2px;
 	display: flex;
 	cursor: pointer;
-	box-shadow: inset 0 0 0 0 #FE0004;
- 	-webkit-transition: ease-out 0.4s;
- 	-moz-transition: ease-out 0.4s;
-  	transition: ease-out 0.4s;
+	box-shadow: inset 0 0 0 0 #fe0004;
+	-webkit-transition: ease-out 0.4s;
+	-moz-transition: ease-out 0.4s;
+	transition: ease-out 0.4s;
 	justify-content: center;
 	align-self: flex-end;
 	align-content: center;
-	
-}
-.butom2:hover{
-	box-shadow: inset 400px 0 0 0 #FE0004;
+  }
+  .butom2:hover {
+	box-shadow: inset 400px 0 0 0 #fe0004;
 	color: #313131;
-}
-
-
-/*Despiece*/
-
-.header2{
+  }
+  
+  /*Despiece*/
+  
+  .header2 {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background-color:#262626;
+	background-color: #262626; /* Considera usar variables CSS */
 	width: 100%;
-	height: 40px
-}
-
-.logo2 img:first-child{
-
+	height: 40px;
+  }
+  
+  .logo2 img:first-child {
 	width: 55px;
 	margin-right: auto;
 	margin-left: auto;
-}
-.iconousuario{
+  }
+  .iconousuario {
 	display: flex;
 	margin: auto 15px auto 520px;
-
-}
-
-.iconousuario img:first-child{
-
+  }
+  
+  .iconousuario img:first-child {
 	width: 35px;
-}
-
-.menu{
+  }
+  
+  .menu {
 	display: flex;
 	margin: auto 520px auto 15px;
-}
-
-.menu img:first-child{
+  }
+  
+  .menu img:first-child {
 	width: 35px;
-}
-.main2{
+  }
+  .main2 {
 	display: flex;
 	align-items: center;
-/*	background:#FE0004;*/
+	/*  background:#FE0004;*/
 	width: 100%;
-	height: calc(100vh - 300px);
-
-
-}
-
-.section3{
+	height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+  }
+  
+  .section3 {
 	display: flex;
 	align-self: flex-start;
 	justify-content: space-around;
 	width: 900px;
 	height: 800px;
-	background:hsla(0,0%,0%,0.75);
+	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
 	padding: 10px 10px 10px 10px;
 	margin: 15px 10px auto 10px;
 	border-radius: 10px;
 	font-family: 'calibri';
-}
-.section3-2{
+  }
+  .section3-2 {
 	display: flex;
 	align-self: flex-start;
 	width: 300px;
 	height: 500px;
-	background:hsla(0,0%,0%,0.75);
+	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
 	padding: 30px 20px;
 	margin: 15px 10px auto 10px;
 	border-radius: 10px;
+	color: white; /* Considera usar variables CSS */
+  }
+  
+  .label {
+	text-align: center;
+  }
+  
+  .cantidad {
+	font-size: 11px;
 	color: white;
-	
-
-}
-
-.label{
-	text-align: center;
-}
-
-.cantidad {
-	font-size: 11px;
-	color:white;
 	width: 50px;
-
-}
-.cnt{
+  }
+  .cnt {
 	text-align: center;
 	width: 50px;
-
-}
-.largo {
+  }
+  .largo {
 	font-size: 11px;
-	color:white;
+	color: white;
 	width: 50px;
-}
-.la{
+  }
+  .la {
 	text-align: center;
 	width: 50px;
-}
-.detalle {
+  }
+  .detalle {
 	font-size: 11px;
-	color:white;
+	color: white;
 	width: 400px;
-}
-.dm{
+  }
+  .dm {
 	text-align: center;
 	resize: horizontal;
 	width: 400px;
-}
-.rotar {
+  }
+  .rotar {
 	font-size: 11px;
-	color:white;
+	color: white;
 	width: 50px;
-}
-.rt{
+  }
+  .rt {
 	text-align: center;
 	resize: horizontal;
 	width: 50px;
-}
-.LYA {
+  }
+  .LYA {
 	font-size: 11px;
-	color:white;
+	color: white;
 	width: 50px;
-}
-.l1{
+  }
+  .l1 {
 	text-align: center;
 	resize: horizontal;
 	width: 50px;
-}
-.l2{
+  }
+  .l2 {
 	text-align: center;
 	resize: horizontal;
 	width: 50px;
-}
-.A1{
+  }
+  .A1 {
 	text-align: center;
 	resize: horizontal;
 	width: 50px;
-}
-.A2{
+  }
+  .A2 {
 	text-align: center;
 	resize: horizontal;
 	width: 50px;
-}
-
-.servicios{
+  }
+  
+  .servicios {
 	font-size: 22px;
-}
+  }
+  
+  /* --- ESTILOS PARA EL COMPONENTE MENU (Barra y Menú Lateral) --- */
+  /* (Estos estilos ya estaban en tu código, verifica que usen variables CSS) */
+  
+  /* Estilos para la barra superior */
+
+  .logo2 img:first-child {
+	width: 55px;
+	margin-right: auto;
+	margin-left: auto;
+  }
+  
+  
+
+  .topBar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0 15px; /* Ajustado para altura fija */
+	height: 50px; /* Altura fija para la barra */
+	background-color: #262626ce; /* Considera usar variables CSS */
+	color: var(--header-text-color); /* Variable global */
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	z-index: 1000;
+	box-sizing: border-box;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+  }
+  
+  /* Estilos para el botón de hamburguesa */
+  .botonHamburguesa {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--header-text-color); /* Variable global */
+	font-size: 1.5rem; /* Tamaño del icono */
+	padding: 5px;
+	display: flex; /* Para alinear el icono */
+	align-items: center;
+  }
+  
+  /* Contenedor para la información del usuario */
+  .userInfo {
+	display: flex;
+	align-items: center;
+	color: var(--header-text-color); /* Variable global */
+	position: relative; /* Necesario para posicionar el dropdown */
+	cursor: pointer; /* Indica que es clickeable */
+  }
+  
+  /* Icono de usuario */
+  .userIcon {
+	width: 28px;
+	height: 28px;
+	margin-left: 10px;
+	border-radius: 50%;
+	object-fit: cover; /* Asegura que la imagen cubra bien */
+  }
+  
+  /* Contenedor principal del menú lateral */
+  .menucontainer {
+	position: fixed;
+	top: 50px; /* Debe coincidir con la altura de topBar */
+	left: -300px; /* Inicialmente oculto fuera de la pantalla (ajusta el ancho si es necesario) */
+	width: 300px; /* Ancho del menú lateral (ajusta si es necesario) */
+	height: calc(100vh - 50px); /* Ocupa el resto de la altura */
+	background-color: var(--menu-bg-color); /* Variable global */
+	color: var(--menu-text-color); /* Variable global */
+	padding: 20px;
+	box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Sombra para destacar */
+	transition: left 0.3s ease-in-out; /* Animación de deslizamiento */
+	z-index: 999; /* Debajo de topBar */
+	overflow-y: auto; /* Scroll si el contenido es muy largo */
+	box-sizing: border-box;
+  }
+  
+  /* Clase que se añade para mostrar el menú */
+  .mostrar {
+	left: 0; /* Mueve el menú a la vista */
+  }
+  
+  /* Título del menú */
+  .menutitle {
+	font-size: 1.4rem;
+	font-weight: bold;
+	margin-bottom: 25px;
+	color: var(--menu-text-color); /* Variable global */
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--separator-color); /* Línea debajo del título */
+  }
+  
+  /* Elemento individual del menú */
+  .menuitem {
+	display: flex;
+	align-items: center;
+	padding: 12px 10px;
+	margin-bottom: 8px;
+	cursor: pointer;
+	border-radius: 4px;
+	color: var(--menu-text-color); /* Variable global */
+	transition: background-color 0.2s ease;
+  }
+  
+  /* Efecto hover para los elementos del menú */
+  .menuitem:hover {
+	background-color: var(--menu-hover-bg-color); /* Variable global para hover */
+  }
+  
+  /* Contenedor del icono dentro de un elemento del menú */
+  .menuitemicon {
+	margin-right: 15px;
+	display: flex;
+	align-items: center;
+	font-size: 1.2rem; /* Tamaño de los iconos del menú */
+  }
+  
+  /* Separador visual en el menú */
+  .menuseparator {
+	height: 1px;
+	background-color: var(--separator-color); /* Variable global */
+	margin: 15px 0;
+  }
+  
+  /* --- NUEVOS ESTILOS PARA EL MENÚ DESPLEGABLE DE USUARIO --- */
+  
+  /* Contenedor del menú desplegable */
+  .userDropdown {
+	position: absolute;
+	top: 100%; /* Justo debajo del contenedor userInfo */
+	right: 0; /* Alineado a la derecha del contenedor userInfo */
+	background-color: var(--dropdown-bg-color, var(--menu-bg-color)); /* Variable global o fallback */
+	min-width: 180px; /* Ancho mínimo */
+	border-radius: 4px;
+	box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
+	z-index: 1100; /* Encima de la barra superior */
+	margin-top: 8px; /* Pequeño espacio entre el icono y el menú */
+	padding: 8px 0; /* Padding vertical para los items */
+	border: 1px solid var(--separator-color, #cccccc85); /* Borde sutil opcional */
+	/* Animación sutil (opcional) */
+	opacity: 1;
+	transform: translateY(0);
+	transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  
+  /* Estilos para cada item del menú desplegable (links o botones) */
+  .userDropdownItem {
+	display: block; /* Ocupa todo el ancho */
+	padding: 10px 20px; /* Espaciado interno */
+	color: var(--dropdown-text-color, var(--menu-text-color)); /* Variable global */
+	text-decoration: none; /* Quita subrayado de links */
+	background: none; /* Quita fondo de botones */
+	border: none; /* Quita borde de botones */
+	width: 100%; /* Asegura que ocupe todo el ancho */
+	text-align: left; /* Alinea texto a la izquierda */
+	cursor: pointer;
+	font-size: 0.9rem; /* Tamaño de fuente ligeramente menor */
+	white-space: nowrap; /* Evita que el texto se divida en líneas */
+	box-sizing: border-box; /* Asegura que el padding no aumente el ancho */
+	transition: background-color 0.2s ease; /* Transición suave para hover */
+  }
+  
+  /* Efecto hover para los items del menú desplegable */
+  .userDropdownItem:hover {
+	background-color: var(--menu-hover-bg-color); /* Reutiliza variable de hover del menú */
+  }
+  
+  /* Si usas botones, asegúrate que hereden la fuente */
+  .userDropdownItem:is(button) {
+	 font-family: inherit; /* Asegura que los botones usen la misma fuente */
+  }
