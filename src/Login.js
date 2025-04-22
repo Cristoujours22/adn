@@ -1,69 +1,121 @@
-import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
-import { useState } from "react";
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
+import { db } from "./credenciales";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import estilos from "./App.module.css";
 import logo from "./Assets/ADN.png";
-import Recovery from "./recuperar"; // Importa la página de recuperación
+import Recuperar from "./recuperar";
+import Menu from "./menu";
+import Usuario from "./usuario";
 
-function App() {
+function LoginPage() {
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
+  const [mensajeConexion, setMensajeConexion] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Usuario:", usuario, "Contraseña:", contrasena);
+    setMensajeConexion("");
+
+    if (!usuario || !contrasena) {
+      setMensajeConexion("❌ Por favor, ingrese usuario y contraseña");
+      return;
+    }
+
+    try {
+      const usuariosRef = collection(db, "usuarios");
+      const q = query(usuariosRef, where("Usuario", "==", usuario));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        setMensajeConexion("❌ Usuario no encontrado");
+        console.error("Usuario no encontrado en la colección");
+      } else {
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data();
+
+        if (userData.Contraseña === contrasena) {
+          setMensajeConexion("✅ Conexión exitosa");
+          console.log("Inicio de sesión exitoso para:", userData.Usuario);
+          navigate("/menu");
+        } else {
+          setMensajeConexion("❌ Contraseña incorrecta");
+          console.error("Contraseña incorrecta");
+        }
+      }
+    } catch (error) {
+      setMensajeConexion("❌ Error al conectar con Firebase: " + error.message);
+      console.error("Error de conexión o consulta:", error);
+    }
   };
 
   return (
+    <div>
+      <header className={estilos.header}>
+        <div className="logo">
+          <img className={estilos.ADN} src={logo} alt="logo programa" />
+        </div>
+      </header>
+
+      <main className={estilos.main}>
+        <section className={estilos.section} id="Datos">
+          <form onSubmit={handleSubmit}>
+            <input
+              className={estilos.controls}
+              type="text"
+              placeholder="Ingrese usuario"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              required
+            />
+            <input
+              className={estilos.controls}
+              type="password"
+              placeholder="Ingrese contraseña"
+              value={contrasena}
+              onChange={(e) => setContrasena(e.target.value)}
+              required
+            />
+            <button type="submit" className={estilos.butom}>
+              Ingresar
+            </button>
+            <p>
+              <Link to="/recuperar" className="text-blue-500 hover:underline">
+                ¿Olvidaste tus credenciales?
+              </Link>
+            </p>
+
+            {mensajeConexion && (
+              <p
+                className={
+                  mensajeConexion.includes("Error") ||
+                  mensajeConexion.includes("incorrecta") ||
+                  mensajeConexion.includes("encontrado")
+                    ? estilos.error
+                    : estilos.exito
+                }
+              >
+                {mensajeConexion}
+              </p>
+            )}
+          </form>
+        </section>
+      </main>
+
+      <footer className={estilos.footer}></footer>
+    </div>
+  );
+}
+
+function App() {
+  return (
     <Router>
       <Routes>
-        {/* Página de Login */}
-        <Route
-          path="/"
-          element={
-            <div className="">
-              <header className={estilos.header}>
-                <div className="logo">
-                  <img className={estilos.ADN} src={logo} alt="logo programa" />
-                </div>
-              </header>
-
-              <main className={estilos.main}>
-                <section className={estilos.section}>
-                  <input
-                    className={estilos.controls}
-                    type="text"
-                    placeholder="Ingrese usuario"
-                    value={usuario}
-                    onChange={(e) => setUsuario(e.target.value)}
-                  />
-                  <input
-                    className={estilos.controls}
-                    type="password"
-                    placeholder="Ingrese contraseña"
-                    value={contrasena}
-                    onChange={(e) => setContrasena(e.target.value)}
-                  />
-                  <button
-                    className={estilos.butom}
-                    onClick={handleSubmit}
-                  >
-                    Ingresar
-                  </button>
-                  <p>
-                    <Link to="/recuperar" className="text-blue-500 hover:underline">
-                      ¿Olvidaste tus credenciales?
-                    </Link>
-                  </p>
-                </section>
-              </main>
-
-              <footer className={estilos.footer}></footer>
-            </div>
-          }
-        />
-
-        {/* Página de Recuperación */}
-        <Route path="/recuperar" element={<Recovery />} />
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/recuperar" element={<Recuperar />} />
+        <Route path="/menu" element={<Menu />} />
+        <Route path="/usuario" element={<Usuario />} />
       </Routes>
     </Router>
   );
