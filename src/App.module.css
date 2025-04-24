@@ -400,7 +400,7 @@
 	align-items: center;
 	padding: 0 15px; /* Ajustado para altura fija */
 	height: 50px; /* Altura fija para la barra */
-	background-color: #262626ce; /* Considera usar variables CSS */
+	background-color: #ffffff92; /* Considera usar variables CSS */
 	color: var(--header-text-color); /* Variable global */
 	position: fixed;
 	top: 0;

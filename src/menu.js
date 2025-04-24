@@ -65,8 +65,9 @@ const Menu = () => {
     <>
       <header className={estilos.topBar}>
         
-        <button className={estilos.botonHamburguesa} onClick={toggleMenu}>
+        <button className={estilos.botonHamburguesa} onClick={toggleMenu} aria-label="Menu hamburguesa">
           <GiHamburgerMenu />
+          <label></label>
         </button>
         <div className={estilos.logo2}>
           <img className={estilos.ADN1} src={logo} alt="logo programa" />
