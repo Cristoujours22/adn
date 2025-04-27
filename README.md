@@ -31,7 +31,18 @@ ADN es una aplicación desarrollada para ayudar a diseñadores y asesores de ven
 
 ---
 
-## 📦 Instalación
+## Requisitos mínimos
+
+Antes de instalar y correr el proyecto, asegúrate de contar con lo siguiente:
+
+- **Node.js** versión 18.0.0 o superior
+- **NPM** versión 9.0.0 o superior
+- **Navegador** moderno actualizado (se recomienda Google Chrome o Microsoft Edge)
+- **Conexión a Internet** para conectar con Firebase
+- **Sistema operativo**: Windows 10/11, MacOS o una distribución Linux moderna
+- **RAM recomendada**: mínimo 4GB (8GB ideal para desarrollo más fluido)
+
+## Instalación
 
 1. **Clona el repositorio**
 
@@ -51,4 +62,17 @@ npm install
 npm start
 ```
 
+Por defecto, la aplicación se ejecutará en el puerto 3000 y abrirá automáticamente en tu navegador en http://localhost:3000.
 
+Si deseas cambiar el puerto en el que se ejecuta la aplicación, sigue estos pasos:
+
+* **1** Abre el archivo .env en la raíz del proyecto (si no existe, créalo).
+
+* **2** Agrega o modifica la siguiente línea para establecer el puerto que desees:
+
+## Uso
+**Diseñador**: Los diseñadores pueden crear despieces, cargar archivos XML, y editar las piezas con detalles como material, medidas y servicios especiales.
+
+**Vendedor**: Los vendedores pueden ver los despieces, pero no tienen acceso para cargar o editar archivos XML.
+
+**Administrador**: Los administradores pueden gestionar usuarios, ver todos los archivos y despieces, y realizar configuraciones avanzadas de la aplicación.
