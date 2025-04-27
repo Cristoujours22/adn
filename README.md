@@ -13,6 +13,9 @@ ADN es una aplicación desarrollada para ayudar a diseñadores y asesores de ven
 - Visualización de archivos guardados.
 - Conexión segura a Firebase para autenticación y almacenamiento.
 - Interfaz amigable desarrollada con React.
+- **Optimización de corte de tableros**: La aplicación calcula automáticamente cuántos tableros de melamina son necesarios para una lista de piezas dadas, minimizando el desperdicio de material.
+- **Historial de cambios**: Los diseñadores pueden ver los cambios realizados en cada despiece, con detalles sobre el usuario y la fecha.
+- **Seguridad y protección de datos**: El sistema cuenta con niveles de seguridad robustos para proteger tanto los datos personales de los usuarios como los despieces creados.
 
 ---
 
@@ -24,6 +27,7 @@ ADN es una aplicación desarrollada para ayudar a diseñadores y asesores de ven
 - **React Icons**
 - **Google reCAPTCHA**
 - **Webpack & React Scripts**
+- **NPM 11.3.0**
 
 ---
 
@@ -34,3 +38,17 @@ ADN es una aplicación desarrollada para ayudar a diseñadores y asesores de ven
 ```bash
 git clone https://github.com/tu_usuario/adn.git
 cd adn
+```
+
+2. **Instala las dependencias**
+
+```bash
+npm install
+```
+3. **Inicia el servidor de desarrollo**
+
+```bash
+npm start
+```
+
+
