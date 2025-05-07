@@ -400,7 +400,7 @@
 	align-items: center;
 	padding: 0 15px; /* Ajustado para altura fija */
 	height: 50px; /* Altura fija para la barra */
-	background-color: #ffffff92; /* Considera usar variables CSS */
+	background-color: rgba(255, 255, 255, 0.599); /* Fondo blanco transparente para el menú superior */
 	color: var(--header-text-color); /* Variable global */
 	position: fixed;
 	top: 0;
@@ -408,7 +408,8 @@
 	width: 100%;
 	z-index: 1000;
 	box-sizing: border-box;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+	box-shadow: 0 2px 4px rgba(245, 241, 241, 0.1); /* Sombra sutil */
+	border-bottom: 1px solid rgba(0, 0, 0, 0.2); /* Línea inferior para separación */
   }
   
   /* Estilos para el botón de hamburguesa */
@@ -448,9 +449,10 @@
 	left: -300px; /* Inicialmente oculto fuera de la pantalla (ajusta el ancho si es necesario) */
 	width: 300px; /* Ancho del menú lateral (ajusta si es necesario) */
 	height: calc(100vh - 50px); /* Ocupa el resto de la altura */
-	background-color: var(--menu-bg-color); /* Variable global */
+	background-color: rgba(255, 255, 255, 0.59); /* Fondo blanco transparente */
 	color: var(--menu-text-color); /* Variable global */
-	padding: 20px;
+	padding: 10px; /* Espaciado interno */
+	border-radius: 8px; /* Bordes redondeados para un diseño más limpio */
 	box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Sombra para destacar */
 	transition: left 0.3s ease-in-out; /* Animación de deslizamiento */
 	z-index: 999; /* Debajo de topBar */
