@@ -428,9 +428,11 @@
   .userInfo {
 	display: flex;
 	align-items: center;
-	color: var(--header-text-color); /* Variable global */
+	justify-content: flex-end; /* Asegura que el contenido esté alineado a la derecha */
 	position: relative; /* Necesario para posicionar el dropdown */
 	cursor: pointer; /* Indica que es clickeable */
+	margin: 0; /* Elimina márgenes que puedan causar desajustes */
+	padding: 0; /* Elimina padding innecesario */
   }
   
   /* Icono de usuario */
@@ -513,13 +515,13 @@
   .userDropdown {
 	position: absolute;
 	top: 100%; /* Justo debajo del contenedor userInfo */
-	right: 0; /* Alineado a la derecha del contenedor userInfo */
-	background-color: var(--dropdown-bg-color, var(--menu-bg-color)); /* Variable global o fallback */
-	min-width: 180px; /* Ancho mínimo */
-	border-radius: 4px;
+	right: -13px; /* Alineado a la derecha del contenedor userInfo */
+	background-color: rgba(255, 255, 255, 0.59); /* Variable global o fallback */
+	min-width: 160px; /* Ancho mínimo */
+	border-radius: 8px;
 	box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
 	z-index: 1100; /* Encima de la barra superior */
-	margin-top: 8px; /* Pequeño espacio entre el icono y el menú */
+	margin-top: 12px; /* Pequeño espacio entre el icono y el menú */
 	padding: 8px 0; /* Padding vertical para los items */
 	border: 1px solid var(--separator-color, #cccccc85); /* Borde sutil opcional */
 	/* Animación sutil (opcional) */
