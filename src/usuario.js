@@ -8,32 +8,31 @@ import { onAuthStateChanged } from "firebase/auth";
 
 function Usuario() {
   const [userName, setUserName] = useState("Nombre usuario");
+  const [userCargo, setUserCargo] = useState("Cargo usuario"); // <--- Agregamos este estado
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log("Usuario autenticado:", user.uid); // Depuración
-        const fetchUserName = async () => {
+        const fetchUserData = async () => {
           try {
-            const userDocRef = doc(db, "usuarios", "NMrUR1aBvaR0yqndqUfI"); // Usando el ID correcto
-            console.log("Referencia al documento del usuario:", userDocRef.path); // Depuración
+            const userDocRef = doc(db, "usuarios", "NMrUR1aBvaR0yqndqUfI");
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              console.log("Datos del usuario obtenidos de Firestore:", userData); // Depuración
               setUserName(userData.Nombre || "Nombre usuario");
+              setUserCargo(userData.Cargo || "Cargo usuario"); // <--- Aquí leemos el cargo
             } else {
               console.warn("El documento del usuario no existe en Firestore.");
             }
           } catch (error) {
             console.error(
-              "Error al obtener el nombre del usuario desde Firestore:",
+              "Error al obtener los datos del usuario desde Firestore:",
               error
             );
           }
         };
 
-        fetchUserName();
+        fetchUserData();
       } else {
         console.warn("No hay un usuario autenticado.");
       }
@@ -78,7 +77,7 @@ function Usuario() {
               </ul>
               <ul>
                 <li>
-                  <p className={estilos.Textop}>Cargo usuario</p>
+                  <p className={estilos.Textop}>{userCargo}</p> {/* <--- Aquí se muestra */}
                 </li>
               </ul>
               <ul>

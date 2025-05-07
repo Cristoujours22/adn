@@ -4,8 +4,13 @@ import { FaHome, FaSun, FaMoon } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
 import estilos from "./App.module.css";
 import userIcon from "./Assets/usuario.png";
+import { auth, db } from "./credenciales";
+import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+
 
 const Menu = () => {
+  const [userName, setUserName] = useState("Nombre usuario");
   const [mostrarMenu, setMostrarMenu] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -64,7 +69,35 @@ const Menu = () => {
   const claseContenedor = `${estilos.App} ${
     darkMode ? estilos["modo-oscuro"] : ""
   }`;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const fetchUserData = async () => {
+          try {
+            const userDocRef = doc(db, "usuarios", "NMrUR1aBvaR0yqndqUfI");
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setUserName(userData.Nombre || "Nombre usuario");
+            } else {
+              console.warn("El documento del usuario no existe en Firestore.");
+            }
+          } catch (error) {
+            console.error(
+              "Error al obtener los datos del usuario desde Firestore:",
+              error
+            );
+          }
+        };
 
+        fetchUserData();
+      } else {
+        console.warn("No hay un usuario autenticado.");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
   return (
     <div className={claseContenedor}>
       <header className={estilos.topBar}>
@@ -87,8 +120,10 @@ const Menu = () => {
           onClick={toggleUserMenu}
           ref={userInfoRef}
           style={{ cursor: "pointer", position: "relative" }}
+          
         >
-          <span>Usuario</span>
+          
+          <span>{userName}</span>
           <img src={userIcon} alt="Usuario" className={estilos.userIcon} />
           {mostrarUserMenu && (
             <div className={estilos.userDropdown} ref={userMenuRef}>
