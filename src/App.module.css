@@ -556,3 +556,15 @@
   .userDropdownItem:is(button) {
 	 font-family: inherit; /* Asegura que los botones usen la misma fuente */
   }
+
+/* Estilos para el modo noche y modo día */
+.App {
+  transition: background-color 0.3s ease;
+  background-color: white;
+  color: black;
+}
+
+.modo-oscuro {
+  background-color: #222;
+  color: white;
+}
