@@ -568,3 +568,24 @@
   background-color: #222;
   color: white;
 }
+
+/* Estilo para el contenedor del checkbox y su texto */
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centra el checkbox y el texto */
+  gap: 10px; /* Espaciado entre el checkbox y el texto */
+  margin-top: 10px; /* Espaciado superior */
+}
+
+/* Estilo para el checkbox */
+#recordar {
+  margin: 0; /* Elimina márgenes adicionales */
+}
+
+/* Estilo para el label del checkbox */
+label[for="recordar"] {
+  font-size: 14px;
+  color: white; /* Cambiado a blanco */
+  cursor: pointer;
+}

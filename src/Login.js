@@ -9,8 +9,9 @@ import Menu from "./menu";
 import Usuario from "./usuario";
 
 function LoginPage() {
-  const [usuario, setUsuario] = useState("");
-  const [contrasena, setContrasena] = useState("");
+  const [usuario, setUsuario] = useState(() => localStorage.getItem("usuario") || "");
+  const [contrasena, setContrasena] = useState(() => localStorage.getItem("contrasena") || "");
+  const [recordar, setRecordar] = useState(() => localStorage.getItem("recordar") === "true");
   const [mensajeConexion, setMensajeConexion] = useState("");
   const navigate = useNavigate();
 
@@ -38,6 +39,17 @@ function LoginPage() {
         if (userData.Contraseña === contrasena) {
           setMensajeConexion("✅ Conexión exitosa");
           console.log("Inicio de sesión exitoso para:", userData.Usuario);
+
+          if (recordar) {
+            localStorage.setItem("usuario", usuario);
+            localStorage.setItem("contrasena", contrasena);
+            localStorage.setItem("recordar", "true");
+          } else {
+            localStorage.removeItem("usuario");
+            localStorage.removeItem("contrasena");
+            localStorage.removeItem("recordar");
+          }
+
           navigate("/menu");
         } else {
           setMensajeConexion("❌ Contraseña incorrecta");
@@ -77,6 +89,15 @@ function LoginPage() {
               onChange={(e) => setContrasena(e.target.value)}
               required
             />
+            <div>
+              <input
+                type="checkbox"
+                id="recordar"
+                checked={recordar}
+                onChange={(e) => setRecordar(e.target.checked)}
+              />
+              <label htmlFor="recordar">Recordar datos</label>
+            </div>
             <button type="submit" className={estilos.butom}>
               Ingresar
             </button>
