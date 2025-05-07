@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import logo from "./Assets/ADN.png";
 import { Link, useNavigate } from 'react-router-dom';
 import { FaHome, FaSun, FaMoon } from 'react-icons/fa';
-import { BiLogOut } from 'react-icons/bi';
 import { GiHamburgerMenu } from 'react-icons/gi';
 import estilos from "./App.module.css";
 import userIcon from './Assets/usuario.png';
@@ -112,11 +111,6 @@ const Menu = () => {
             {darkMode ? <FaSun /> : <FaMoon />}
           </span>
           {darkMode ? 'Modo Claro' : 'Modo Oscuro'}
-        </div>
-
-        <div className={estilos.menuitem} onClick={handleLogout}>
-          <span className={estilos.menuitemicon}><BiLogOut /></span>
-          Salir
         </div>
       </div>
     </>
