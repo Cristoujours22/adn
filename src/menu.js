@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import logo from "./Assets/ADN.png";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaHome, FaSun, FaMoon } from 'react-icons/fa';
 import { BiLogOut } from 'react-icons/bi';
 import { GiHamburgerMenu } from 'react-icons/gi';
@@ -16,6 +16,7 @@ const Menu = () => {
   const [mostrarUserMenu, setMostrarUserMenu] = useState(false);
   const userMenuRef = useRef(null);
   const userInfoRef = useRef(null);
+  const navigate = useNavigate(); // <-- para redirigir después del logout
 
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
@@ -32,7 +33,9 @@ const Menu = () => {
 
   const handleLogout = () => {
     console.log("Cerrando sesión...");
+    localStorage.removeItem('isAuthenticated'); // <-- quita el auth
     setMostrarUserMenu(false);
+    navigate("/"); // <-- redirige al login o inicio
   };
 
   useEffect(() => {
@@ -64,7 +67,6 @@ const Menu = () => {
   return (
     <>
       <header className={estilos.topBar}>
-        
         <button className={estilos.botonHamburguesa} onClick={toggleMenu} aria-label="Menu hamburguesa">
           <GiHamburgerMenu />
           <label></label>
@@ -73,8 +75,7 @@ const Menu = () => {
           <img className={estilos.ADN1} src={logo} alt="logo programa" />
         </div>
         <div
-          className={estilos.userInfo}
-          onClick={toggleUserMenu}
+          className={estilos.userInfo}          onClick={toggleUserMenu}
           ref={userInfoRef}
           style={{ cursor: 'pointer', position: 'relative' }}
         >
@@ -111,7 +112,7 @@ const Menu = () => {
           </span>
           {darkMode ? 'Modo Claro' : 'Modo Oscuro'}
         </div>
-        <div className={estilos.menuitem}>
+        <div className={estilos.menuitem} onClick={handleLogout} style={{ cursor: 'pointer' }}>
           <span className={estilos.menuitemicon}><BiLogOut /></span>
           Salir
         </div>
