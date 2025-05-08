@@ -589,3 +589,30 @@ label[for="recordar"] {
   color: white; /* Cambiado a blanco */
   cursor: pointer;
 }
+
+/* Agregar estilos para modo oscuro */
+.dark-mode .menucontainer {
+  background-color: #333;
+  opacity: 0.9;
+}
+
+.dark-mode .userDropdown {
+  background-color: #333;
+  opacity: 0.9;
+}
+
+.menucontainerDark {
+  background-color: #222 !important;
+  color: #fff !important;
+  opacity: 0.95;
+}
+.userDropdownDark {
+  background-color: #222 !important;
+  color: #fff !important;
+  opacity: 0.95;
+}
+
+.topBarDark {
+  background-color: #222 !important;
+  color: #fff !important;
+}

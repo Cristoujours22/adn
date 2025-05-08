@@ -15,7 +15,7 @@ function Usuario() {
       if (user) {
         const fetchUserData = async () => {
           try {
-            const userDocRef = doc(db, "usuarios", "NMrUR1aBvaR0yqndqUfI");
+            const userDocRef = doc(db, "usuarios", user.uid);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
               const userData = userDoc.data();
@@ -77,7 +77,8 @@ function Usuario() {
               </ul>
               <ul>
                 <li>
-                  <p className={estilos.Textop}>{userCargo}</p> {/* <--- Aquí se muestra */}
+                  <p className={estilos.Textop}>{userCargo}</p>{" "}
+                  {/* <--- Aquí se muestra */}
                 </li>
               </ul>
               <ul>

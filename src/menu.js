@@ -8,22 +8,30 @@ import { auth, db } from "./credenciales";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
-
 const Menu = () => {
   const [userName, setUserName] = useState("Nombre usuario");
   const [mostrarMenu, setMostrarMenu] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem("darkMode");
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
   const [mostrarUserMenu, setMostrarUserMenu] = useState(false);
   const userMenuRef = useRef(null);
   const userInfoRef = useRef(null);
   const navigate = useNavigate();
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
 
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
     setMostrarUserMenu(false);
+  };
+
+  const toggleUserMenu = () => {
+    setMostrarUserMenu((prev) => !prev);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated");
+    navigate("/");
   };
 
   const toggleDarkMode = () => {
@@ -37,15 +45,6 @@ const Menu = () => {
       }
       return newMode;
     });
-  };
-
-  const toggleUserMenu = () => {
-    setMostrarUserMenu((prev) => !prev);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    navigate("/");
   };
 
   useEffect(() => {
@@ -66,9 +65,8 @@ const Menu = () => {
     };
   }, [mostrarUserMenu]);
 
-  const claseContenedor = `${estilos.App} ${
-    darkMode ? estilos["modo-oscuro"] : ""
-  }`;
+  const claseContenedor = estilos.App;
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -100,7 +98,7 @@ const Menu = () => {
   }, []);
   return (
     <div className={claseContenedor}>
-      <header className={estilos.topBar}>
+      <header className={`${estilos.topBar} ${darkMode ? estilos.topBarDark : ""}`}>
         <button
           className={estilos.botonHamburguesa}
           onClick={toggleMenu}
@@ -120,13 +118,11 @@ const Menu = () => {
           onClick={toggleUserMenu}
           ref={userInfoRef}
           style={{ cursor: "pointer", position: "relative" }}
-          
         >
-          
           <span>{userName}</span>
           <img src={userIcon} alt="Usuario" className={estilos.userIcon} />
           {mostrarUserMenu && (
-            <div className={estilos.userDropdown} ref={userMenuRef}>
+            <div className={`${estilos.userDropdown} ${darkMode ? estilos.userDropdownDark : ""}`} ref={userMenuRef}>
               <Link
                 to="/usuario"
                 className={estilos.userDropdownItem}
@@ -146,9 +142,9 @@ const Menu = () => {
       </header>
 
       <div
-        className={`${estilos.menucontainer} ${
-          mostrarMenu ? estilos.mostrar : ""
-        }`}
+        className={
+          `${estilos.menucontainer} ${mostrarMenu ? estilos.mostrar : ""} ${darkMode ? estilos.menucontainerDark : ""}`
+        }
       >
         <h2 className={estilos.menutitle}>Menú Principal</h2>
         <div className={estilos.menuitem}>
