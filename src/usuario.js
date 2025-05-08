@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import logo from "./Assets/ADN.png";
 import img from "./Assets/FotoPerfil.jpeg";
 import estilos from "./App.module.css";
 import { auth, db } from "./credenciales";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import Menu from "./menu";
 
 function Usuario() {
   const [userName, setUserName] = useState("Nombre usuario");
@@ -42,18 +42,11 @@ function Usuario() {
   }, []);
 
   return (
-    <div>
-      <header className={estilos.header1}>
-        <div className={estilos.logo}>
-          <img className={estilos.ADN1} src={logo} alt="logo programa" />
-        </div>
-      </header>
-
-      <nav className={estilos.nav1}></nav>
-
-      <main className={estilos.main1}>
-        <section className={estilos.section2}>
-          <div className={estilos.ContenedorFoto}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <Menu />
+      <main style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <section className={estilos.section2} style={{ margin: 0 }}>
+          <div className={estilos.ContenedorFoto} style={{ justifyContent: "center", width: "100%" }}>
             <img
               className={estilos.FotoPerfil}
               src={img}
@@ -77,8 +70,7 @@ function Usuario() {
               </ul>
               <ul>
                 <li>
-                  <p className={estilos.Textop}>{userCargo}</p>{" "}
-                  {/* <--- Aquí se muestra */}
+                  <p className={estilos.Textop}>{userCargo}</p>
                 </li>
               </ul>
               <ul>
