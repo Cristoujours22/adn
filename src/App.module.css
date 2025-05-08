@@ -487,6 +487,7 @@
 	border-radius: 4px;
 	color: var(--menu-text-color); /* Variable global */
 	transition: background-color 0.2s ease;
+	text-decoration: none; /* Quitar subrayado a los links */
   }
   
   /* Efecto hover para los elementos del menú */
