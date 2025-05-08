@@ -123,13 +123,15 @@ const Menu = () => {
           <img src={userIcon} alt="Usuario" className={estilos.userIcon} />
           {mostrarUserMenu && (
             <div className={`${estilos.userDropdown} ${darkMode ? estilos.userDropdownDark : ""}`} ref={userMenuRef}>
-              <Link
-                to="/usuario"
-                className={estilos.userDropdownItem}
-                onClick={() => setMostrarUserMenu(false)}
-              >
-                Perfil
-              </Link>
+              {window.location.pathname !== "/usuario" && (
+                <Link
+                  to="/usuario"
+                  className={estilos.userDropdownItem}
+                  onClick={() => setMostrarUserMenu(false)}
+                >
+                  Perfil
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className={estilos.userDropdownItem}
@@ -147,12 +149,14 @@ const Menu = () => {
         }
       >
         <h2 className={estilos.menutitle}>Menú Principal</h2>
-        <div className={estilos.menuitem}>
-          <span className={estilos.menuitemicon}>
-            <FaHome />
-          </span>
-          Inicio
-        </div>
+        {window.location.pathname === "/usuario" && (
+          <Link to="/menu" className={estilos.menuitem}>
+            <span className={estilos.menuitemicon}>
+              <FaHome />
+            </span>
+            Inicio
+          </Link>
+        )}
         <div
           className={estilos.menuitem}
           onClick={toggleDarkMode}
