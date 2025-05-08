@@ -143,10 +143,11 @@ const Menu = () => {
         </div>
       </header>
 
-      <div
+      <nav
         className={
           `${estilos.menucontainer} ${mostrarMenu ? estilos.mostrar : ""} ${darkMode ? estilos.menucontainerDark : ""}`
         }
+        aria-label="Menú lateral"
       >
         <h2 className={estilos.menutitle}>Menú Principal</h2>
         {window.location.pathname === "/usuario" && (
@@ -167,7 +168,7 @@ const Menu = () => {
           </span>
           {darkMode ? "Modo Claro" : "Modo Oscuro"}
         </div>
-      </div>
+      </nav>
     </div>
   );
 };

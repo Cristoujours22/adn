@@ -9,10 +9,12 @@ import Menu from "./menu";
 function Usuario() {
   const [userName, setUserName] = useState("Nombre usuario");
   const [userCargo, setUserCargo] = useState("Cargo usuario"); // <--- Agregamos este estado
+  const [fechaCreacion, setFechaCreacion] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        setFechaCreacion(user.metadata.creationTime);
         const fetchUserData = async () => {
           try {
             const userDocRef = doc(db, "usuarios", user.uid);
@@ -20,7 +22,7 @@ function Usuario() {
             if (userDoc.exists()) {
               const userData = userDoc.data();
               setUserName(userData.Nombre || "Nombre usuario");
-              setUserCargo(userData.Cargo || "Cargo usuario"); // <--- Aquí leemos el cargo
+              setUserCargo(userData.Cargo || "Cargo usuario");
             } else {
               console.warn("El documento del usuario no existe en Firestore.");
             }
@@ -31,7 +33,6 @@ function Usuario() {
             );
           }
         };
-
         fetchUserData();
       } else {
         console.warn("No hay un usuario autenticado.");
@@ -80,7 +81,7 @@ function Usuario() {
               </ul>
               <ul>
                 <li>
-                  <p className={estilos.Textop}>12/04/2024</p>
+                  <p className={estilos.Textop}>{fechaCreacion ? new Date(fechaCreacion).toLocaleDateString() : "No disponible"}</p>
                 </li>
               </ul>
             </div>

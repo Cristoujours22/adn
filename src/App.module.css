@@ -617,3 +617,7 @@ label[for="recordar"] {
   background-color: #222 !important;
   color: #fff !important;
 }
+
+.headerDark {
+  background-color: #333; /* Color de fondo para modo oscuro */
+}
