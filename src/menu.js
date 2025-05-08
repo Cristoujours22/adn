@@ -6,7 +6,7 @@ import estilos from "./App.module.css";
 import userIcon from "./Assets/usuario.png";
 import { auth, db } from "./credenciales";
 import { doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const Menu = () => {
   const [userName, setUserName] = useState("Nombre usuario");
@@ -29,9 +29,9 @@ const Menu = () => {
     setMostrarUserMenu((prev) => !prev);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    navigate("/");
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate("/login");
   };
 
   const toggleDarkMode = () => {

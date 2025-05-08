@@ -1,12 +1,10 @@
 import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
-import { db } from "./credenciales";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { Link, useNavigate, Navigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "./credenciales";
 import estilos from "./App.module.css";
 import logo from "./Assets/ADN.png";
-import Recuperar from "./recuperar";
-import Menu from "./menu";
-import Usuario from "./usuario";
+import { useAuth } from "./authContext";
 
 function LoginPage() {
   const [usuario, setUsuario] = useState(() => localStorage.getItem("usuario") || "");
@@ -14,6 +12,9 @@ function LoginPage() {
   const [recordar, setRecordar] = useState(() => localStorage.getItem("recordar") === "true");
   const [mensajeConexion, setMensajeConexion] = useState("");
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
+  if (currentUser) return <Navigate to="/menu" />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,40 +26,26 @@ function LoginPage() {
     }
 
     try {
-      const usuariosRef = collection(db, "usuarios");
-      const q = query(usuariosRef, where("Usuario", "==", usuario));
-      const querySnapshot = await getDocs(q);
+      // Autenticación con Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, usuario, contrasena);
+      const user = userCredential.user;
+      setMensajeConexion("✅ Conexión exitosa");
+      console.log("Inicio de sesión exitoso para:", user.email);
 
-      if (querySnapshot.empty) {
-        setMensajeConexion("❌ Usuario no encontrado");
-        console.error("Usuario no encontrado en la colección");
+      if (recordar) {
+        localStorage.setItem("usuario", usuario);
+        localStorage.setItem("contrasena", contrasena);
+        localStorage.setItem("recordar", "true");
       } else {
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
-
-        if (userData.Contraseña === contrasena) {
-          setMensajeConexion("✅ Conexión exitosa");
-          console.log("Inicio de sesión exitoso para:", userData.Usuario);
-
-          if (recordar) {
-            localStorage.setItem("usuario", usuario);
-            localStorage.setItem("contrasena", contrasena);
-            localStorage.setItem("recordar", "true");
-          } else {
-            localStorage.removeItem("usuario");
-            localStorage.removeItem("contrasena");
-            localStorage.removeItem("recordar");
-          }
-
-          navigate("/menu");
-        } else {
-          setMensajeConexion("❌ Contraseña incorrecta");
-          console.error("Contraseña incorrecta");
-        }
+        localStorage.removeItem("usuario");
+        localStorage.removeItem("contrasena");
+        localStorage.removeItem("recordar");
       }
+
+      navigate("/menu");
     } catch (error) {
-      setMensajeConexion("❌ Error al conectar con Firebase: " + error.message);
-      console.error("Error de conexión o consulta:", error);
+      setMensajeConexion("❌ Usuario o contraseña incorrectos");
+      console.error("Error de autenticación:", error);
     }
   };
 
@@ -72,14 +59,16 @@ function LoginPage() {
 
       <main className={estilos.main}>
         <section className={estilos.section} id="Datos">
+          <h1>Iniciar sesión</h1>
           <form onSubmit={handleSubmit}>
             <input
               className={estilos.controls}
-              type="text"
-              placeholder="Ingrese usuario"
+              type="email"
+              placeholder="Ingrese correo electrónico"
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
+              autoComplete="username"
             />
             <input
               className={estilos.controls}
@@ -88,6 +77,7 @@ function LoginPage() {
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
               required
+              autoComplete="current-password"
             />
             <div>
               <input
@@ -129,17 +119,4 @@ function LoginPage() {
   );
 }
 
-function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/recuperar" element={<Recuperar />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/usuario" element={<Usuario />} />
-      </Routes>
-    </Router>
-  );
-}
-
-export default App;
+export default LoginPage;
