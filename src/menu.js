@@ -30,8 +30,20 @@ const Menu = () => {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    navigate("/login");
+    try {
+      // Limpiar datos locales
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("contrasena");
+      localStorage.removeItem("recordar");
+      
+      // Cerrar sesión en Firebase
+      await signOut(auth);
+      
+      // Redirigir al login
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
   const toggleDarkMode = () => {
@@ -72,25 +84,18 @@ const Menu = () => {
       if (user) {
         const fetchUserData = async () => {
           try {
-            const userDocRef = doc(db, "usuarios", "NMrUR1aBvaR0yqndqUfI");
+            const userDocRef = doc(db, "usuarios", user.uid);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
               const userData = userDoc.data();
               setUserName(userData.Nombre || "Nombre usuario");
-            } else {
-              console.warn("El documento del usuario no existe en Firestore.");
             }
           } catch (error) {
-            console.error(
-              "Error al obtener los datos del usuario desde Firestore:",
-              error
-            );
+            console.error("Error al obtener los datos del usuario:", error);
           }
         };
 
         fetchUserData();
-      } else {
-        console.warn("No hay un usuario autenticado.");
       }
     });
 
@@ -124,13 +129,13 @@ const Menu = () => {
           {mostrarUserMenu && (
             <div className={`${estilos.userDropdown} ${darkMode ? estilos.userDropdownDark : ""}`} ref={userMenuRef}>
               {window.location.pathname !== "/usuario" && (
-                <Link
-                  to="/usuario"
-                  className={estilos.userDropdownItem}
-                  onClick={() => setMostrarUserMenu(false)}
-                >
-                  Perfil
-                </Link>
+              <Link
+                to="/usuario"
+                className={estilos.userDropdownItem}
+                onClick={() => setMostrarUserMenu(false)}
+              >
+                Perfil
+              </Link>
               )}
               <button
                 onClick={handleLogout}
@@ -152,10 +157,10 @@ const Menu = () => {
         <h2 className={estilos.menutitle}>Menú Principal</h2>
         {window.location.pathname === "/usuario" && (
           <Link to="/menu" className={estilos.menuitem}>
-            <span className={estilos.menuitemicon}>
-              <FaHome />
-            </span>
-            Inicio
+          <span className={estilos.menuitemicon}>
+            <FaHome />
+          </span>
+          Inicio
           </Link>
         )}
         <div

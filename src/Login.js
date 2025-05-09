@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./credenciales";
 import estilos from "./App.module.css";
@@ -12,9 +12,13 @@ function LoginPage() {
   const [recordar, setRecordar] = useState(() => localStorage.getItem("recordar") === "true");
   const [mensajeConexion, setMensajeConexion] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useAuth();
 
-  if (currentUser) return <Navigate to="/menu" />;
+  if (currentUser) {
+    const from = location.state?.from?.pathname || "/menu";
+    return <Navigate to={from} replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,10 +46,26 @@ function LoginPage() {
         localStorage.removeItem("recordar");
       }
 
-      navigate("/menu");
+      const from = location.state?.from?.pathname || "/menu";
+      navigate(from, { replace: true });
     } catch (error) {
-      setMensajeConexion("❌ Usuario o contraseña incorrectos");
       console.error("Error de autenticación:", error);
+      switch (error.code) {
+        case 'auth/invalid-email':
+          setMensajeConexion("❌ El correo electrónico no es válido");
+          break;
+        case 'auth/user-disabled':
+          setMensajeConexion("❌ Esta cuenta ha sido deshabilitada");
+          break;
+        case 'auth/user-not-found':
+          setMensajeConexion("❌ No existe una cuenta con este correo");
+          break;
+        case 'auth/wrong-password':
+          setMensajeConexion("❌ Contraseña incorrecta");
+          break;
+        default:
+          setMensajeConexion("❌ Error al iniciar sesión. Por favor, intente nuevamente");
+      }
     }
   };
 
@@ -64,6 +84,8 @@ function LoginPage() {
             <input
               className={estilos.controls}
               type="email"
+              id="email"
+              name="email"
               placeholder="Ingrese correo electrónico"
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
@@ -73,6 +95,8 @@ function LoginPage() {
             <input
               className={estilos.controls}
               type="password"
+              id="password"
+              name="password"
               placeholder="Ingrese contraseña"
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
@@ -83,12 +107,13 @@ function LoginPage() {
               <input
                 type="checkbox"
                 id="recordar"
+                name="recordar"
                 checked={recordar}
                 onChange={(e) => setRecordar(e.target.checked)}
               />
               <label htmlFor="recordar">Recordar datos</label>
             </div>
-            <button type="submit" className={estilos.butom}>
+            <button type="submit" className={estilos.butom} id="submit" name="submit">
               Ingresar
             </button>
             <p>

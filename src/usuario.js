@@ -1,46 +1,46 @@
 import React, { useEffect, useState } from "react";
 import img from "./Assets/FotoPerfil.jpeg";
 import estilos from "./App.module.css";
-import { auth, db } from "./credenciales";
+import { db } from "./credenciales";
 import { doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { useAuth } from "./authContext";
 import Menu from "./menu";
 
 function Usuario() {
   const [userName, setUserName] = useState("Nombre usuario");
-  const [userCargo, setUserCargo] = useState("Cargo usuario"); // <--- Agregamos este estado
+  const [userCargo, setUserCargo] = useState("Cargo usuario");
   const [fechaCreacion, setFechaCreacion] = useState("");
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setFechaCreacion(user.metadata.creationTime);
-        const fetchUserData = async () => {
-          try {
-            const userDocRef = doc(db, "usuarios", user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              setUserName(userData.Nombre || "Nombre usuario");
-              setUserCargo(userData.Cargo || "Cargo usuario");
-            } else {
-              console.warn("El documento del usuario no existe en Firestore.");
-            }
-          } catch (error) {
-            console.error(
-              "Error al obtener los datos del usuario desde Firestore:",
-              error
-            );
+    const fetchUserData = async () => {
+      if (currentUser) {
+        setFechaCreacion(currentUser.metadata.creationTime);
+        try {
+          const userDocRef = doc(db, "usuarios", currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserName(userData.Nombre || "Nombre usuario");
+            setUserCargo(userData.Cargo || "Cargo usuario");
+          } else {
+            console.warn("El documento del usuario no existe en Firestore.");
           }
-        };
-        fetchUserData();
-      } else {
-        console.warn("No hay un usuario autenticado.");
+        } catch (error) {
+          console.error(
+            "Error al obtener los datos del usuario desde Firestore:",
+            error
+          );
+        }
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    fetchUserData();
+  }, [currentUser]);
+
+  if (!currentUser) {
+    return null;
+  }
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
