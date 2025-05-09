@@ -2,17 +2,19 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Menu from './menu';
 import Usuario from './usuario';
-import Login from './Login';
+import LoginPage from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './authContext';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/">
         <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/recuperar" element={<div>Página de recuperación en construcción</div>} />
+          
           <Route
             path="/menu"
             element={
@@ -29,6 +31,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

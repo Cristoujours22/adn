@@ -10,18 +10,44 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
-      setCurrentUser(user);
-    });
+    let mounted = true;
 
-    return unsubscribe;
+    const unsubscribe = onAuthStateChanged(auth, 
+      (user) => {
+        if (mounted) {
+          setCurrentUser(user);
+          setLoading(false);
+          setError(null);
+        }
+      },
+      (error) => {
+        if (mounted) {
+          console.error("Error de autenticación:", error);
+          setError(error);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const value = {
-    currentUser
+    currentUser,
+    loading,
+    error
   };
+
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
 
   return (
     <AuthContext.Provider value={value}>
