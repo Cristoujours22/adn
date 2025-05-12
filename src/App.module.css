@@ -487,7 +487,6 @@
 	border-radius: 4px;
 	color: var(--menu-text-color); /* Variable global */
 	transition: background-color 0.2s ease;
-	text-decoration: none; /* Quitar subrayado a los links */
   }
   
   /* Efecto hover para los elementos del menú */
@@ -557,67 +556,3 @@
   .userDropdownItem:is(button) {
 	 font-family: inherit; /* Asegura que los botones usen la misma fuente */
   }
-
-/* Estilos para el modo noche y modo día */
-.App {
-  transition: background-color 0.3s ease;
-  background-color: white;
-  color: black;
-}
-
-.modo-oscuro {
-  background-color: #222;
-  color: white;
-}
-
-/* Estilo para el contenedor del checkbox y su texto */
-.checkbox-container {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* Centra el checkbox y el texto */
-  gap: 10px; /* Espaciado entre el checkbox y el texto */
-  margin-top: 10px; /* Espaciado superior */
-}
-
-/* Estilo para el checkbox */
-#recordar {
-  margin: 0; /* Elimina márgenes adicionales */
-}
-
-/* Estilo para el label del checkbox */
-label[for="recordar"] {
-  font-size: 14px;
-  color: white; /* Cambiado a blanco */
-  cursor: pointer;
-}
-
-/* Agregar estilos para modo oscuro */
-.dark-mode .menucontainer {
-  background-color: #333;
-  opacity: 0.9;
-}
-
-.dark-mode .userDropdown {
-  background-color: #333;
-  opacity: 0.9;
-}
-
-.menucontainerDark {
-  background-color: #222 !important;
-  color: #fff !important;
-  opacity: 0.95;
-}
-.userDropdownDark {
-  background-color: #222 !important;
-  color: #fff !important;
-  opacity: 0.95;
-}
-
-.topBarDark {
-  background-color: #222 !important;
-  color: #fff !important;
-}
-
-.headerDark {
-  background-color: #333; /* Color de fondo para modo oscuro */
-}
