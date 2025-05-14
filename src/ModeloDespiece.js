@@ -15,13 +15,6 @@ const ModeloDespiece = () => {
   const [clientName, setClientName] = useState('');
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
 
-  const handleAddRow = useCallback(() => {
-    setRows((prevRows) => {
-      const newRow = createNewRow();
-      return [...prevRows, newRow];
-    });
-  }, []);
-
   const handleInputChange = useCallback((index, field, value) => {
     setRows((prevRows) => {
       const newRows = [...prevRows];
@@ -38,18 +31,6 @@ const ModeloDespiece = () => {
     e.preventDefault();
     handleSaveToFirestore();
   };
-
-  const handleKeyDown = useCallback((e, index, field) => {
-    if (e.key === 'Enter') {
-      const isLastField = field === 'a2';
-      const isLastRow = index === rows.length - 1;
-
-      if (isLastField && isLastRow) {
-        e.preventDefault(); // Prevent default form submission behavior
-        handleAddRow();
-      }
-    }
-  }, [rows, handleAddRow]);
 
   const handlePaste = useCallback((e) => {
     e.preventDefault();
@@ -103,6 +84,38 @@ const ModeloDespiece = () => {
     setLastModifiedDate(new Date().toLocaleDateString());
   };
 
+  const handleArrowNavigation = useCallback((e, index, field) => {
+    const focusField = (rowIndex, fieldName) => {
+      const nextInput = document.getElementById(`${fieldName}-${rowIndex}`);
+      if (nextInput) nextInput.focus();
+    };
+
+    switch (e.key) {
+      case 'ArrowUp':
+        if (index > 0) focusField(index - 1, field);
+        break;
+      case 'ArrowDown':
+        if (index < rows.length - 1) focusField(index + 1, field);
+        break;
+      case 'ArrowLeft':
+        if (field !== 'cant') {
+          const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+          const currentIndex = fields.indexOf(field);
+          focusField(index, fields[currentIndex - 1]);
+        }
+        break;
+      case 'ArrowRight':
+        if (field !== 'a2') {
+          const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+          const currentIndex = fields.indexOf(field);
+          focusField(index, fields[currentIndex + 1]);
+        }
+        break;
+      default:
+        break;
+    }
+  }, [rows]);
+
   return (
     <div className={estilos.modeloDespieceContainer} style={{ marginTop: '50px' }}>
       <Menu />
@@ -152,6 +165,7 @@ const ModeloDespiece = () => {
                   id={`cant-${index}`}
                   value={row.cant}
                   onChange={(e) => handleInputChange(index, 'cant', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'cant')}
                   required
                 />
               </div>
@@ -163,6 +177,7 @@ const ModeloDespiece = () => {
                   id={`largo-${index}`}
                   value={row.largo}
                   onChange={(e) => handleInputChange(index, 'largo', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'largo')}
                   required
                 />
               </div>
@@ -174,6 +189,7 @@ const ModeloDespiece = () => {
                   id={`ancho-${index}`}
                   value={row.ancho}
                   onChange={(e) => handleInputChange(index, 'ancho', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'ancho')}
                   required
                 />
               </div>
@@ -185,6 +201,7 @@ const ModeloDespiece = () => {
                   id={`detalle-${index}`}
                   value={row.detalle}
                   onChange={(e) => handleInputChange(index, 'detalle', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'detalle')}
                   required
                 />
               </div>
@@ -196,6 +213,7 @@ const ModeloDespiece = () => {
                   id={`rotar-${index}`}
                   value={row.rotar}
                   onChange={(e) => handleInputChange(index, 'rotar', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'rotar')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -206,6 +224,7 @@ const ModeloDespiece = () => {
                   id={`l1-${index}`}
                   value={row.l1}
                   onChange={(e) => handleInputChange(index, 'l1', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'l1')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -216,6 +235,7 @@ const ModeloDespiece = () => {
                   id={`l2-${index}`}
                   value={row.l2}
                   onChange={(e) => handleInputChange(index, 'l2', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'l2')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -226,6 +246,7 @@ const ModeloDespiece = () => {
                   id={`a1-${index}`}
                   value={row.a1}
                   onChange={(e) => handleInputChange(index, 'a1', e.target.value)}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'a1')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -236,7 +257,7 @@ const ModeloDespiece = () => {
                   id={`a2-${index}`}
                   value={row.a2}
                   onChange={(e) => handleInputChange(index, 'a2', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'a2')}
+                  onKeyDown={(e) => handleArrowNavigation(e, index, 'a2')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
