@@ -72,15 +72,26 @@ const ModeloDespiece = () => {
   }, []);
 
   const handleSaveToFirestore = async () => {
+    if (rows.length === 0) {
+        alert('No hay datos para guardar. Por favor, agrega al menos una fila.');
+        return;
+    }
+
+    console.log('Datos a guardar en Firestore:', rows);
+
     try {
-      const despiecesCollection = collection(db, 'despieces');
-      for (const row of rows) {
-        await addDoc(despiecesCollection, row);
-      }
-      alert('Despieces guardados exitosamente en Firestore.');
+        const despiecesCollection = collection(db, 'despieces');
+        for (const row of rows) {
+            console.log('Guardando fila:', row);
+            const startTime = performance.now();
+            await addDoc(despiecesCollection, row);
+            const endTime = performance.now();
+            console.log(`Fila guardada exitosamente: ${row.id}. Tiempo: ${(endTime - startTime).toFixed(2)} ms`);
+        }
+        alert('Despieces guardados exitosamente en Firestore.');
     } catch (error) {
-      console.error('Error al guardar en Firestore:', error);
-      alert('Hubo un error al guardar los despieces.');
+        console.error('Error al guardar en Firestore:', error.message, error.stack);
+        alert('Hubo un error al guardar los despieces. Revisa la consola para más detalles.');
     }
   };
 
@@ -340,7 +351,7 @@ const ModeloDespiece = () => {
         </div>
       </form>
       <footer className={estilos.footerDespiece}>
-        <button type="submit" form="formularioDespiece" className={estilos.botonSubmit}>
+        <button onClick={handleSaveToFirestore} className={estilos.botonSubmit}>
           Guardar Despiece
         </button>
         <button className={estilos.botonCopiar} onClick={handleCopyDespiece}>Copiar Despiece</button>
