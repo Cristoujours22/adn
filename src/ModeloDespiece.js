@@ -53,11 +53,21 @@ const ModeloDespiece = () => {
       };
     });
 
-    setRows((prevRows) => {
-      if (prevRows.length === 1 && !prevRows[0].cant && !prevRows[0].largo) {
-        return newRows;
-      }
-      return [...prevRows, ...newRows];
+    setRows(() => {
+      const uniqueRows = newRows.filter((row, index, self) =>
+        index === self.findIndex((r) =>
+          r.cant === row.cant &&
+          r.largo === row.largo &&
+          r.ancho === row.ancho &&
+          r.detalle === row.detalle &&
+          r.rotar === row.rotar &&
+          r.l1 === row.l1 &&
+          r.l2 === row.l2 &&
+          r.a1 === row.a1 &&
+          r.a2 === row.a2
+        )
+      );
+      return uniqueRows;
     });
   }, []);
 
@@ -116,6 +126,34 @@ const ModeloDespiece = () => {
     }
   }, [rows]);
 
+  const handleKeyDown = useCallback((e, index, field) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Evita el comportamiento predeterminado del Enter
+      const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+      const currentIndex = fields.indexOf(field);
+
+      if (currentIndex < fields.length - 1) {
+        // Mover al siguiente campo en la misma fila
+        const nextField = fields[currentIndex + 1];
+        const nextInput = document.getElementById(`${nextField}-${index}`);
+        if (nextInput) nextInput.focus();
+      } else if (index < rows.length - 1) {
+        // Mover al primer campo de la siguiente fila
+        const nextInput = document.getElementById(`cant-${index + 1}`);
+        if (nextInput) nextInput.focus();
+      } else {
+        // Agregar una nueva fila y mover al primer campo de esa fila
+        setRows((prevRows) => [...prevRows, createNewRow()]);
+        setTimeout(() => {
+          const nextInput = document.getElementById(`cant-${rows.length}`);
+          if (nextInput) nextInput.focus();
+        }, 0);
+      }
+    } else {
+      handleArrowNavigation(e, index, field);
+    }
+  }, [rows, handleArrowNavigation]);
+
   return (
     <div className={estilos.modeloDespieceContainer} style={{ marginTop: '50px' }}>
       <Menu />
@@ -165,7 +203,7 @@ const ModeloDespiece = () => {
                   id={`cant-${index}`}
                   value={row.cant}
                   onChange={(e) => handleInputChange(index, 'cant', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'cant')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'cant')}
                   required
                 />
               </div>
@@ -177,7 +215,7 @@ const ModeloDespiece = () => {
                   id={`largo-${index}`}
                   value={row.largo}
                   onChange={(e) => handleInputChange(index, 'largo', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'largo')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'largo')}
                   required
                 />
               </div>
@@ -189,7 +227,7 @@ const ModeloDespiece = () => {
                   id={`ancho-${index}`}
                   value={row.ancho}
                   onChange={(e) => handleInputChange(index, 'ancho', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'ancho')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'ancho')}
                   required
                 />
               </div>
@@ -201,7 +239,7 @@ const ModeloDespiece = () => {
                   id={`detalle-${index}`}
                   value={row.detalle}
                   onChange={(e) => handleInputChange(index, 'detalle', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'detalle')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'detalle')}
                   required
                 />
               </div>
@@ -213,7 +251,7 @@ const ModeloDespiece = () => {
                   id={`rotar-${index}`}
                   value={row.rotar}
                   onChange={(e) => handleInputChange(index, 'rotar', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'rotar')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'rotar')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -224,7 +262,7 @@ const ModeloDespiece = () => {
                   id={`l1-${index}`}
                   value={row.l1}
                   onChange={(e) => handleInputChange(index, 'l1', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'l1')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'l1')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -235,7 +273,7 @@ const ModeloDespiece = () => {
                   id={`l2-${index}`}
                   value={row.l2}
                   onChange={(e) => handleInputChange(index, 'l2', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'l2')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'l2')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -246,7 +284,7 @@ const ModeloDespiece = () => {
                   id={`a1-${index}`}
                   value={row.a1}
                   onChange={(e) => handleInputChange(index, 'a1', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'a1')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'a1')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
@@ -257,7 +295,7 @@ const ModeloDespiece = () => {
                   id={`a2-${index}`}
                   value={row.a2}
                   onChange={(e) => handleInputChange(index, 'a2', e.target.value)}
-                  onKeyDown={(e) => handleArrowNavigation(e, index, 'a2')}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'a2')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
