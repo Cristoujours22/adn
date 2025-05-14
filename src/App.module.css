@@ -846,3 +846,15 @@ label {
 .botonSubmit:hover {
   background-color: #19692c; /* Adjusted hover color for contrast */
 }
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Para navegadores basados en Firefox */
+  -webkit-appearance: none; /* Para navegadores basados en WebKit */
+  appearance: none; /* Estándar */
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none; /* Eliminar flechas en navegadores WebKit */
+  margin: 0; /* Ajustar márgenes */
+}
