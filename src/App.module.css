@@ -2,557 +2,847 @@
 
 /* Estilos Globales y de otras páginas (proporcionados por ti) */
 * {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
-  }
-  
-  body {
-	background-image: url(Assets/Fondo.jpg); /* Considera usar variables CSS para esto si quieres que cambie con el tema */
-	background-size: 100%;
-	/* Asegúrate que los estilos base del body y padding-top estén en index.css/App.css global */
-  }
-  
-  .header {
-	/*  background-color: aliceblue;*/
-	align-content: center;
-	align-items: end;
-	justify-content: center;
-	display: flex;
-	width: 100%;
-	height: 250px;
-  }
-  .ADN {
-	width: 400px;
-	align-content: center;
-  }
-  
-  .nav {
-	/*  background:#090808;*/
-	width: 100%;
-	height: 5px;
-  }
-  
-  .main {
-	/*background:#FE0004;*/
-	width: 100%;
-	height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
-	display: flex;
-	justify-content: center;
-	align-items: center;
-  }
-  
-  .section {
-	width: 400px;
-	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
-	padding: 30px;
-	margin: auto;
-	border-radius: 10px;
-	font-family: 'calibri';
-  }
-  
-  .section p {
-	margin: 20px;
-	text-align: center;
-	color: white; /* Asumiendo texto blanco sobre fondo oscuro */
-  }
-  .controls {
-	/*controls w-full p-2 mb-3 border border-gray-300 rounded*/
-	width: 100%;
-	padding: 10px;
-	border-radius: 4px;
-	margin-bottom: 16px;
-	font-family: 'calibri';
-	font-size: 18px;
-	/* Considera colores de borde/fondo/texto con variables CSS */
-  }
-  
-  .butom {
-	background: #313131; /* Considera usar variables CSS */
-	letter-spacing: 1px;
-	color: white; /* Considera usar variables CSS */
-	width: 100%;
-	padding: 12px;
-	margin: 16px 0;
-	font-family: 'calibri';
-	font-size: 18px;
-	border: 1px solid #000000;
-	cursor: pointer;
-	box-shadow: inset 0 0 0 0 #fe0004;
-	-webkit-transition: ease-out 0.4s;
-	-moz-transition: ease-out 0.4s;
-	transition: ease-out 0.4s;
-  }
-  
-  .butom:hover {
-	box-shadow: inset 400px 0 0 0 #fe0004;
-	color: #313131;
-  }
-  
-  .footer {
-	align-items: center;
-	justify-content: center;
-	display: flex;
-	/*  background:#FF00D9;*/
-	width: 100%;
-	height: 100px;
-  }
-  
-  /*Pagina Recuperacion de contraseña     <-------------------------*/
-  
-  .header1 {
-	background-color: #262626; /* Considera usar variables CSS */
-	align-items: flex-start;
-	justify-content: center;
-	display: flex;
-	width: 100%;
-	height: 150px;
-  }
-  
-  .ADN1 {
-	width: 350px;
-  }
-  .nav1 {
-	background: #090808;
-	width: 100%;
-	height: 5px;
-  }
-  .main1 {
-	/*  background:#FE0004;*/
-	width: 100%;
-	height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
-  }
-  .controls1 {
-	width: 100%;
-	padding: 10px;
-	border-radius: 4px;
-	margin-bottom: 16px;
-	font-family: 'calibri';
-	font-size: 18px;
-  }
-  
-  .section1 {
-	width: 600px;
-	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
-	padding: 30px;
-	margin: 30px auto;
-	border-radius: 10px;
-	font-family: 'calibri';
-  }
-  
-  .section1 p {
-	color: white; /* Considera usar variables CSS */
-  }
-  
-  .label1 {
-	color: white; /* Considera usar variables CSS */
-  }
-  
-  .butom1 {
-	background: #313131; /* Considera usar variables CSS */
-	color: white; /* Considera usar variables CSS */
-	letter-spacing: 1px;
-	width: auto;
-	height: auto;
-	padding: 12px;
-	margin: 16px 0;
-	font-family: 'calibri';
-	font-size: 18px;
-	border-radius: 0px;
-	border: 2px;
-	display: flex;
-	align-items: flex-start;
-	cursor: pointer;
-	box-shadow: inset 0 0 0 0 #fe0004;
-	-webkit-transition: ease-out 0.4s;
-	-moz-transition: ease-out 0.4s;
-	transition: ease-out 0.4s;
-  }
-  .butom1:hover {
-	box-shadow: inset 400px 0 0 0 #fe0004;
-	color: #313131;
-  }
-  
-  /*Perfil usaurio*/
-  
-  .section2 {
-	display: flex;
-	justify-content: space-around;
-	width: 800px;
-	height: 355px;
-	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
-	padding: 30px;
-	margin: 30px auto;
-	border-radius: 10px;
-	font-family: 'calibri';
-  }
-  
-  .ContenedorFoto {
-	align-self: center;
-	justify-content: center;
-	display: flex;
-  }
-  .FotoPerfil {
-	border-radius: 50%;
-	border: 3px solid #fa070b;
-	padding: 7px;
-	display: flex;
-	align-self: center;
-	align-content: center;
-	justify-content: center;
-	width: 197px;
-	height: 200px;
-  }
-  
-  .ContenedorInformacion {
-	align-self: center;
-	margin: auto 0 auto 20px;
-	height: 60%;
-	color: white; /* Considera usar variables CSS */
-	width: 230px;
-  }
-  .Textoh1 {
-	margin-bottom: 2px;
-  }
-  .Textop {
-	margin-bottom: 10px;
-  }
-  .butom2 {
-	background: #313131; /* Considera usar variables CSS */
-	color: white; /* Considera usar variables CSS */
-	letter-spacing: 1px;
-	width: auto;
-	height: 50px;
-	padding: 12px;
-	margin: 16px 0;
-	font-family: 'calibri';
-	font-size: 18px;
-	border-radius: 0px;
-	border: 2px;
-	display: flex;
-	cursor: pointer;
-	box-shadow: inset 0 0 0 0 #fe0004;
-	-webkit-transition: ease-out 0.4s;
-	-moz-transition: ease-out 0.4s;
-	transition: ease-out 0.4s;
-	justify-content: center;
-	align-self: flex-end;
-	align-content: center;
-  }
-  .butom2:hover {
-	box-shadow: inset 400px 0 0 0 #fe0004;
-	color: #313131;
-  }
-  
-  /*Despiece*/
-  
-  .header2 {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background-color: #262626; /* Considera usar variables CSS */
-	width: 100%;
-	height: 40px;
-  }
-  
-  .logo2 img:first-child {
-	width: 55px;
-	margin-right: auto;
-	margin-left: auto;
-  }
-  .iconousuario {
-	display: flex;
-	margin: auto 15px auto 520px;
-  }
-  
-  .iconousuario img:first-child {
-	width: 35px;
-  }
-  
-  .menu {
-	display: flex;
-	margin: auto 520px auto 15px;
-  }
-  
-  .menu img:first-child {
-	width: 35px;
-  }
-  .main2 {
-	display: flex;
-	align-items: center;
-	/*  background:#FE0004;*/
-	width: 100%;
-	height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
-  }
-  
-  .section3 {
-	display: flex;
-	align-self: flex-start;
-	justify-content: space-around;
-	width: 900px;
-	height: 800px;
-	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
-	padding: 10px 10px 10px 10px;
-	margin: 15px 10px auto 10px;
-	border-radius: 10px;
-	font-family: 'calibri';
-  }
-  .section3-2 {
-	display: flex;
-	align-self: flex-start;
-	width: 300px;
-	height: 500px;
-	background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
-	padding: 30px 20px;
-	margin: 15px 10px auto 10px;
-	border-radius: 10px;
-	color: white; /* Considera usar variables CSS */
-  }
-  
-  .label {
-	text-align: center;
-  }
-  
-  .cantidad {
-	font-size: 11px;
-	color: white;
-	width: 50px;
-  }
-  .cnt {
-	text-align: center;
-	width: 50px;
-  }
-  .largo {
-	font-size: 11px;
-	color: white;
-	width: 50px;
-  }
-  .la {
-	text-align: center;
-	width: 50px;
-  }
-  .detalle {
-	font-size: 11px;
-	color: white;
-	width: 400px;
-  }
-  .dm {
-	text-align: center;
-	resize: horizontal;
-	width: 400px;
-  }
-  .rotar {
-	font-size: 11px;
-	color: white;
-	width: 50px;
-  }
-  .rt {
-	text-align: center;
-	resize: horizontal;
-	width: 50px;
-  }
-  .LYA {
-	font-size: 11px;
-	color: white;
-	width: 50px;
-  }
-  .l1 {
-	text-align: center;
-	resize: horizontal;
-	width: 50px;
-  }
-  .l2 {
-	text-align: center;
-	resize: horizontal;
-	width: 50px;
-  }
-  .A1 {
-	text-align: center;
-	resize: horizontal;
-	width: 50px;
-  }
-  .A2 {
-	text-align: center;
-	resize: horizontal;
-	width: 50px;
-  }
-  
-  .servicios {
-	font-size: 22px;
-  }
-  
-  /* --- ESTILOS PARA EL COMPONENTE MENU (Barra y Menú Lateral) --- */
-  /* (Estos estilos ya estaban en tu código, verifica que usen variables CSS) */
-  
-  /* Estilos para la barra superior */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  .logo2 img:first-child {
-	width: 55px;
-	margin-right: auto;
-	margin-left: auto;
-  }
-  
-  
+body {
+  background-image: url(Assets/Fondo.jpg); /* Considera usar variables CSS para esto si quieres que cambie con el tema */
+  background-size: 100%;
+  /* Asegúrate que los estilos base del body y padding-top estén en index.css/App.css global */
+}
 
-  .topBar {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 0 15px; /* Ajustado para altura fija */
-	height: 50px; /* Altura fija para la barra */
-	background-color: rgba(255, 255, 255, 0.599); /* Fondo blanco transparente para el menú superior */
-	color: var(--header-text-color); /* Variable global */
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	z-index: 1000;
-	box-sizing: border-box;
-	box-shadow: 0 2px 4px rgba(245, 241, 241, 0.1); /* Sombra sutil */
-	border-bottom: 1px solid rgba(0, 0, 0, 0.2); /* Línea inferior para separación */
-  }
-  
-  /* Estilos para el botón de hamburguesa */
-  .botonHamburguesa {
-	background: none;
-	border: none;
-	cursor: pointer;
-	color: var(--header-text-color); /* Variable global */
-	font-size: 1.5rem; /* Tamaño del icono */
-	padding: 5px;
-	display: flex; /* Para alinear el icono */
-	align-items: center;
-  }
-  
-  /* Contenedor para la información del usuario */
-  .userInfo {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end; /* Asegura que el contenido esté alineado a la derecha */
-	position: relative; /* Necesario para posicionar el dropdown */
-	cursor: pointer; /* Indica que es clickeable */
-	margin: 0; /* Elimina márgenes que puedan causar desajustes */
-	padding: 0; /* Elimina padding innecesario */
-  }
-  
-  /* Icono de usuario */
-  .userIcon {
-	width: 28px;
-	height: 28px;
-	margin-left: 10px;
-	border-radius: 50%;
-	object-fit: cover; /* Asegura que la imagen cubra bien */
-  }
-  
-  /* Contenedor principal del menú lateral */
-  .menucontainer {
-	position: fixed;
-	top: 50px; /* Debe coincidir con la altura de topBar */
-	left: -300px; /* Inicialmente oculto fuera de la pantalla (ajusta el ancho si es necesario) */
-	width: 300px; /* Ancho del menú lateral (ajusta si es necesario) */
-	height: calc(100vh - 50px); /* Ocupa el resto de la altura */
-	background-color: rgba(255, 255, 255, 0.59); /* Fondo blanco transparente */
-	color: var(--menu-text-color); /* Variable global */
-	padding: 10px; /* Espaciado interno */
-	border-radius: 8px; /* Bordes redondeados para un diseño más limpio */
-	box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Sombra para destacar */
-	transition: left 0.3s ease-in-out; /* Animación de deslizamiento */
-	z-index: 999; /* Debajo de topBar */
-	overflow-y: auto; /* Scroll si el contenido es muy largo */
-	box-sizing: border-box;
-  }
-  
-  /* Clase que se añade para mostrar el menú */
-  .mostrar {
-	left: 0; /* Mueve el menú a la vista */
-  }
-  
-  /* Título del menú */
-  .menutitle {
-	font-size: 1.4rem;
-	font-weight: bold;
-	margin-bottom: 25px;
-	color: var(--menu-text-color); /* Variable global */
-	padding-bottom: 10px;
-	border-bottom: 1px solid var(--separator-color); /* Línea debajo del título */
-  }
-  
-  /* Elemento individual del menú */
-  .menuitem {
-	display: flex;
-	align-items: center;
-	padding: 12px 10px;
-	margin-bottom: 8px;
-	cursor: pointer;
-	border-radius: 4px;
-	color: var(--menu-text-color); /* Variable global */
-	transition: background-color 0.2s ease;
-  }
-  
-  /* Efecto hover para los elementos del menú */
-  .menuitem:hover {
-	background-color: var(--menu-hover-bg-color); /* Variable global para hover */
-  }
-  
-  /* Contenedor del icono dentro de un elemento del menú */
-  .menuitemicon {
-	margin-right: 15px;
-	display: flex;
-	align-items: center;
-	font-size: 1.2rem; /* Tamaño de los iconos del menú */
-  }
-  
-  /* Separador visual en el menú */
-  .menuseparator {
-	height: 1px;
-	background-color: var(--separator-color); /* Variable global */
-	margin: 15px 0;
-  }
-  
-  /* --- NUEVOS ESTILOS PARA EL MENÚ DESPLEGABLE DE USUARIO --- */
-  
-  /* Contenedor del menú desplegable */
-  .userDropdown {
-	position: absolute;
-	top: 100%; /* Justo debajo del contenedor userInfo */
-	right: -13px; /* Alineado a la derecha del contenedor userInfo */
-	background-color: rgba(255, 255, 255, 0.59); /* Variable global o fallback */
-	min-width: 160px; /* Ancho mínimo */
-	border-radius: 8px;
-	box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
-	z-index: 1100; /* Encima de la barra superior */
-	margin-top: 12px; /* Pequeño espacio entre el icono y el menú */
-	padding: 8px 0; /* Padding vertical para los items */
-	border: 1px solid var(--separator-color, #cccccc85); /* Borde sutil opcional */
-	/* Animación sutil (opcional) */
-	opacity: 1;
-	transform: translateY(0);
-	transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-  
-  /* Estilos para cada item del menú desplegable (links o botones) */
-  .userDropdownItem {
-	display: block; /* Ocupa todo el ancho */
-	padding: 10px 20px; /* Espaciado interno */
-	color: var(--dropdown-text-color, var(--menu-text-color)); /* Variable global */
-	text-decoration: none; /* Quita subrayado de links */
-	background: none; /* Quita fondo de botones */
-	border: none; /* Quita borde de botones */
-	width: 100%; /* Asegura que ocupe todo el ancho */
-	text-align: left; /* Alinea texto a la izquierda */
-	cursor: pointer;
-	font-size: 0.9rem; /* Tamaño de fuente ligeramente menor */
-	white-space: nowrap; /* Evita que el texto se divida en líneas */
-	box-sizing: border-box; /* Asegura que el padding no aumente el ancho */
-	transition: background-color 0.2s ease; /* Transición suave para hover */
-  }
-  
-  /* Efecto hover para los items del menú desplegable */
-  .userDropdownItem:hover {
-	background-color: var(--menu-hover-bg-color); /* Reutiliza variable de hover del menú */
-  }
-  
-  /* Si usas botones, asegúrate que hereden la fuente */
-  .userDropdownItem:is(button) {
-	 font-family: inherit; /* Asegura que los botones usen la misma fuente */
-  }
+.header {
+  /* background-color: aliceblue;*/
+  align-content: center;
+  align-items: end;
+  justify-content: center;
+  display: flex;
+  width: 100%;
+  height: 250px;
+}
+.ADN {
+  width: 400px;
+  align-content: center;
+}
+
+.nav {
+  /* background:#090808;*/
+  width: 100%;
+  height: 5px;
+}
+
+.main {
+  /*background:#FE0004;*/
+  width: 100%;
+  height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.section {
+  width: 400px;
+  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  padding: 30px;
+  margin: auto;
+  border-radius: 10px;
+  font-family: 'calibri';
+}
+
+.section p {
+  margin: 20px;
+  text-align: center;
+  color: white; /* Asumiendo texto blanco sobre fondo oscuro */
+}
+.controls {
+  /*controls w-full p-2 mb-3 border border-gray-300 rounded*/
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-family: 'calibri';
+  font-size: 18px;
+  /* Considera colores de borde/fondo/texto con variables CSS */
+}
+
+.butom {
+  background: #313131; /* Considera usar variables CSS */
+  letter-spacing: 1px;
+  color: white; /* Considera usar variables CSS */
+  width: 100%;
+  padding: 12px;
+  margin: 16px 0;
+  font-family: 'calibri';
+  font-size: 18px;
+  border: 1px solid #000000;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0 #fe0004;
+  -webkit-transition: ease-out 0.4s;
+  -moz-transition: ease-out 0.4s;
+  transition: ease-out 0.4s;
+}
+
+.butom:hover {
+  box-shadow: inset 400px 0 0 0 #fe0004;
+  color: #313131;
+}
+
+.footer {
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  /* background:#FF00D9;*/
+  width: 100%;
+  height: 100px;
+}
+
+/*Pagina Recuperacion de contraseña      <-------------------------*/
+
+.header1 {
+  background-color: #262626; /* Considera usar variables CSS */
+  align-items: flex-start;
+  justify-content: center;
+  display: flex;
+  width: 100%;
+  height: 150px;
+}
+
+.ADN1 {
+  width: 350px;
+}
+.nav1 {
+  background: #090808;
+  width: 100%;
+  height: 5px;
+}
+.main1 {
+  /* background:#FE0004;*/
+  width: 100%;
+  height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+}
+.controls1 {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-family: 'calibri';
+  font-size: 18px;
+}
+
+.section1 {
+  width: 600px;
+  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  padding: 30px;
+  margin: 30px auto;
+  border-radius: 10px;
+  font-family: 'calibri';
+}
+
+.section1 p {
+  color: white; /* Considera usar variables CSS */
+}
+
+.label1 {
+  color: white; /* Considera usar variables CSS */
+}
+
+.butom1 {
+  background: #313131; /* Considera usar variables CSS */
+  color: white; /* Considera usar variables CSS */
+  letter-spacing: 1px;
+  width: auto;
+  height: auto;
+  padding: 12px;
+  margin: 16px 0;
+  font-family: 'calibri';
+  font-size: 18px;
+  border-radius: 0px;
+  border: 2px;
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0 #fe0004;
+  -webkit-transition: ease-out 0.4s;
+  -moz-transition: ease-out 0.4s;
+  transition: ease-out 0.4s;
+}
+.butom1:hover {
+  box-shadow: inset 400px 0 0 0 #fe0004;
+  color: #313131;
+}
+
+/*Perfil usaurio*/
+
+.section2 {
+  display: flex;
+  justify-content: space-around;
+  width: 550px; /* Reducido desde 550px */
+  height: 300px; /* Reducido desde 400px */
+  background: hsla(0, 0%, 0%, 0.75); /* Fondo oscuro transparente */
+  padding: 60px 150px 0px 0px; /* Ajustado para reducir el espacio interno */
+  margin: 20px auto; /* Centrado con márgenes más pequeños */
+  border-radius: 10px;
+  font-family: 'calibri';
+}
+
+.ContenedorFoto {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+.FotoPerfil {
+  display: block;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 3px solid red;
+  object-fit: cover;
+}
+
+.cameraIconOverlay {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.cameraIconOverlay:hover {
+  background-color: #d10003;
+  transform: scale(1.1);
+}
+
+.ContenedorInformacion {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 20px;
+  align-self: center;
+  margin: auto 0 auto 20px;
+  height: 60%;
+  color: white; /* Considera usar variables CSS */
+  width: 230px;
+}
+.Textoh1 {
+  margin-bottom: 2px;
+}
+.Textop {
+  margin-bottom: 10px;
+}
+.butom2 {
+  background: #313131; /* Considera usar variables CSS */
+  color: white; /* Considera usar variables CSS */
+  letter-spacing: 1px;
+  width: auto;
+  height: 50px;
+  padding: 12px;
+  margin: 16px 0;
+  font-family: 'calibri';
+  font-size: 18px;
+  border-radius: 0px;
+  border: 2px;
+  display: flex;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0 #fe0004;
+  -webkit-transition: ease-out 0.4s;
+  -moz-transition: ease-out 0.4s;
+  transition: ease-out 0.4s;
+  justify-content: center;
+  align-self: flex-end;
+  align-content: center;
+}
+.butom2:hover {
+  box-shadow: inset 400px 0 0 0 #fe0004;
+  color: #313131;
+}
+
+/*Despiece*/
+
+.header2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #262626; /* Considera usar variables CSS */
+  width: 100%;
+  height: 40px;
+}
+
+.logo2 img:first-child {
+  width: 55px;
+  margin-right: auto;
+  margin-left: auto;
+}
+.iconousuario {
+  display: flex;
+  margin: auto 15px auto 520px;
+}
+
+.iconousuario img:first-child {
+  width: 35px;
+}
+
+.menu {
+  display: flex;
+  margin: auto 520px auto 15px;
+}
+
+.menu img:first-child {
+  width: 35px;
+}
+.main2 {
+  display: flex;
+  align-items: center;
+  /* background:#FE0004;*/
+  width: 100%;
+  height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+}
+
+.section3 {
+  display: flex;
+  align-self: flex-start;
+  justify-content: space-around;
+  width: 900px;
+  height: 800px;
+  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  padding: 10px 10px 10px 10px;
+  margin: 15px 10px auto 10px;
+  border-radius: 10px;
+  font-family: 'calibri';
+}
+.section3-2 {
+  display: flex;
+  align-self: flex-start;
+  width: 300px;
+  height: 500px;
+  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  padding: 30px 20px;
+  margin: 15px 10px auto 10px;
+  border-radius: 10px;
+  color: white; /* Considera usar variables CSS */
+}
+
+.label {
+  text-align: left;
+}
+
+/* Estas clases parecen ser de un intento anterior y podrían no ser necesarias */
+/* o necesitar ajustes si se usan en otro lugar. Para la tabla de despiece, */
+/* nos centraremos en .celdaTitulo, .celdaDespiece, .inputCorto, .inputLargo */
+.cantidad,
+.largo,
+.la, /* Asumo que es 'ancho' o similar */
+.rotar,
+.LYA,
+.l1,
+.l2,
+.A1,
+.A2 {
+  font-size: 11px;
+  color: white;
+  /* width: 1000px;  Esto es demasiado grande para estas columnas */
+  min-width: 40px;
+  text-align: center;
+  resize: horizontal; /* resize no funciona en la mayoría de los elementos que no son textarea */
+}
+.cnt {
+  text-align: center;
+  width: 50px;
+}
+.detalle { /* Esta clase .detalle parece ser para un elemento de texto, no el input de la tabla */
+  font-size: 11px;
+  color: white;
+  width: calc(100% - 40px);
+  max-width: 1000px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+.dm {
+  text-align: center;
+  resize: horizontal;
+  width: 400px;
+}
+/* La clase .rotar ya está definida arriba, esta es una redefinición. */
+/* .rotar {
+  font-size: 11px;
+  color: white;
+  width: 400px;
+  text-align: center;
+  resize: horizontal;
+} */
+.rt {
+  text-align: center;
+  resize: horizontal;
+  width: 50px;
+}
+/* .LYA, .l1, .l2, .A1, .A2 ya están definidas arriba. */
+
+.servicios {
+  font-size: 22px;
+}
+
+/* --- ESTILOS PARA EL COMPONENTE MENU (Barra y Menú Lateral) --- */
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 15px;
+  height: 50px;
+  background-color: rgba(255, 255, 255, 0.599);
+  color: var(--header-text-color);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-sizing: border-box;
+  box-shadow: 0 2px 4px rgba(245, 241, 241, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.botonHamburguesa {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--header-text-color);
+  font-size: 1.5rem;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
+.userIcon {
+  width: 28px;
+  height: 28px;
+  margin-left: 10px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.menucontainer {
+  position: fixed;
+  top: 50px;
+  left: -300px;
+  width: 300px;
+  height: calc(100vh - 50px);
+  background-color: rgba(255, 255, 255, 0.59);
+  color: var(--menu-text-color);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  transition: left 0.3s ease-in-out;
+  z-index: 999;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.mostrar {
+  left: 0;
+}
+
+.menutitle {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 25px;
+  color: var(--menu-text-color);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--separator-color);
+}
+
+.menuitem {
+  display: flex;
+  align-items: center;
+  padding: 12px 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--menu-text-color);
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+}
+
+.menuitem:hover {
+  background-color: var(--menu-hover-bg-color);
+}
+
+.menuitemicon {
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  font-size: 1.2rem;
+}
+
+.menuseparator {
+  height: 1px;
+  background-color: var(--separator-color);
+  margin: 15px 0;
+}
+
+.userDropdown {
+  position: absolute;
+  top: 100%;
+  right: -13px;
+  background-color: rgba(255, 255, 255, 0.59);
+  min-width: 160px;
+  border-radius: 8px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1100;
+  margin-top: 12px;
+  padding: 8px 0;
+  border: 1px solid var(--separator-color, #cccccc85);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.userDropdownItem {
+  display: block;
+  padding: 10px 20px;
+  color: var(--dropdown-text-color, var(--menu-text-color));
+  text-decoration: none;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+}
+
+.userDropdownItem:hover {
+  background-color: var(--menu-hover-bg-color);
+}
+
+.userDropdownItem:is(button) {
+  font-family: inherit;
+}
+
+.App {
+  transition: background-color 0.3s ease;
+  background-color: white;
+  color: black;
+}
+
+.modo-oscuro {
+  background-color: #222;
+  color: white;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+#recordar {
+  margin: 0;
+}
+
+label[for="recordar"] {
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+}
+
+.dark-mode .menucontainer {
+  background-color: #333;
+  opacity: 0.9;
+}
+
+.dark-mode .userDropdown {
+  background-color: #333;
+  opacity: 0.9;
+}
+
+.menucontainerDark {
+  background-color: #222 !important;
+  color: #fff !important;
+  opacity: 0.95;
+}
+.userDropdownDark {
+  background-color: #222 !important;
+  color: #fff !important;
+  opacity: 0.95;
+}
+
+.topBarDark {
+  background-color: #222 !important;
+  color: #fff !important;
+}
+
+.headerDark {
+  background-color: #333;
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.despiecesContainer {
+  margin: 20px auto;
+  padding: 20px;
+  max-width: 800px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.botonAgregar {
+  display: inline-block;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #1e7e34;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.botonAgregar:hover {
+  background-color: #218838;
+}
+
+.despiecesList {
+  list-style: none;
+  padding: 0;
+}
+
+.despieceItem {
+  margin-bottom: 15px;
+  padding: 15px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.despieceItem h3 {
+  margin: 0 0 5px;
+  font-size: 18px;
+  color: #333;
+}
+
+.despieceItem p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.despiecesSection {
+  margin-top: 50px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para la tabla de despiece */
+.tablaDespiece {
+  display: table;
+  width: 100%; /* La tabla ocupará el ancho disponible */
+  border-collapse: collapse;
+  margin-top: 20px;
+  table-layout: fixed; /* CRUCIAL: Esto hace que los anchos de columna se respeten */
+}
+
+.filaDespiece {
+  display: table-row;
+}
+
+.celdaTitulo {
+  display: table-cell;
+  text-align: center;
+  font-weight: bold;
+  padding: 10px 5px; /* Ajustar padding para que el texto no se corte tanto */
+  background-color: #2c3e50; /* Un azul oscuro para los encabezados */
+  color: white;
+  border: 1px solid #ddd;
+  overflow: hidden;      /* Evita que el texto desborde la celda */
+  text-overflow: ellipsis; /* Muestra "..." si el texto es muy largo */
+  white-space: nowrap;   /* Evita que el título se parta en múltiples líneas */
+  font-size: 12px; /* Reducir un poco el tamaño de fuente del título si es necesario */
+}
+
+/* --- Definición de anchos para cada columna del encabezado --- */
+/* Estos porcentajes deben sumar 100% */
+.filaDespiece > .celdaTitulo:nth-child(1) { width: 6%; }  /* CANT */
+.filaDespiece > .celdaTitulo:nth-child(2) { width: 6%; }  /* LARGO */
+.filaDespiece > .celdaTitulo:nth-child(3) { width: 6%; }  /* ANCHO */
+.filaDespiece > .celdaTitulo:nth-child(4) { width: 40%; } /* DETALLE */
+.filaDespiece > .celdaTitulo:nth-child(5) { width: 6%; }  /* ROTAR */
+.filaDespiece > .celdaTitulo:nth-child(6) { width: 6%; }  /* L1 */
+.filaDespiece > .celdaTitulo:nth-child(7) { width: 6%; }  /* L2 */
+.filaDespiece > .celdaTitulo:nth-child(8) { width: 6%; }  /* A1 */
+.filaDespiece > .celdaTitulo:nth-child(9) { width: 6%; }  /* A2 */
+.filaDespiece > .celdaTitulo:nth-child(10) { width: 12%; } /* ACCIONES */
+
+
+.celdaDespiece {
+  display: table-cell;
+  padding: 3px; /* Un poco de padding alrededor de los inputs */
+  border: 1px solid #e0e0e0; /* Borde más suave para las celdas de datos */
+  vertical-align: middle; /* Alinea el contenido de la celda (input) verticalmente */
+}
+
+.inputCorto {
+  width: 100%; /* El input ocupa todo el ancho de la celda definida por .celdaTitulo */
+  padding: 8px 5px; /* Padding interno del input (vertical, horizontal) */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Importante para que el padding no aumente el ancho total */
+  text-align: center;
+  font-size: 14px; /* Tamaño de fuente para los inputs */
+}
+
+.inputLargo {
+  width: 100%; /* El input ocupa todo el ancho de la celda */
+  padding: 8px 5px; /* Padding interno del input */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px; /* Tamaño de fuente para los inputs */
+  text-align: left; /* El detalle usualmente se alinea a la izquierda */
+}
+
+/* Si quieres que el input de detalle específicamente tenga alineación izquierda */
+/* (ya está en .inputLargo, pero por si acaso se sobreescribe) */
+.filaDespiece > .celdaDespiece:nth-child(4) > .inputLargo {
+  text-align: left;
+}
+
+
+.botonEliminar {
+  background-color: #dc3545; /* Rojo para eliminar */
+  color: white;
+  padding: 6px 10px; /* Padding para el botón */
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: block;      /* Hace que el botón sea un bloque */
+  margin: 0 auto;      /* Centra el botón dentro de su celda */
+  width: auto;         /* El ancho se ajusta al contenido */
+  min-width: 70px;     /* Un ancho mínimo para que "Eliminar" quepa bien */
+  font-size: 13px;
+  line-height: 1.5;    /* Mejorar espaciado vertical del texto */
+}
+
+.botonEliminar:hover {
+  background-color: #c82333; /* Rojo más oscuro al pasar el mouse */
+}
+
+/* Estilo para los textbox y labels con ancho uniforme (fuera de la tabla) */
+/* La clase label ya estaba definida globalmente, esta es una posible sobreescritura o especialización */
+/* Si esta clase 'label' es para los labels de "Nombre del Cliente" y "Nombre del Proyecto", */
+/* asegúrate que no entre en conflicto con otros usos de 'label' o '.label' */
+label {
+  display: block;
+  /* width: 100%; Ya estaba definido, puede ser redundante si no hay conflicto */
+  /* max-width: 1000px; Ya estaba definido */
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  box-sizing: border-box;
+  color: #333; /* Color de texto para los labels fuera de la tabla, si aplica */
+}
+
+/* Estilos para los inputs de Nombre de Cliente y Proyecto */
+/* Estos inputs usan .inputLargo, que ya está definido para ocupar el 100% de su contenedor. */
+/* Si sus contenedores (los <label style={{ flex: 1 }}>) necesitan ajustes, se haría ahí. */
+.projectInfo { /* Ya tienes estilos inline, pero podrías moverlos aquí */
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px; /* Espacio antes de la tabla */
+}
+
+.projectInfo label { /* Estilos para los labels dentro de projectInfo */
+  flex: 1;
+  color: #333; /* O el color que prefieras para estos labels */
+}
+
+.projectInfo input { /* Estilos para los inputs dentro de projectInfo */
+  margin-top: 4px; /* Pequeño espacio entre el label y el input */
+}
+
+.projectInfo p { /* Estilo para el texto de "Última Fecha de Modificación" */
+ color: #555;
+ font-size: 13px;
+}
+
+/* Contenedor general del formulario/página de despiece */
+.modeloDespieceContainer {
+  padding: 20px;
+  max-width: 1200px; /* O el ancho que prefieras para tu página */
+  margin: 50px auto 20px auto; /* marginTop ya lo tienes inline */
+  background-color: #fff; /* Un fondo para el contenedor principal si no es transparente */
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+.modeloDespieceContainer h2 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #2c3e50;
+}
+
+.formularioDespiece {
+  /* Puedes añadir estilos específicos al form si es necesario */
+}
+
+.botonSubmit {
+  display: block;
+  width: auto;
+  min-width: 180px;
+  padding: 12px 25px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #28a745; /* Verde para guardar */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin: 30px auto 0 auto; /* Centrar el botón de guardar */
+}
+
+.botonSubmit:hover {
+  background-color: #218838; /* Verde más oscuro al pasar el mouse */
+}

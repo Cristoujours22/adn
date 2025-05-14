@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaHome, FaSun, FaMoon } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
 import estilos from "./App.module.css";
@@ -9,16 +9,21 @@ import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const Menu = () => {
+  const location = useLocation();
   const [userName, setUserName] = useState("Nombre usuario");
   const [mostrarMenu, setMostrarMenu] = useState(false);
   const [mostrarUserMenu, setMostrarUserMenu] = useState(false);
-  const userMenuRef = useRef(null);
-  const userInfoRef = useRef(null);
-  const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem("darkMode");
     return savedMode ? JSON.parse(savedMode) : false;
   });
+  const [despieces] = useState([
+    { id: 1, proyecto: "Proyecto A", cliente: "Cliente X", fecha: "2025-05-10" },
+    { id: 2, proyecto: "Proyecto B", cliente: "Cliente Y", fecha: "2025-05-11" },
+  ]);
+  const userMenuRef = useRef(null);
+  const userInfoRef = useRef(null);
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
@@ -101,6 +106,12 @@ const Menu = () => {
 
     return () => unsubscribe();
   }, []);
+
+  const irADespieces = () => {
+    // Agregué la navegación al modelo de despiece
+    navigate("/modelo-despiece");
+  };
+
   return (
     <div className={claseContenedor}>
       <header className={`${estilos.topBar} ${darkMode ? estilos.topBarDark : ""}`}>
@@ -148,32 +159,53 @@ const Menu = () => {
         </div>
       </header>
 
-      <nav
-        className={
-          `${estilos.menucontainer} ${mostrarMenu ? estilos.mostrar : ""} ${darkMode ? estilos.menucontainerDark : ""}`
-        }
-        aria-label="Menú lateral"
-      >
-        <h2 className={estilos.menutitle}>Menú Principal</h2>
-        {window.location.pathname === "/usuario" && (
-          <Link to="/menu" className={estilos.menuitem}>
-          <span className={estilos.menuitemicon}>
-            <FaHome />
-          </span>
-          Inicio
-          </Link>
-        )}
-        <div
-          className={estilos.menuitem}
-          onClick={toggleDarkMode}
-          style={{ cursor: "pointer" }}
+      <main aria-label="Menú principal">
+        <nav
+          className={
+            `${estilos.menucontainer} ${mostrarMenu ? estilos.mostrar : ""} ${darkMode ? estilos.menucontainerDark : ""}`
+          }
+          aria-label="Menú lateral"
         >
-          <span className={estilos.menuitemicon}>
-            {darkMode ? <FaSun /> : <FaMoon />}
-          </span>
-          {darkMode ? "Modo Claro" : "Modo Oscuro"}
-        </div>
-      </nav>
+          <h2 className={estilos.menutitle}>Menú Principal</h2>
+          {window.location.pathname === "/usuario" && (
+            <Link to="/menu" className={estilos.menuitem}>
+            <span className={estilos.menuitemicon}>
+              <FaHome />
+            </span>
+            Inicio
+            </Link>
+          )}
+          <div
+            className={estilos.menuitem}
+            onClick={toggleDarkMode}
+            style={{ cursor: "pointer" }}
+          >
+            <span className={estilos.menuitemicon}>
+              {darkMode ? <FaSun /> : <FaMoon />}
+            </span>
+            {darkMode ? "Modo Claro" : "Modo Oscuro"}
+          </div>
+        </nav>
+      </main>
+
+      {/* Sección de despieces ubicada más abajo */}
+      {location.pathname === "/menu" && (
+        <section className={estilos.despiecesSection}>
+          <h2>Despieces Guardados</h2>
+          <button className={estilos.botonAgregar} onClick={irADespieces}>
+            Agregar Nuevo Despiece
+          </button>
+          <ul className={estilos.despiecesList}>
+            {despieces.map((despiece) => (
+              <li key={despiece.id} className={estilos.despieceItem}>
+                <h3>{despiece.proyecto}</h3>
+                <p>Cliente: {despiece.cliente}</p>
+                <p>Fecha: {despiece.fecha}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 };
