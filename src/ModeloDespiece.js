@@ -127,6 +127,10 @@ const ModeloDespiece = () => {
   }, [rows]);
 
   const handleKeyDown = useCallback((e, index, field) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault(); // Evita que el número cambie al usar las flechas
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault(); // Evita el comportamiento predeterminado del Enter
       const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
@@ -153,6 +157,29 @@ const ModeloDespiece = () => {
       handleArrowNavigation(e, index, field);
     }
   }, [rows, handleArrowNavigation]);
+
+  const handleCopyDespiece = () => {
+    const rowsForExcel = rows.map(row => [
+      row.cant,
+      row.largo,
+      row.ancho,
+      row.detalle,
+      row.rotar,
+      row.l1,
+      row.l2,
+      row.a1,
+      row.a2
+    ]);
+
+    let csvContent = '';
+    rowsForExcel.forEach(row => {
+      csvContent += row.join('\t') + '\n';
+    });
+
+    navigator.clipboard.writeText(csvContent)
+      .then(() => alert('Despiece copiado al portapapeles.'))
+      .catch(err => console.error('Error al copiar al portapapeles:', err));
+  };
 
   return (
     <div className={estilos.modeloDespieceContainer} style={{ marginTop: '50px' }}>
@@ -311,10 +338,13 @@ const ModeloDespiece = () => {
             </div>
           ))}
         </div>
-        <button type="submit" className={estilos.botonSubmit}>
+      </form>
+      <footer className={estilos.footerDespiece}>
+        <button type="submit" form="formularioDespiece" className={estilos.botonSubmit}>
           Guardar Despiece
         </button>
-      </form>
+        <button className={estilos.botonCopiar} onClick={handleCopyDespiece}>Copiar Despiece</button>
+      </footer>
     </div>
   );
 };
