@@ -202,7 +202,7 @@ const Menu = () => {
 
       {/* Sección de despieces ubicada más abajo */}
       {location.pathname === "/menu" && (
-        <section className={estilos.despiecesSection}>
+        <section className={`${estilos.despiecesSection} ${darkMode ? estilos.despiecesSectionDark : ""}`}>
           <h2>Despieces Guardados</h2>
           <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
             <input

@@ -900,3 +900,29 @@ input[type="number"]::-webkit-outer-spin-button {
 .botonCopiar:hover {
   background-color: #0056b3;
 }
+
+.despiecesSectionDark {
+  background-color: #23272f !important;
+  color: #f1f1f1 !important;
+}
+
+.despiecesSectionDark h2 {
+  color: #f1f1f1 !important;
+}
+
+.despiecesSectionDark .despieceItem {
+  background: #23272f !important;
+  color: #f1f1f1 !important;
+  border-color: #444 !important;
+}
+
+.despiecesSectionDark .despieceItem h3,
+.despiecesSectionDark .despieceItem p {
+  color: #f1f1f1 !important;
+}
+
+.despiecesSectionDark input {
+  background: #181a20 !important;
+  color: #f1f1f1 !important;
+  border: 1px solid #444 !important;
+}
