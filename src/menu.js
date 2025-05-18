@@ -21,6 +21,8 @@ const Menu = () => {
     { id: 1, proyecto: "Proyecto A", cliente: "Cliente X", fecha: "2025-05-10" },
     { id: 2, proyecto: "Proyecto B", cliente: "Cliente Y", fecha: "2025-05-11" },
   ]);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroFecha, setFiltroFecha] = useState("");
   const userMenuRef = useRef(null);
   const userInfoRef = useRef(null);
   const navigate = useNavigate();
@@ -112,6 +114,16 @@ const Menu = () => {
     navigate("/modelo-despiece");
   };
 
+  // Filtrado de despieces
+  const despiecesFiltrados = despieces.filter((despiece) => {
+    const coincideBusqueda =
+      despiece.proyecto.toLowerCase().includes(busqueda.toLowerCase()) ||
+      despiece.cliente.toLowerCase().includes(busqueda.toLowerCase());
+    const coincideFecha =
+      !filtroFecha || despiece.fecha === filtroFecha;
+    return coincideBusqueda && coincideFecha;
+  });
+
   return (
     <div className={claseContenedor}>
       <header className={`${estilos.topBar} ${darkMode ? estilos.topBarDark : ""}`}>
@@ -192,11 +204,26 @@ const Menu = () => {
       {location.pathname === "/menu" && (
         <section className={estilos.despiecesSection}>
           <h2>Despieces Guardados</h2>
+          <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+            <input
+              type="text"
+              placeholder="Buscar por proyecto o cliente"
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              className={estilos.inputBuscar}
+            />
+            <input
+              type="date"
+              value={filtroFecha}
+              onChange={e => setFiltroFecha(e.target.value)}
+              className={estilos.inputBuscar}
+            />
+          </div>
           <button className={estilos.botonAgregar} onClick={irADespieces}>
             Agregar Nuevo Despiece
           </button>
           <ul className={estilos.despiecesList}>
-            {despieces.map((despiece) => (
+            {despiecesFiltrados.map((despiece) => (
               <li key={despiece.id} className={estilos.despieceItem}>
                 <h3>{despiece.proyecto}</h3>
                 <p>Cliente: {despiece.cliente}</p>
