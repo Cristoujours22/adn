@@ -6,6 +6,7 @@ import LoginPage from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './authContext';
 import ModeloDespiece from "./ModeloDespiece";
+import Recuperar from './recuperar';
 
 function App() {
   return (
@@ -15,7 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/recuperar" element={<div>Página de recuperación en construcción</div>} />
+            <Route path="/recuperar" element={<Recuperar />} />
             <Route
               path="/menu"
               element={
@@ -33,6 +34,7 @@ function App() {
               }
             />
             <Route path="/modelo-despiece" element={<ModeloDespiece />} />
+            <Route path="/modelo-despiece/:id" element={<ModeloDespiece />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </main>

@@ -1,19 +1,59 @@
-import React, { useState, useCallback } from 'react';
-import estilos from './App.module.css';
-import { collection, addDoc } from 'firebase/firestore';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
+import estilos from './App.module.css';
 
+// Generador de ID único estable
+let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
 const createNewRow = () => ({
-  id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+  id: `row_${rowIdCounter++}`,
   cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: ''
 });
 
 const ModeloDespiece = () => {
+  const { id } = useParams();
   const [rows, setRows] = useState([createNewRow()]);
   const [projectName, setProjectName] = useState('');
   const [clientName, setClientName] = useState('');
+  const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
+
+  // Cargar despiece si hay id en la URL
+  useEffect(() => {
+    if (!id) return;
+    const fetchDespiece = async () => {
+      try {
+        const despieceRef = doc(db, 'despieces', id);
+        const despieceSnap = await getDoc(despieceRef);
+        if (despieceSnap.exists()) {
+          const data = despieceSnap.data();
+          setProjectName(data.proyecto || '');
+          setClientName(data.cliente || '');
+          setCreationDate(data.fechaCreacion || new Date().toLocaleDateString());
+          setLastModifiedDate(data.ultimaModificacion || new Date().toLocaleDateString());
+          // IDs únicos y estables
+          let usedIds = new Set();
+          let maxRowId = rowIdCounter;
+          const loadedRows = (data.filas || []).map((row, idx) => {
+            let rowId = row.id && /^row_\d+$/.test(row.id) ? parseInt(row.id.split('_')[1], 10) : null;
+            if (rowId === null || usedIds.has(row.id)) {
+              rowId = maxRowId++;
+            }
+            usedIds.add(`row_${rowId}`);
+            return { ...row, id: `row_${rowId}` };
+          });
+          rowIdCounter = maxRowId;
+          setRows(loadedRows.length ? loadedRows : [createNewRow()]);
+        }
+      } catch (err) {
+        alert('Error al cargar el despiece para edición.');
+      }
+    };
+    fetchDespiece();
+    // eslint-disable-next-line
+  }, [id]);
 
   const handleInputChange = useCallback((index, field, value) => {
     setRows((prevRows) => {
@@ -32,15 +72,15 @@ const ModeloDespiece = () => {
     handleSaveToFirestore();
   };
 
+  // Al pegar filas, asegurar IDs únicos
   const handlePaste = useCallback((e) => {
     e.preventDefault();
     const clipboardData = e.clipboardData.getData('text');
     const rowsFromClipboard = clipboardData.split('\n').filter(row => row.trim() !== '');
-
     const newRows = rowsFromClipboard.map((row) => {
       const columns = row.split('\t').map(col => col.trim());
       return {
-        id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: `row_${rowIdCounter++}`,
         cant: columns[0] || '',
         largo: columns[1] || '',
         ancho: columns[2] || '',
@@ -52,9 +92,10 @@ const ModeloDespiece = () => {
         a2: columns[8] || '',
       };
     });
-
-    setRows(() => {
-      const uniqueRows = newRows.filter((row, index, self) =>
+    setRows((prevRows) => {
+      // Evita duplicados exactos (todas las columnas iguales)
+      const allRows = [...prevRows, ...newRows];
+      const uniqueRows = allRows.filter((row, index, self) =>
         index === self.findIndex((r) =>
           r.cant === row.cant &&
           r.largo === row.largo &&
@@ -71,27 +112,44 @@ const ModeloDespiece = () => {
     });
   }, []);
 
+  // Guardar: si es edición, actualizar, si no, crear
   const handleSaveToFirestore = async () => {
     if (rows.length === 0) {
         alert('No hay datos para guardar. Por favor, agrega al menos una fila.');
         return;
     }
-
-    console.log('Datos a guardar en Firestore:', rows);
-
+    if (!projectName || !clientName) {
+        alert('Por favor, completa el nombre del proyecto y del cliente.');
+        return;
+    }
     try {
-        const despiecesCollection = collection(db, 'despieces');
-        for (const row of rows) {
-            console.log('Guardando fila:', row);
-            const startTime = performance.now();
-            await addDoc(despiecesCollection, row);
-            const endTime = performance.now();
-            console.log(`Fila guardada exitosamente: ${row.id}. Tiempo: ${(endTime - startTime).toFixed(2)} ms`);
+        if (id) {
+          // Actualizar existente
+          const despieceRef = doc(db, 'despieces', id);
+          await updateDoc(despieceRef, {
+            proyecto: projectName,
+            cliente: clientName,
+            fechaCreacion: creationDate,
+            ultimaModificacion: new Date().toLocaleDateString(),
+            filas: rows
+          });
+          alert('Despiece actualizado exitosamente.');
+        } else {
+          // Crear nuevo
+          const despiecesCollection = collection(db, 'despieces');
+          const despieceData = {
+            proyecto: projectName,
+            cliente: clientName,
+            fechaCreacion: creationDate,
+            ultimaModificacion: lastModifiedDate,
+            filas: rows
+          };
+          await addDoc(despiecesCollection, despieceData);
+          alert('Despiece guardado exitosamente en Firestore.');
         }
-        alert('Despieces guardados exitosamente en Firestore.');
     } catch (error) {
         console.error('Error al guardar en Firestore:', error.message, error.stack);
-        alert('Hubo un error al guardar los despieces. Revisa la consola para más detalles.');
+        alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
     }
   };
 
@@ -216,6 +274,7 @@ const ModeloDespiece = () => {
               className={estilos.inputLargo}
             />
           </label>
+          <p>Fecha de Creación: {creationDate}</p>
           <p>Última Fecha de Modificación: {lastModifiedDate}</p>
         </div>
         <div className={estilos.tablaDespiece}>
