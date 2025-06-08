@@ -4,6 +4,7 @@ import { FaHome, FaSun, FaMoon } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
 import estilos from "./App.module.css";
 import userIcon from "./Assets/usuario.png";
+import adnLogo from "./Assets/ADN.png"; // Import at top
 import { auth, db } from "./credenciales";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -22,9 +23,14 @@ const Menu = () => {
   const [filtroFecha, setFiltroFecha] = useState("");
   const [userPhoto, setUserPhoto] = useState(userIcon);
   const [loadingDespieces, setLoadingDespieces] = useState(true);
+  const [highContrast, setHighContrast] = useState(() => {
+    const saved = localStorage.getItem("highContrast");
+    return saved ? JSON.parse(saved) : false;
+  });
   const userMenuRef = useRef(null);
   const userInfoRef = useRef(null);
   const navigate = useNavigate();
+  const isMountedRef = useRef(true);
 
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
@@ -65,45 +71,76 @@ const Menu = () => {
     });
   };
 
+  const toggleHighContrast = () => {
+    setHighContrast((prev) => {
+      const newVal = !prev;
+      localStorage.setItem("highContrast", JSON.stringify(newVal));
+      if (newVal) {
+        document.body.classList.add("high-contrast");
+      } else {
+        document.body.classList.remove("high-contrast");
+      }
+      return newVal;
+    });
+  };
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Aplicar alto contraste al cargar
+    if (highContrast) {
+      document.body.classList.add("high-contrast");
+    } else {
+      document.body.classList.remove("high-contrast");
+    }
+  }, [highContrast]);
+
+  useEffect(() => {
+    // Use a stable event handler and always remove it on cleanup
+    function handleClickOutside(event) {
+      // Only close menu if refs are attached and dropdown is visible
       if (
         mostrarUserMenu &&
         userInfoRef.current &&
-        !userInfoRef.current.contains(event.target) &&
         userMenuRef.current &&
+        !userInfoRef.current.contains(event.target) &&
         !userMenuRef.current.contains(event.target)
       ) {
         setMostrarUserMenu(false);
       }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
+    }
+    document.addEventListener("mousedown", handleClickOutside, true);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside, true);
     };
   }, [mostrarUserMenu]);
 
-  const claseContenedor = estilos.App;
-
   // Utilidad para recargar despieces desde Firestore
   const fetchDespieces = async () => {
+    if (!isMountedRef.current) return;
+    setLoadingDespieces(true);
     try {
-      setLoadingDespieces(true);
       const { getDocs, collection } = await import("firebase/firestore");
       const despiecesSnapshot = await getDocs(collection(db, "despieces"));
       const despiecesData = despiecesSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(d => d.id); // Solo los que tienen id válido
-      setDespieces(despiecesData);
+        .filter(d => d.id);
+      if (isMountedRef.current) setDespieces(despiecesData);
     } catch (error) {
-      console.error("Error al obtener los despieces:", error);
+      if (isMountedRef.current) console.error("Error al obtener los despieces:", error);
     } finally {
-      setLoadingDespieces(false);
+      if (isMountedRef.current) setLoadingDespieces(false);
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!isMountedRef.current) return;
       if (user) {
         if (user.photoURL) {
           setUserPhoto(user.photoURL);
@@ -114,16 +151,16 @@ const Menu = () => {
           try {
             const userDocRef = doc(db, "usuarios", user.uid);
             const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
+            if (userDoc.exists() && isMountedRef.current) {
               const userData = userDoc.data();
               setUserName(userData.Nombre || "Nombre usuario");
             }
           } catch (error) {
-            console.error("Error al obtener los datos del usuario:", error);
+            if (isMountedRef.current) console.error("Error al obtener los datos del usuario:", error);
           }
         };
         fetchUserData();
-        fetchDespieces(); // Usar la función utilitaria
+        fetchDespieces();
       } else {
         setUserPhoto(userIcon);
         setDespieces([]);
@@ -144,8 +181,18 @@ const Menu = () => {
     const coincideBusqueda =
       proyecto.toLowerCase().includes(busqueda.toLowerCase()) ||
       cliente.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFecha =
-      !filtroFecha || despiece.fecha === filtroFecha;
+
+    // Normalizar filtroFecha (YYYY-MM-DD) a DD/MM/YYYY para comparar con Firestore
+    let filtroFechaNormalizado = filtroFecha;
+    if (filtroFecha && filtroFecha.includes("-")) {
+      const [yyyy, mm, dd] = filtroFecha.split("-");
+      filtroFechaNormalizado = `${parseInt(dd,10)}/${parseInt(mm,10)}/${yyyy}`;
+    }
+
+    // fechaCreacion en Firestore es 'DD/MM/YYYY' (string)
+    const fechaNormalizada = despiece.fechaCreacion || "";
+    const coincideFecha = !filtroFecha || fechaNormalizada === filtroFechaNormalizado;
+
     return coincideBusqueda && coincideFecha;
   });
 
@@ -161,9 +208,11 @@ const Menu = () => {
     }
   });
 
+  const claseContenedor = estilos.App;
+
   return (
-    <div className={claseContenedor}>
-      <header className={`${estilos.topBar} ${darkMode ? estilos.topBarDark : ""}`}>
+    <div className={claseContenedor} role="main" aria-label="Aplicación ADN">
+      <header className={`${estilos.topBar} ${darkMode ? estilos.topBarDark : ""}`} role="banner">
         <button
           className={estilos.botonHamburguesa}
           onClick={toggleMenu}
@@ -174,7 +223,7 @@ const Menu = () => {
         <div className={estilos.logo2}>
           <img
             className={estilos.ADN1}
-            src={require("./Assets/ADN.png")}
+            src={adnLogo}
             alt="logo programa"
           />
         </div>
@@ -183,32 +232,50 @@ const Menu = () => {
           onClick={toggleUserMenu}
           ref={userInfoRef}
           style={{ cursor: "pointer", position: "relative" }}
+          tabIndex={0}
+          aria-haspopup="true"
+          aria-expanded={mostrarUserMenu}
+          aria-label="Menú de usuario"
         >
           <span>{userName}</span>
           <img src={userPhoto} alt="Usuario" className={estilos.userIcon} onError={e => { e.target.onerror = null; e.target.src = userIcon; }} />
-          {mostrarUserMenu && (
-            <div className={`${estilos.userDropdown} ${darkMode ? estilos.userDropdownDark : ""}`} ref={userMenuRef}>
-              {window.location.pathname !== "/usuario" && (
+          {/* Always render the dropdown, toggle visibility with CSS */}
+          <div
+            className={
+              `${estilos.userDropdown} ${darkMode ? estilos.userDropdownDark : ""} ${mostrarUserMenu ? estilos.userDropdownVisible : estilos.userDropdownHidden}`
+            }
+            ref={userMenuRef}
+            style={{
+              display: mostrarUserMenu ? "block" : "none",
+              position: "absolute",
+              right: 0,
+              zIndex: 1000
+            }}
+            role="menu"
+            aria-label="Opciones de usuario"
+          >
+            {window.location.pathname !== "/usuario" && (
               <Link
                 to="/usuario"
                 className={estilos.userDropdownItem}
                 onClick={() => setMostrarUserMenu(false)}
+                role="menuitem"
               >
                 Perfil
               </Link>
-              )}
-              <button
-                onClick={handleLogout}
-                className={estilos.userDropdownItem}
-              >
-                Cerrar Sesión
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={handleLogout}
+              className={estilos.userDropdownItem}
+              role="menuitem"
+            >
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
       </header>
 
-      <main aria-label="Menú principal">
+      <div aria-label="Menú principal">
         <nav
           className={
             `${estilos.menucontainer} ${mostrarMenu ? estilos.mostrar : ""} ${darkMode ? estilos.menucontainerDark : ""}`
@@ -232,8 +299,23 @@ const Menu = () => {
             </span>
             {darkMode ? "Modo Claro" : "Modo Oscuro"}
           </div>
+          {/* Botón de alto contraste SOLO en el menú lateral */}
+          <div
+            className={estilos.menuitem}
+            onClick={toggleHighContrast}
+            style={{ cursor: "pointer", fontWeight: highContrast ? 'bold' : 'normal', color: highContrast ? '#FFD600' : undefined }}
+            aria-pressed={highContrast}
+            aria-label={highContrast ? "Desactivar alto contraste" : "Activar alto contraste"}
+            tabIndex={0}
+            role="button"
+          >
+            <span className={estilos.menuitemicon}>
+              {highContrast ? '🟨' : '⬛'}
+            </span>
+            {highContrast ? 'Alto Contraste ON' : 'Alto Contraste'}
+          </div>
         </nav>
-      </main>
+      </div>
 
       {/* Sección de despieces ubicada más abajo */}
       {location.pathname === "/menu" && (
@@ -250,7 +332,14 @@ const Menu = () => {
               className={estilos.inputBuscar}
             />
             {/* Hacer visible y accesible la etiqueta del filtro de fecha */}
-            <label htmlFor="filtroFecha" style={{marginRight: "0.5rem", fontWeight: "bold"}}>
+            <label
+              htmlFor="filtroFecha"
+              style={{
+                marginRight: "0.5rem",
+                fontWeight: "bold",
+                color: darkMode ? "#fff" : "#333"
+              }}
+            >
               Filtrar por fecha
             </label>
             <input
@@ -271,7 +360,7 @@ const Menu = () => {
           ) : uniqueDespieces.length > 0 ? (
             <ul className={estilos.despiecesList}>
               {uniqueDespieces.map((despiece) => (
-                <li key={despiece.id + '-' + (despiece.proyecto || '')} className={estilos.despieceItem}>
+                <li key={despiece.id} className={estilos.despieceItem}>
                   <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem'}}>
                     <h3 style={{cursor:'pointer', color:'#1976d2', textDecoration:'underline', margin:0}}
                         onClick={() => navigate(`/modelo-despiece/${despiece.id}`)}>
@@ -280,7 +369,7 @@ const Menu = () => {
                     {/* Mejorar contraste del botón Eliminar */}
                     <button
                       style={{
-                        background:'#a31515', // Color más oscuro para mejor contraste (#a31515 sobre blanco: 6.13:1)
+                        background:'#a31515',
                         color:'#fff',
                         border:'none',
                         borderRadius:'4px',
@@ -294,11 +383,14 @@ const Menu = () => {
                           try {
                             const { doc, deleteDoc } = await import('firebase/firestore');
                             await deleteDoc(doc(db, 'despieces', despiece.id));
-                            setDespieces([]); // Limpiar la lista antes de recargar
-                            await fetchDespieces(); // Recarga desde Firestore
-                            alert('Proyecto eliminado correctamente.');
+                            await fetchDespieces();
+                            if (isMountedRef.current) {
+                              alert('Proyecto eliminado correctamente.');
+                            }
                           } catch (err) {
-                            alert('Error al eliminar el proyecto: ' + (err && err.message ? err.message : JSON.stringify(err)));
+                            if (isMountedRef.current) {
+                              alert('Error al eliminar el proyecto: ' + (err && err.message ? err.message : JSON.stringify(err)));
+                            }
                             console.error('Error al eliminar el proyecto:', err);
                           }
                         }

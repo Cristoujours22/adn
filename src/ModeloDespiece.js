@@ -72,7 +72,7 @@ const ModeloDespiece = () => {
     handleSaveToFirestore();
   };
 
-  // Al pegar filas, asegurar IDs únicos
+  // Al pegar filas, asegurar IDs únicos y evitar fila vacía inicial
   const handlePaste = useCallback((e) => {
     e.preventDefault();
     const clipboardData = e.clipboardData.getData('text');
@@ -91,24 +91,14 @@ const ModeloDespiece = () => {
         a1: columns[7] || '',
         a2: columns[8] || '',
       };
-    });
+    }).filter(row => Object.values(row).some(val => val !== ''));
     setRows((prevRows) => {
-      // Evita duplicados exactos (todas las columnas iguales)
-      const allRows = [...prevRows, ...newRows];
-      const uniqueRows = allRows.filter((row, index, self) =>
-        index === self.findIndex((r) =>
-          r.cant === row.cant &&
-          r.largo === row.largo &&
-          r.ancho === row.ancho &&
-          r.detalle === row.detalle &&
-          r.rotar === row.rotar &&
-          r.l1 === row.l1 &&
-          r.l2 === row.l2 &&
-          r.a1 === row.a1 &&
-          r.a2 === row.a2
-        )
-      );
-      return uniqueRows;
+      // Si la primera fila está vacía, reemplazarla
+      if (prevRows.length === 1 && Object.values(prevRows[0]).every((v, i) => v === '' || (i === 0 && /^row_/.test(v)))) {
+        return newRows.length ? newRows : [createNewRow()];
+      }
+      // Si no, agregar normalmente
+      return [...prevRows, ...newRows];
     });
   }, []);
 
@@ -195,16 +185,15 @@ const ModeloDespiece = () => {
     }
   }, [rows]);
 
+  // Mejorar navegación tipo Google Sheets
   const handleKeyDown = useCallback((e, index, field) => {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault(); // Evita que el número cambie al usar las flechas
+      e.preventDefault();
     }
-
+    const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+    const currentIndex = fields.indexOf(field);
     if (e.key === 'Enter') {
-      e.preventDefault(); // Evita el comportamiento predeterminado del Enter
-      const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
-      const currentIndex = fields.indexOf(field);
-
+      e.preventDefault();
       if (currentIndex < fields.length - 1) {
         // Mover al siguiente campo en la misma fila
         const nextField = fields[currentIndex + 1];
@@ -221,6 +210,20 @@ const ModeloDespiece = () => {
           const nextInput = document.getElementById(`cant-${rows.length}`);
           if (nextInput) nextInput.focus();
         }, 0);
+      }
+    } else if (e.key === 'Tab') {
+      // Permitir tabulación normal
+    } else if (e.key === 'ArrowLeft') {
+      if (currentIndex > 0) {
+        const prevField = fields[currentIndex - 1];
+        const prevInput = document.getElementById(`${prevField}-${index}`);
+        if (prevInput) prevInput.focus();
+      }
+    } else if (e.key === 'ArrowRight') {
+      if (currentIndex < fields.length - 1) {
+        const nextField = fields[currentIndex + 1];
+        const nextInput = document.getElementById(`${nextField}-${index}`);
+        if (nextInput) nextInput.focus();
       }
     } else {
       handleArrowNavigation(e, index, field);

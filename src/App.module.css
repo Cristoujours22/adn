@@ -926,3 +926,41 @@ input[type="number"]::-webkit-outer-spin-button {
   color: #f1f1f1 !important;
   border: 1px solid #444 !important;
 }
+
+/* === MODO ALTO CONTRASTE (corregido y reforzado) === */
+body.high-contrast,
+.high-contrast body,
+body.high-contrast * {
+  background: #000 !important;
+  color: #FFD600 !important;
+  border-color: #FFD600 !important;
+}
+body.high-contrast input,
+body.high-contrast textarea,
+body.high-contrast select,
+body.high-contrast .inputBuscar,
+body.high-contrast .inputCorto,
+body.high-contrast .inputLargo {
+  background: #000 !important;
+  color: #FFD600 !important;
+  border: 2px solid #FFD600 !important;
+}
+body.high-contrast button,
+body.high-contrast .butom,
+body.high-contrast .butom1 {
+  background: #000 !important;
+  color: #FFD600 !important;
+  border: 2px solid #FFD600 !important;
+}
+body.high-contrast a,
+body.high-contrast a:visited {
+  color: #FFD600 !important;
+  text-decoration: underline !important;
+}
+body.high-contrast .userDropdownItem {
+  color: #FFD600 !important;
+}
+body.high-contrast .despieceItem h3,
+body.high-contrast .despieceItem p {
+  color: #FFD600 !important;
+}

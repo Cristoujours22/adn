@@ -105,7 +105,7 @@ function Usuario() {
       }}
     >
       <Menu />
-      <main
+      <div
         style={{
           flex: 1,
           display: "flex",
@@ -181,7 +181,7 @@ function Usuario() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

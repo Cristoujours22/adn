@@ -55,7 +55,7 @@ function Recuperar() {
         </div>
       </header>
 
-      <main className={estilos.main1}>
+      <div className={estilos.main1}>
         <section className={estilos.section1}>
           <p>
             Ingresa tu correo electrónico registrado y te enviaremos un enlace
@@ -99,7 +99,7 @@ function Recuperar() {
             </Link>
           </p>
         </section>
-      </main>
+      </div>
 
       <footer className={estilos.footer1}></footer>
     </div>

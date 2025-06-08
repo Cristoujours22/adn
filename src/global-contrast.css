@@ -1,0 +1,38 @@
+/* global-contrast.css: Estilos globales para alto contraste */
+body.high-contrast, body.high-contrast * {
+  background: #000 !important;
+  color: #FFF !important;
+  border-color: #FFD600 !important;
+  box-shadow: none !important;
+}
+body.high-contrast input,
+body.high-contrast textarea,
+body.high-contrast select {
+  background: #000 !important;
+  color: #FFF !important;
+  border: 2px solid #FFD600 !important;
+}
+body.high-contrast button {
+  background: #000 !important;
+  color: #FFD600 !important;
+  border: 2px solid #FFD600 !important;
+}
+body.high-contrast a,
+body.high-contrast a:visited {
+  color: #FFD600 !important;
+  text-decoration: underline !important;
+}
+body.high-contrast .userDropdownItem {
+  color: #FFD600 !important;
+}
+body.high-contrast .despieceItem h3,
+body.high-contrast .despieceItem p {
+  color: #FFF !important;
+}
+body.high-contrast img, body.high-contrast [style*="background-image"] {
+  display: none !important;
+}
+body.high-contrast .header, body.high-contrast .logo2, body.high-contrast .ADN1 {
+  background: none !important;
+  background-image: none !important;
+}
