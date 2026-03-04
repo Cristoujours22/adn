@@ -7,6 +7,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from './authContext';
 import ModeloDespiece from "./ModeloDespiece";
 import Recuperar from './recuperar';
+import AdminUsuarios from './AdminUsuarios';
 
 function App() {
   return (
@@ -35,6 +36,14 @@ function App() {
             />
             <Route path="/modelo-despiece" element={<ModeloDespiece />} />
             <Route path="/modelo-despiece/:id" element={<ModeloDespiece />} />
+            <Route
+              path="/admin/usuarios"
+              element={
+                <ProtectedRoute>
+                  <AdminUsuarios />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </main>

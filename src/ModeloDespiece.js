@@ -4,6 +4,7 @@ import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
+import { useAuth } from './authContext';
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
@@ -19,6 +20,7 @@ const ModeloDespiece = () => {
   const [clientName, setClientName] = useState('');
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
+  const { currentUser } = useAuth();
 
   // Cargar despiece si hay id en la URL
   useEffect(() => {
@@ -132,7 +134,8 @@ const ModeloDespiece = () => {
             cliente: clientName,
             fechaCreacion: creationDate,
             ultimaModificacion: lastModifiedDate,
-            filas: rows
+            filas: rows,
+            userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
           };
           await addDoc(despiecesCollection, despieceData);
           alert('Despiece guardado exitosamente en Firestore.');

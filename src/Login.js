@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate, Navigate, useLocation } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./credenciales";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth, db } from "./credenciales";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import estilos from "./App.module.css";
 import logo from "./Assets/ADN.png";
 import { useAuth } from "./authContext";
@@ -33,6 +34,26 @@ function LoginPage() {
       // Autenticación con Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, usuario, contrasena);
       const user = userCredential.user;
+
+      const userDocRef = doc(db, "usuarios", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists() && userDoc.data().bloqueado === true) {
+        await signOut(auth);
+        setMensajeConexion("❌ Su cuenta ha sido bloqueada por un administrador.");
+        return;
+      }
+
+      // Actualizar datos del usuario en Firestore
+      const userData = {
+        lastSignInTime: user.metadata.lastSignInTime,
+        email: user.email,
+      };
+      if (!userDoc.exists() || !userDoc.data().creationTime) {
+        userData.creationTime = user.metadata.creationTime;
+      }
+      await setDoc(userDocRef, userData, { merge: true });
+
       setMensajeConexion("✅ Conexión exitosa");
       console.log("Inicio de sesión exitoso para:", user.email);
 

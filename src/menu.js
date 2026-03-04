@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FaHome, FaSun, FaMoon } from "react-icons/fa";
+import { FaHome, FaSun, FaMoon, FaUsersCog } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
 import estilos from "./App.module.css";
 import userIcon from "./Assets/usuario.png";
@@ -8,6 +8,7 @@ import adnLogo from "./Assets/ADN.png"; // Import at top
 import { auth, db } from "./credenciales";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { useAuth } from "./authContext";
 
 const Menu = () => {
   const location = useLocation();
@@ -27,10 +28,12 @@ const Menu = () => {
     const saved = localStorage.getItem("highContrast");
     return saved ? JSON.parse(saved) : false;
   });
+  const [userCargo, setUserCargo] = useState("");
   const userMenuRef = useRef(null);
   const userInfoRef = useRef(null);
   const navigate = useNavigate();
   const isMountedRef = useRef(true);
+  const { currentUser } = useAuth();
 
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
@@ -114,9 +117,9 @@ const Menu = () => {
         setMostrarUserMenu(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside, true);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside, true);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [mostrarUserMenu]);
 
@@ -125,8 +128,22 @@ const Menu = () => {
     if (!isMountedRef.current) return;
     setLoadingDespieces(true);
     try {
-      const { getDocs, collection } = await import("firebase/firestore");
-      const despiecesSnapshot = await getDocs(collection(db, "despieces"));
+      const { getDocs, collection, query, where, collectionGroup } = await import("firebase/firestore");
+      let q;
+      if (currentUser && userCargo === "Administrador") {
+        // Collection group query for admins to get all despieces from all users
+        q = query(collectionGroup(db, 'despieces'));
+      } else if (currentUser) {
+        // Query for the subcollection of the current user
+        q = collection(db, "usuarios", currentUser.uid, "despieces");
+      } else {
+        // No user logged in, so no despieces to show.
+        if (isMountedRef.current) setDespieces([]);
+        if (isMountedRef.current) setLoadingDespieces(false);
+        return;
+      }
+
+      const despiecesSnapshot = await getDocs(q);
       const despiecesData = despiecesSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(d => d.id);
@@ -154,6 +171,7 @@ const Menu = () => {
             if (userDoc.exists() && isMountedRef.current) {
               const userData = userDoc.data();
               setUserName(userData.Nombre || "Nombre usuario");
+              setUserCargo(userData.Cargo || "");
             }
           } catch (error) {
             if (isMountedRef.current) console.error("Error al obtener los datos del usuario:", error);
@@ -164,6 +182,7 @@ const Menu = () => {
       } else {
         setUserPhoto(userIcon);
         setDespieces([]);
+        setUserCargo("");
       }
     });
     return () => unsubscribe();
@@ -314,6 +333,14 @@ const Menu = () => {
             </span>
             {highContrast ? 'Alto Contraste ON' : 'Alto Contraste'}
           </div>
+          {userCargo === 'Administrador' && (
+            <Link to="/admin/usuarios" className={estilos.menuitem}>
+              <span className={estilos.menuitemicon}>
+                <FaUsersCog />
+              </span>
+              Gestionar Usuarios
+            </Link>
+          )}
         </nav>
       </div>
 
