@@ -34,6 +34,8 @@ const Menu = () => {
   const navigate = useNavigate();
   const isMountedRef = useRef(true);
   const { currentUser } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [filtroUsuario, setFiltroUsuario] = useState("");
 
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
@@ -125,22 +127,25 @@ const Menu = () => {
 
   // Utilidad para recargar despieces desde Firestore
   const fetchDespieces = async () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || !currentUser) {
+        if (isMountedRef.current) {
+            setDespieces([]);
+            setLoadingDespieces(false);
+        }
+        return;
+    }
     setLoadingDespieces(true);
     try {
-      const { getDocs, collection, query, where, collectionGroup } = await import("firebase/firestore");
+      const { getDocs, collection, query, where } = await import("firebase/firestore");
+      const despiecesCollectionRef = collection(db, 'despieces');
       let q;
-      if (currentUser && userCargo === "Administrador") {
-        // Collection group query for admins to get all despieces from all users
-        q = query(collectionGroup(db, 'despieces'));
-      } else if (currentUser) {
-        // Query for the subcollection of the current user
-        q = collection(db, "usuarios", currentUser.uid, "despieces");
+
+      if (userCargo === "Administrador") {
+        // Admin gets all despieces from the top-level collection
+        q = query(despiecesCollectionRef);
       } else {
-        // No user logged in, so no despieces to show.
-        if (isMountedRef.current) setDespieces([]);
-        if (isMountedRef.current) setLoadingDespieces(false);
-        return;
+        // Regular user gets only their own despieces from the top-level collection
+        q = query(despiecesCollectionRef, where("userId", "==", currentUser.uid));
       }
 
       const despiecesSnapshot = await getDocs(q);
@@ -178,7 +183,6 @@ const Menu = () => {
           }
         };
         fetchUserData();
-        fetchDespieces();
       } else {
         setUserPhoto(userIcon);
         setDespieces([]);
@@ -187,6 +191,35 @@ const Menu = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch despieces when user info is available to avoid race conditions
+  useEffect(() => {
+    if (currentUser && userCargo) {
+      fetchDespieces();
+    } else if (!currentUser) {
+      setDespieces([]);
+    }
+  }, [currentUser, userCargo]);
+
+  // Cargar lista de usuarios para el filtro de administrador
+  useEffect(() => {
+    if (userCargo === 'Administrador') {
+      const fetchUsersList = async () => {
+        try {
+          const { collection, getDocs } = await import("firebase/firestore");
+          const usersCollection = collection(db, 'usuarios');
+          const usersSnapshot = await getDocs(usersCollection);
+          const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, nombre: doc.data().Nombre }));
+          if (isMountedRef.current) {
+            setUsers(usersList);
+          }
+        } catch (error) {
+          console.error("Error al cargar usuarios:", error);
+        }
+      };
+      fetchUsersList();
+    }
+  }, [userCargo]);
 
   const irADespieces = () => {
     // Agregué la navegación al modelo de despiece
@@ -212,7 +245,9 @@ const Menu = () => {
     const fechaNormalizada = despiece.fechaCreacion || "";
     const coincideFecha = !filtroFecha || fechaNormalizada === filtroFechaNormalizado;
 
-    return coincideBusqueda && coincideFecha;
+    const coincideUsuario = userCargo === 'Administrador' ? (!filtroUsuario || despiece.userId === filtroUsuario) : true;
+
+    return coincideBusqueda && coincideFecha && coincideUsuario;
   });
 
   // Renderizar solo proyectos con id único y key robusto
@@ -378,6 +413,19 @@ const Menu = () => {
               className={estilos.inputBuscar}
               aria-label="Filtrar por fecha"
             />
+            {userCargo === 'Administrador' && (
+              <select
+                className={estilos.inputBuscar}
+                value={filtroUsuario}
+                onChange={(e) => setFiltroUsuario(e.target.value)}
+                aria-label="Filtrar por usuario"
+              >
+                <option value="">Todos los usuarios</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>{user.nombre || "Usuario sin nombre"}</option>
+                ))}
+              </select>
+            )}
           </div>
           <button className={estilos.botonAgregar} onClick={irADespieces}>
             Agregar Nuevo Despiece
@@ -425,6 +473,9 @@ const Menu = () => {
                     >Eliminar</button>
                   </div>
                   <p>Cliente: {despiece.cliente}</p>
+                  {userCargo === 'Administrador' && (
+                    <p>Creado por: {users.find(u => u.id === despiece.userId)?.nombre || 'Desconocido'}</p>
+                  )}
                   <p>Fecha de Creación: {despiece.fechaCreacion || despiece.fecha || '-'}</p>
                 </li>
               ))}

@@ -51,6 +51,12 @@ body {
   font-family: 'calibri';
 }
 
+.section h1 {
+  text-align: center;
+  color: white;
+  margin-bottom: 20px;
+}
+
 .section p {
   margin: 20px;
   text-align: center;
@@ -681,6 +687,7 @@ label[for="recordar"] {
   border-collapse: collapse;
   margin-top: 20px;
   table-layout: fixed; /* CRUCIAL: Esto hace que los anchos de columna se respeten */
+  padding-top: 50px; /* Espacio entre el encabezado y la tabla */
 }
 
 .filaDespiece {
@@ -714,6 +721,56 @@ label[for="recordar"] {
 .filaDespiece > .celdaTitulo:nth-child(9) { width: 6%; }  /* A2 */
 .filaDespiece > .celdaTitulo:nth-child(10) { width: 12%; } /* ACCIONES */
 
+/* --- Anchos para la tabla de Gestión de Usuarios --- */
+.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(1) { width: 20%; } /* Nombre */
+.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(2) { width: 25%; } /* Email */
+.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(3) { width: 15%; } /* Fecha de Creación */
+.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(4) { width: 20%; } /* Último Ingreso */
+.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(5) { width: 10%; } /* Estado */
+.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(6) { width: 10%; } /* Acciones */
+
+.tablaUsuarios .celdaDespiece {
+  word-wrap: break-word; /* Para que el email largo se rompa y no desborde */
+  text-align: center; /* Centrar el contenido de las celdas */
+}
+
+/* === Modal para Agregar Usuario === */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modalContent {
+  background: #262626; /* Fondo oscuro acorde al tema */
+  padding: 30px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  color: white;
+  font-family: 'calibri';
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
 
 .celdaDespiece {
   display: table-cell;

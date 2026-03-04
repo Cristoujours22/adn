@@ -150,13 +150,16 @@ function AdminUsuarios() {
             <Menu />
             <div className={estilos.despiecesSection} style={{ margin: '20px' }}>
                 <h2>Gestión de Usuarios</h2>
-                <button onClick={() => setShowAddUserForm(!showAddUserForm)} className={estilos.botonAgregar} style={{ marginBottom: '20px' }}>
-                    {showAddUserForm ? 'Cancelar' : 'Agregar Nuevo Usuario'}
+                <button onClick={() => setShowAddUserForm(true)} className={estilos.botonAgregar} style={{ marginBottom: '20px' }}>
+                    Agregar Nuevo Usuario
                 </button>
 
                 {showAddUserForm && (
-                    <form onSubmit={handleAddNewUser} className={estilos.section} style={{ width: '100%', maxWidth: '500px', margin: '20px auto', background: 'rgba(255,255,255,0.1)' }}>
-                        <h3 style={{ color: 'white', textAlign: 'center' }}>Nuevo Usuario</h3>
+                    <div className={estilos.modalOverlay}>
+                        <div className={estilos.modalContent}>
+                        <button className={estilos.closeButton} onClick={() => setShowAddUserForm(false)}>×</button>
+                        <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>Nuevo Usuario</h3>
+                        <form onSubmit={handleAddNewUser}>
                         <input
                             type="text"
                             placeholder="Nombre Completo"
@@ -190,14 +193,21 @@ function AdminUsuarios() {
                             <option value="Diseñador">Diseñador</option>
                             <option value="Administrador">Administrador</option>
                         </select>
-                        <button type="submit" className={estilos.butom} disabled={isAddingUser}>
-                            {isAddingUser ? 'Agregando...' : 'Crear Usuario'}
-                        </button>
-                    </form>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button type="submit" className={estilos.butom} disabled={isAddingUser} style={{ margin: '10px 0' }}>
+                                {isAddingUser ? 'Agregando...' : 'Crear'}
+                            </button>
+                            <button type="button" className={estilos.butom} onClick={() => setShowAddUserForm(false)} style={{ margin: '10px 0', backgroundColor: '#dc3545', border: '1px solid #dc3545' }}>
+                                Cancelar
+                            </button>
+                        </div>
+                        </form>
+                        </div>
+                    </div>
                 )}
 
                 {loading ? <p>Cargando usuarios...</p> : (
-                    <div className={estilos.tablaDespiece}>
+                    <div className={`${estilos.tablaDespiece} ${estilos.tablaUsuarios}`}>
                         <div className={estilos.filaDespiece}>
                             <div className={estilos.celdaTitulo}>Nombre</div>
                             <div className={estilos.celdaTitulo}>Email</div>
