@@ -16,6 +16,35 @@ function AdminUsuarios() {
     const [showAddUserForm, setShowAddUserForm] = useState(false);
     const [newUserData, setNewUserData] = useState({ Nombre: '', email: '', password: '', Cargo: 'Vendedor' });
     const [isAddingUser, setIsAddingUser] = useState(false);
+    const [darkMode, setDarkMode] = useState(() => {
+        const savedMode = localStorage.getItem("darkMode");
+        return savedMode ? JSON.parse(savedMode) : false;
+    });
+    const [highContrast, setHighContrast] = useState(() => {
+        const savedMode = localStorage.getItem("highContrast");
+        return savedMode ? JSON.parse(savedMode) : false;
+    });
+
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const savedMode = localStorage.getItem("darkMode");
+            if (savedMode !== null) {
+                setDarkMode(JSON.parse(savedMode));
+            }
+            const savedContrast = localStorage.getItem("highContrast");
+            if (savedContrast !== null) {
+                setHighContrast(JSON.parse(savedContrast));
+            }
+        };
+        window.addEventListener("darkModeChanged", handleStorageChange);
+        window.addEventListener("highContrastChanged", handleStorageChange);
+        window.addEventListener("storage", handleStorageChange);
+        return () => {
+            window.removeEventListener("darkModeChanged", handleStorageChange);
+            window.removeEventListener("highContrastChanged", handleStorageChange);
+            window.removeEventListener("storage", handleStorageChange);
+        };
+    }, []);
 
     useEffect(() => {
         const checkAdmin = async () => {
@@ -148,8 +177,8 @@ function AdminUsuarios() {
     return (
         <div>
             <Menu />
-            <div className={estilos.despiecesSection} style={{ margin: '20px' }}>
-                <h2>Gestión de Usuarios</h2>
+            <div className={`${estilos.despiecesSection} ${darkMode ? estilos.despiecesSectionDark : ''}`} style={{ margin: '20px', marginTop: '100px' }}>
+                <h2 style={{ color: darkMode ? '#f1f1f1' : '#333' }}>Gestión de Usuarios</h2>
                 <button onClick={() => setShowAddUserForm(true)} className={estilos.botonAgregar} style={{ marginBottom: '20px' }}>
                     Agregar Nuevo Usuario
                 </button>

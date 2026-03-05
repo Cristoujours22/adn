@@ -72,6 +72,7 @@ const Menu = () => {
       } else {
         document.body.classList.remove("dark-mode");
       }
+      window.dispatchEvent(new Event("darkModeChanged"));
       return newMode;
     });
   };
@@ -85,6 +86,7 @@ const Menu = () => {
       } else {
         document.body.classList.remove("high-contrast");
       }
+      window.dispatchEvent(new Event("highContrastChanged"));
       return newVal;
     });
   };
@@ -177,6 +179,9 @@ const Menu = () => {
               const userData = userDoc.data();
               setUserName(userData.Nombre || "Nombre usuario");
               setUserCargo(userData.Cargo || "");
+              if (userData.photoBase64) {
+                setUserPhoto(userData.photoBase64);
+              }
             }
           } catch (error) {
             if (isMountedRef.current) console.error("Error al obtener los datos del usuario:", error);
@@ -368,6 +373,21 @@ const Menu = () => {
             </span>
             {highContrast ? 'Alto Contraste ON' : 'Alto Contraste'}
           </div>
+          {location.pathname.includes('/modelo-despiece') && (
+            <div
+              className={estilos.menuitem}
+              onClick={() => {
+                window.dispatchEvent(new Event('openNomenclaturesModal'));
+                toggleMenu(); // Cerrar menú
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <span className={estilos.menuitemicon}>
+                📋
+              </span>
+              Nomenclaturas / Servicios
+            </div>
+          )}
           {userCargo === 'Administrador' && (
             <Link to="/admin/usuarios" className={estilos.menuitem}>
               <span className={estilos.menuitemicon}>

@@ -1,4 +1,5 @@
 /* === Contenido de App.module.css === */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
 /* Estilos Globales y de otras páginas (proporcionados por ti) */
 * {
@@ -8,9 +9,34 @@
 }
 
 body {
-  background-image: url(Assets/Fondo.jpg); /* Considera usar variables CSS para esto si quieres que cambie con el tema */
+  background-image: url(Assets/Fondo.jpg);
+  /* Considera usar variables CSS para esto si quieres que cambie con el tema */
   background-size: 100%;
   /* Asegúrate que los estilos base del body y padding-top estén en index.css/App.css global */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  color: #333;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
 }
 
 .header {
@@ -22,6 +48,7 @@ body {
   width: 100%;
   height: 250px;
 }
+
 .ADN {
   width: 400px;
   align-content: center;
@@ -36,7 +63,8 @@ body {
 .main {
   /*background:#FE0004;*/
   width: 100%;
-  height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+  height: calc(100vh - 300px);
+  /* Esto podría necesitar ajuste con topBar fija */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -44,11 +72,12 @@ body {
 
 .section {
   width: 400px;
-  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  background: hsla(0, 0%, 0%, 0.75);
+  /* Considera usar variables CSS */
   padding: 30px;
   margin: auto;
   border-radius: 10px;
-  font-family: 'calibri';
+  /* font-family inhered from body */
 }
 
 .section h1 {
@@ -60,39 +89,41 @@ body {
 .section p {
   margin: 20px;
   text-align: center;
-  color: white; /* Asumiendo texto blanco sobre fondo oscuro */
+  color: white;
+  /* Asumiendo texto blanco sobre fondo oscuro */
 }
+
 .controls {
   /*controls w-full p-2 mb-3 border border-gray-300 rounded*/
   width: 100%;
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 16px;
-  font-family: 'calibri';
+  /* font-family inhered from body */
   font-size: 18px;
   /* Considera colores de borde/fondo/texto con variables CSS */
 }
 
 .butom {
-  background: #313131; /* Considera usar variables CSS */
-  letter-spacing: 1px;
-  color: white; /* Considera usar variables CSS */
+  background: linear-gradient(135deg, #fe0004 0%, #aa0003 100%);
+  color: white;
   width: 100%;
-  padding: 12px;
+  padding: 12px 20px;
   margin: 16px 0;
-  font-family: 'calibri';
+  /* font-family inhered from body */
   font-size: 18px;
-  border: 1px solid #000000;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  box-shadow: inset 0 0 0 0 #fe0004;
-  -webkit-transition: ease-out 0.4s;
-  -moz-transition: ease-out 0.4s;
-  transition: ease-out 0.4s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
 }
 
 .butom:hover {
-  box-shadow: inset 400px 0 0 0 #fe0004;
-  color: #313131;
+  background: linear-gradient(135deg, #aa0003 0%, #fe0004 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(254, 0, 4, 0.4);
 }
 
 .footer {
@@ -107,7 +138,8 @@ body {
 /*Pagina Recuperacion de contraseña      <-------------------------*/
 
 .header1 {
-  background-color: #262626; /* Considera usar variables CSS */
+  background-color: #262626;
+  /* Considera usar variables CSS */
   align-items: flex-start;
   justify-content: center;
   display: flex;
@@ -118,65 +150,74 @@ body {
 .ADN1 {
   width: 350px;
 }
+
 .nav1 {
   background: #090808;
   width: 100%;
   height: 5px;
 }
+
 .main1 {
   /* background:#FE0004;*/
   width: 100%;
-  height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+  height: calc(100vh - 300px);
+  /* Esto podría necesitar ajuste con topBar fija */
 }
+
 .controls1 {
   width: 100%;
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 16px;
-  font-family: 'calibri';
+  /* font-family inhered from body */
   font-size: 18px;
 }
 
 .section1 {
   width: 600px;
-  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  background: hsla(0, 0%, 0%, 0.75);
+  /* Considera usar variables CSS */
   padding: 30px;
   margin: 30px auto;
   border-radius: 10px;
-  font-family: 'calibri';
+  /* font-family inhered from body */
 }
 
 .section1 p {
-  color: white; /* Considera usar variables CSS */
+  color: white;
+  /* Considera usar variables CSS */
 }
 
 .label1 {
-  color: white; /* Considera usar variables CSS */
+  color: white;
+  /* Considera usar variables CSS */
 }
 
 .butom1 {
-  background: #313131; /* Considera usar variables CSS */
-  color: white; /* Considera usar variables CSS */
+  background: linear-gradient(135deg, #313131 0%, #1a1a1a 100%);
+  color: white;
   letter-spacing: 1px;
   width: auto;
   height: auto;
-  padding: 12px;
+  padding: 12px 24px;
   margin: 16px 0;
-  font-family: 'calibri';
+  /* font-family inhered from body */
   font-size: 18px;
-  border-radius: 0px;
-  border: 2px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
   display: flex;
   align-items: flex-start;
   cursor: pointer;
-  box-shadow: inset 0 0 0 0 #fe0004;
-  -webkit-transition: ease-out 0.4s;
-  -moz-transition: ease-out 0.4s;
-  transition: ease-out 0.4s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
 }
+
 .butom1:hover {
-  box-shadow: inset 400px 0 0 0 #fe0004;
-  color: #313131;
+  background: linear-gradient(135deg, #fe0004 0%, #aa0003 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(254, 0, 4, 0.4);
+  color: white;
 }
 
 /*Perfil usaurio*/
@@ -184,13 +225,18 @@ body {
 .section2 {
   display: flex;
   justify-content: space-around;
-  width: 550px; /* Reducido desde 550px */
-  height: 300px; /* Reducido desde 400px */
-  background: hsla(0, 0%, 0%, 0.75); /* Fondo oscuro transparente */
-  padding: 60px 150px 0px 0px; /* Ajustado para reducir el espacio interno */
-  margin: 20px auto; /* Centrado con márgenes más pequeños */
+  width: 550px;
+  /* Reducido desde 550px */
+  height: 300px;
+  /* Reducido desde 400px */
+  background: hsla(0, 0%, 0%, 0.75);
+  /* Fondo oscuro transparente */
+  padding: 60px 150px 0px 0px;
+  /* Ajustado para reducir el espacio interno */
+  margin: 20px auto;
+  /* Centrado con márgenes más pequeños */
   border-radius: 10px;
-  font-family: 'calibri';
+  /* font-family inhered from body */
 }
 
 .ContenedorFoto {
@@ -201,6 +247,7 @@ body {
   width: 150px;
   height: 150px;
 }
+
 .FotoPerfil {
   display: block;
   width: 150px;
@@ -241,40 +288,46 @@ body {
   align-self: center;
   margin: auto 0 auto 20px;
   height: 60%;
-  color: white; /* Considera usar variables CSS */
+  color: white;
+  /* Considera usar variables CSS */
   width: 230px;
 }
+
 .Textoh1 {
   margin-bottom: 2px;
 }
+
 .Textop {
   margin-bottom: 10px;
 }
+
 .butom2 {
-  background: #313131; /* Considera usar variables CSS */
-  color: white; /* Considera usar variables CSS */
+  background: linear-gradient(135deg, #313131 0%, #1a1a1a 100%);
+  color: white;
   letter-spacing: 1px;
   width: auto;
   height: 50px;
-  padding: 12px;
+  padding: 12px 24px;
   margin: 16px 0;
-  font-family: 'calibri';
+  /* font-family inhered from body */
   font-size: 18px;
-  border-radius: 0px;
-  border: 2px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
   display: flex;
   cursor: pointer;
-  box-shadow: inset 0 0 0 0 #fe0004;
-  -webkit-transition: ease-out 0.4s;
-  -moz-transition: ease-out 0.4s;
-  transition: ease-out 0.4s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
   justify-content: center;
   align-self: flex-end;
   align-content: center;
 }
+
 .butom2:hover {
-  box-shadow: inset 400px 0 0 0 #fe0004;
-  color: #313131;
+  background: linear-gradient(135deg, #fe0004 0%, #aa0003 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(254, 0, 4, 0.4);
+  color: white;
 }
 
 /*Despiece*/
@@ -283,7 +336,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #262626; /* Considera usar variables CSS */
+  background-color: #262626;
+  /* Considera usar variables CSS */
   width: 100%;
   height: 40px;
 }
@@ -293,6 +347,7 @@ body {
   margin-right: auto;
   margin-left: auto;
 }
+
 .iconousuario {
   display: flex;
   margin: auto 15px auto 520px;
@@ -310,12 +365,14 @@ body {
 .menu img:first-child {
   width: 35px;
 }
+
 .main2 {
   display: flex;
   align-items: center;
   /* background:#FE0004;*/
   width: 100%;
-  height: calc(100vh - 300px); /* Esto podría necesitar ajuste con topBar fija */
+  height: calc(100vh - 300px);
+  /* Esto podría necesitar ajuste con topBar fija */
 }
 
 .section3 {
@@ -324,22 +381,26 @@ body {
   justify-content: space-around;
   width: 900px;
   height: 800px;
-  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  background: hsla(0, 0%, 0%, 0.75);
+  /* Considera usar variables CSS */
   padding: 10px 10px 10px 10px;
   margin: 15px 10px auto 10px;
   border-radius: 10px;
-  font-family: 'calibri';
+  /* font-family inhered from body */
 }
+
 .section3-2 {
   display: flex;
   align-self: flex-start;
   width: 300px;
   height: 500px;
-  background: hsla(0, 0%, 0%, 0.75); /* Considera usar variables CSS */
+  background: hsla(0, 0%, 0%, 0.75);
+  /* Considera usar variables CSS */
   padding: 30px 20px;
   margin: 15px 10px auto 10px;
   border-radius: 10px;
-  color: white; /* Considera usar variables CSS */
+  color: white;
+  /* Considera usar variables CSS */
 }
 
 .label {
@@ -351,7 +412,8 @@ body {
 /* nos centraremos en .celdaTitulo, .celdaDespiece, .inputCorto, .inputLargo */
 .cantidad,
 .largo,
-.la, /* Asumo que es 'ancho' o similar */
+.la,
+/* Asumo que es 'ancho' o similar */
 .rotar,
 .LYA,
 .l1,
@@ -363,13 +425,17 @@ body {
   /* width: 1000px;  Esto es demasiado grande para estas columnas */
   min-width: 40px;
   text-align: center;
-  resize: horizontal; /* resize no funciona en la mayoría de los elementos que no son textarea */
+  resize: horizontal;
+  /* resize no funciona en la mayoría de los elementos que no son textarea */
 }
+
 .cnt {
   text-align: center;
   width: 50px;
 }
-.detalle { /* Esta clase .detalle parece ser para un elemento de texto, no el input de la tabla */
+
+.detalle {
+  /* Esta clase .detalle parece ser para un elemento de texto, no el input de la tabla */
   font-size: 11px;
   color: white;
   width: calc(100% - 40px);
@@ -380,11 +446,13 @@ body {
   box-sizing: border-box;
   margin: 0 auto;
 }
+
 .dm {
   text-align: center;
   resize: horizontal;
   width: 400px;
 }
+
 /* La clase .rotar ya está definida arriba, esta es una redefinición. */
 /* .rotar {
   font-size: 11px;
@@ -398,6 +466,7 @@ body {
   resize: horizontal;
   width: 50px;
 }
+
 /* .LYA, .l1, .l2, .A1, .A2 ya están definidas arriba. */
 
 .servicios {
@@ -596,6 +665,7 @@ label[for="recordar"] {
   color: #fff !important;
   opacity: 0.95;
 }
+
 .userDropdownDark {
   background-color: #222 !important;
   color: #fff !important;
@@ -632,18 +702,22 @@ label[for="recordar"] {
 .botonAgregar {
   display: inline-block;
   margin-bottom: 20px;
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 16px;
+  font-weight: bold;
   color: #fff;
-  background-color: #1e7e34;
+  background: linear-gradient(135deg, #1e7e34 0%, #145523 100%);
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
 
 .botonAgregar:hover {
-  background-color: #218838;
+  background: linear-gradient(135deg, #145523 0%, #1e7e34 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(30, 126, 52, 0.4);
 }
 
 .despiecesList {
@@ -683,11 +757,14 @@ label[for="recordar"] {
 /* Estilos para la tabla de despiece */
 .tablaDespiece {
   display: table;
-  width: 100%; /* La tabla ocupará el ancho disponible */
+  width: 100%;
+  /* La tabla ocupará el ancho disponible */
   border-collapse: collapse;
   margin-top: 20px;
-  table-layout: fixed; /* CRUCIAL: Esto hace que los anchos de columna se respeten */
-  padding-top: 50px; /* Espacio entre el encabezado y la tabla */
+  table-layout: fixed;
+  /* CRUCIAL: Esto hace que los anchos de columna se respeten */
+  padding-top: 50px;
+  /* Espacio entre el encabezado y la tabla */
 }
 
 .filaDespiece {
@@ -698,40 +775,112 @@ label[for="recordar"] {
   display: table-cell;
   text-align: center;
   font-weight: bold;
-  padding: 10px 5px; /* Ajustar padding para que el texto no se corte tanto */
-  background-color: #2c3e50; /* Un azul oscuro para los encabezados */
+  padding: 10px 5px;
+  /* Ajustar padding para que el texto no se corte tanto */
+  background-color: #2c3e50;
+  /* Un azul oscuro para los encabezados */
   color: white;
   border: 1px solid #ddd;
-  overflow: hidden;      /* Evita que el texto desborde la celda */
-  text-overflow: ellipsis; /* Muestra "..." si el texto es muy largo */
-  white-space: nowrap;   /* Evita que el título se parta en múltiples líneas */
-  font-size: 12px; /* Reducir un poco el tamaño de fuente del título si es necesario */
+  overflow: hidden;
+  /* Evita que el texto desborde la celda */
+  text-overflow: ellipsis;
+  /* Muestra "..." si el texto es muy largo */
+  white-space: nowrap;
+  /* Evita que el título se parta en múltiples líneas */
+  font-size: 12px;
+  /* Reducir un poco el tamaño de fuente del título si es necesario */
 }
 
 /* --- Definición de anchos para cada columna del encabezado --- */
 /* Estos porcentajes deben sumar 100% */
-.filaDespiece > .celdaTitulo:nth-child(1) { width: 6%; }  /* CANT */
-.filaDespiece > .celdaTitulo:nth-child(2) { width: 6%; }  /* LARGO */
-.filaDespiece > .celdaTitulo:nth-child(3) { width: 6%; }  /* ANCHO */
-.filaDespiece > .celdaTitulo:nth-child(4) { width: 40%; } /* DETALLE */
-.filaDespiece > .celdaTitulo:nth-child(5) { width: 6%; }  /* ROTAR */
-.filaDespiece > .celdaTitulo:nth-child(6) { width: 6%; }  /* L1 */
-.filaDespiece > .celdaTitulo:nth-child(7) { width: 6%; }  /* L2 */
-.filaDespiece > .celdaTitulo:nth-child(8) { width: 6%; }  /* A1 */
-.filaDespiece > .celdaTitulo:nth-child(9) { width: 6%; }  /* A2 */
-.filaDespiece > .celdaTitulo:nth-child(10) { width: 12%; } /* ACCIONES */
+.filaDespiece>.celdaTitulo:nth-child(1) {
+  width: 6%;
+}
+
+/* CANT */
+.filaDespiece>.celdaTitulo:nth-child(2) {
+  width: 6%;
+}
+
+/* LARGO */
+.filaDespiece>.celdaTitulo:nth-child(3) {
+  width: 6%;
+}
+
+/* ANCHO */
+.filaDespiece>.celdaTitulo:nth-child(4) {
+  width: 40%;
+}
+
+/* DETALLE */
+.filaDespiece>.celdaTitulo:nth-child(5) {
+  width: 6%;
+}
+
+/* ROTAR */
+.filaDespiece>.celdaTitulo:nth-child(6) {
+  width: 6%;
+}
+
+/* L1 */
+.filaDespiece>.celdaTitulo:nth-child(7) {
+  width: 6%;
+}
+
+/* L2 */
+.filaDespiece>.celdaTitulo:nth-child(8) {
+  width: 6%;
+}
+
+/* A1 */
+.filaDespiece>.celdaTitulo:nth-child(9) {
+  width: 6%;
+}
+
+/* A2 */
+.filaDespiece>.celdaTitulo:nth-child(10) {
+  width: 12%;
+}
+
+/* ACCIONES */
 
 /* --- Anchos para la tabla de Gestión de Usuarios --- */
-.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(1) { width: 20%; } /* Nombre */
-.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(2) { width: 25%; } /* Email */
-.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(3) { width: 15%; } /* Fecha de Creación */
-.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(4) { width: 20%; } /* Último Ingreso */
-.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(5) { width: 10%; } /* Estado */
-.tablaUsuarios .filaDespiece > .celdaTitulo:nth-child(6) { width: 10%; } /* Acciones */
+.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(1) {
+  width: 20%;
+}
+
+/* Nombre */
+.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(2) {
+  width: 25%;
+}
+
+/* Email */
+.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(3) {
+  width: 15%;
+}
+
+/* Fecha de Creación */
+.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(4) {
+  width: 20%;
+}
+
+/* Último Ingreso */
+.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(5) {
+  width: 10%;
+}
+
+/* Estado */
+.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(6) {
+  width: 10%;
+}
+
+/* Acciones */
 
 .tablaUsuarios .celdaDespiece {
-  word-wrap: break-word; /* Para que el email largo se rompa y no desborde */
-  text-align: center; /* Centrar el contenido de las celdas */
+  word-wrap: break-word;
+  /* Para que el email largo se rompa y no desborde */
+  text-align: center;
+  /* Centrar el contenido de las celdas */
 }
 
 /* === Modal para Agregar Usuario === */
@@ -749,7 +898,8 @@ label[for="recordar"] {
 }
 
 .modalContent {
-  background: #262626; /* Fondo oscuro acorde al tema */
+  background: #262626;
+  /* Fondo oscuro acorde al tema */
   padding: 30px;
   border-radius: 10px;
   width: 90%;
@@ -757,7 +907,7 @@ label[for="recordar"] {
   position: relative;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   color: white;
-  font-family: 'calibri';
+  /* font-family inhered from body */
 }
 
 .closeButton {
@@ -774,55 +924,71 @@ label[for="recordar"] {
 
 .celdaDespiece {
   display: table-cell;
-  padding: 3px; /* Un poco de padding alrededor de los inputs */
-  border: 1px solid #e0e0e0; /* Borde más suave para las celdas de datos */
-  vertical-align: middle; /* Alinea el contenido de la celda (input) verticalmente */
+  padding: 3px;
+  /* Un poco de padding alrededor de los inputs */
+  border: 1px solid #e0e0e0;
+  /* Borde más suave para las celdas de datos */
+  vertical-align: middle;
+  /* Alinea el contenido de la celda (input) verticalmente */
 }
 
 .inputCorto {
-  width: 100%; /* El input ocupa todo el ancho de la celda definida por .celdaTitulo */
-  padding: 8px 5px; /* Padding interno del input (vertical, horizontal) */
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box; /* Importante para que el padding no aumente el ancho total */
-  text-align: center;
-  font-size: 14px; /* Tamaño de fuente para los inputs */
-}
-
-.inputLargo {
-  width: 100%; /* El input ocupa todo el ancho de la celda */
-  padding: 8px 5px; /* Padding interno del input */
+  width: 100%;
+  /* El input ocupa todo el ancho de la celda definida por .celdaTitulo */
+  padding: 8px 5px;
+  /* Padding interno del input (vertical, horizontal) */
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
-  font-size: 14px; /* Tamaño de fuente para los inputs */
-  text-align: left; /* El detalle usualmente se alinea a la izquierda */
+  /* Importante para que el padding no aumente el ancho total */
+  text-align: center;
+  font-size: 14px;
+  /* Tamaño de fuente para los inputs */
+}
+
+.inputLargo {
+  width: 100%;
+  /* El input ocupa todo el ancho de la celda */
+  padding: 8px 5px;
+  /* Padding interno del input */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+  /* Tamaño de fuente para los inputs */
+  text-align: left;
+  /* El detalle usualmente se alinea a la izquierda */
 }
 
 /* Si quieres que el input de detalle específicamente tenga alineación izquierda */
 /* (ya está en .inputLargo, pero por si acaso se sobreescribe) */
-.filaDespiece > .celdaDespiece:nth-child(4) > .inputLargo {
+.filaDespiece>.celdaDespiece:nth-child(4)>.inputLargo {
   text-align: left;
 }
 
 
 .botonEliminar {
-  background-color: #dc3545; /* Rojo para eliminar */
+  background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
   color: white;
-  padding: 6px 10px; /* Padding para el botón */
+  padding: 8px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  display: block;      /* Hace que el botón sea un bloque */
-  margin: 0 auto;      /* Centra el botón dentro de su celda */
-  width: auto;         /* El ancho se ajusta al contenido */
-  min-width: 70px;     /* Un ancho mínimo para que "Eliminar" quepa bien */
-  font-size: 13px;
-  line-height: 1.5;    /* Mejorar espaciado vertical del texto */
+  display: block;
+  margin: 0 auto;
+  width: auto;
+  min-width: 90px;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1.5;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
 }
 
 .botonEliminar:hover {
-  background-color: #c82333; /* Rojo más oscuro al pasar el mouse */
+  background: linear-gradient(135deg, #a71d2a 0%, #dc3545 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(220, 53, 69, 0.4);
 }
 
 /* Estilo para los textbox y labels con ancho uniforme (fuera de la tabla) */
@@ -837,41 +1003,52 @@ label {
   font-size: 14px;
   font-weight: bold;
   box-sizing: border-box;
-  color: #333; /* Color de texto para los labels fuera de la tabla, si aplica */
+  color: #333;
+  /* Color de texto para los labels fuera de la tabla, si aplica */
 }
 
 /* Estilos para los inputs de Nombre de Cliente y Proyecto */
 /* Estos inputs usan .inputLargo, que ya está definido para ocupar el 100% de su contenedor. */
 /* Si sus contenedores (los <label style={{ flex: 1 }}>) necesitan ajustes, se haría ahí. */
-.projectInfo { /* Ya tienes estilos inline, pero podrías moverlos aquí */
+.projectInfo {
+  /* Ya tienes estilos inline, pero podrías moverlos aquí */
   display: flex;
   gap: 20px;
   align-items: center;
-  margin-bottom: 20px; /* Espacio antes de la tabla */
+  margin-bottom: 20px;
+  /* Espacio antes de la tabla */
 }
 
-.projectInfo label { /* Estilos para los labels dentro de projectInfo */
+.projectInfo label {
+  /* Estilos para los labels dentro de projectInfo */
   flex: 1;
-  color: #333; /* O el color que prefieras para estos labels */
+  color: #333;
+  /* O el color que prefieras para estos labels */
 }
 
-.projectInfo input { /* Estilos para los inputs dentro de projectInfo */
-  margin-top: 4px; /* Pequeño espacio entre el label y el input */
+.projectInfo input {
+  /* Estilos para los inputs dentro de projectInfo */
+  margin-top: 4px;
+  /* Pequeño espacio entre el label y el input */
 }
 
-.projectInfo p { /* Estilo para el texto de "Última Fecha de Modificación" */
- color: #555;
- font-size: 13px;
+.projectInfo p {
+  /* Estilo para el texto de "Última Fecha de Modificación" */
+  color: #555;
+  font-size: 13px;
 }
 
 /* Contenedor general del formulario/página de despiece */
 .modeloDespieceContainer {
   padding: 20px;
-  max-width: 1200px; /* O el ancho que prefieras para tu página */
-  margin: 50px auto 20px auto; /* marginTop ya lo tienes inline */
-  background-color: #fff; /* Un fondo para el contenedor principal si no es transparente */
+  max-width: 95%;
+  /* O el ancho que prefieras para tu página */
+  margin: 50px auto 20px auto;
+  /* marginTop ya lo tienes inline */
+  background-color: #fff;
+  /* Un fondo para el contenedor principal si no es transparente */
   border-radius: 8px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
 .modeloDespieceContainer h2 {
@@ -886,32 +1063,41 @@ label {
   display: block;
   width: auto;
   min-width: 140px;
-  padding: 12px 25px;
+  padding: 14px 28px;
   font-size: 16px;
   font-weight: bold;
   color: #fff;
-  background-color: #1e7e34; /* Adjusted to meet contrast ratio */
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin: 30px auto 0 auto; /* Centrar el botón de guardar */
+  transition: all 0.3s ease;
+  margin: 30px auto 0 auto;
+  /* Centrar el botón de guardar */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .botonSubmit:hover {
-  background-color: #19692c; /* Adjusted hover color for contrast */
+  background: linear-gradient(135deg, #0056b3 0%, #007bff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4);
 }
 
 input[type="number"] {
-  -moz-appearance: textfield; /* Para navegadores basados en Firefox */
-  -webkit-appearance: none; /* Para navegadores basados en WebKit */
-  appearance: none; /* Estándar */
+  -moz-appearance: textfield;
+  /* Para navegadores basados en Firefox */
+  -webkit-appearance: none;
+  /* Para navegadores basados en WebKit */
+  appearance: none;
+  /* Estándar */
 }
 
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none; /* Eliminar flechas en navegadores WebKit */
-  margin: 0; /* Ajustar márgenes */
+  -webkit-appearance: none;
+  /* Eliminar flechas en navegadores WebKit */
+  margin: 0;
+  /* Ajustar márgenes */
 }
 
 .footerDespiece {
@@ -926,36 +1112,43 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .footerDespiece .botonSubmit {
   margin: 0;
-  padding: 6px 1px; /* Reducir aún más el ancho del botón */
-  font-size: 15px; /* Reducir el tamaño de la fuente */
+  padding: 8px 16px;
+  font-size: 14px;
   font-weight: bold;
   color: #fff;
-  background-color: #1e7e34;
+  background: linear-gradient(135deg, #1e7e34 0%, #145523 100%);
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .footerDespiece .botonSubmit:hover {
-  background-color: #19692c;
+  background: linear-gradient(135deg, #145523 0%, #1e7e34 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(30, 126, 52, 0.4);
 }
 
 .botonCopiar {
   display: block;
   margin: 10px auto;
-  padding: 8px 16px;
+  padding: 10px 20px;
   font-size: 14px;
+  font-weight: bold;
   color: #fff;
-  background-color: #007bff;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
 }
 
 .botonCopiar:hover {
-  background-color: #0056b3;
+  background: linear-gradient(135deg, #0056b3 0%, #007bff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0, 123, 255, 0.4);
 }
 
 .despiecesSectionDark {
@@ -978,10 +1171,21 @@ input[type="number"]::-webkit-outer-spin-button {
   color: #f1f1f1 !important;
 }
 
-.despiecesSectionDark input {
+.despiecesSectionDark input,
+.despiecesSectionDark .inputCorto,
+.despiecesSectionDark .inputLargo {
   background: #181a20 !important;
   color: #f1f1f1 !important;
   border: 1px solid #444 !important;
+}
+
+.despiecesSectionDark .celdaTitulo {
+  background-color: #1a232b !important;
+  border-color: #444 !important;
+}
+
+.despiecesSectionDark .celdaDespiece {
+  border-color: #444 !important;
 }
 
 /* === MODO ALTO CONTRASTE (corregido y reforzado) === */
@@ -992,6 +1196,7 @@ body.high-contrast * {
   color: #FFD600 !important;
   border-color: #FFD600 !important;
 }
+
 body.high-contrast input,
 body.high-contrast textarea,
 body.high-contrast select,
@@ -1002,6 +1207,7 @@ body.high-contrast .inputLargo {
   color: #FFD600 !important;
   border: 2px solid #FFD600 !important;
 }
+
 body.high-contrast button,
 body.high-contrast .butom,
 body.high-contrast .butom1 {
@@ -1009,14 +1215,17 @@ body.high-contrast .butom1 {
   color: #FFD600 !important;
   border: 2px solid #FFD600 !important;
 }
+
 body.high-contrast a,
 body.high-contrast a:visited {
   color: #FFD600 !important;
   text-decoration: underline !important;
 }
+
 body.high-contrast .userDropdownItem {
   color: #FFD600 !important;
 }
+
 body.high-contrast .despieceItem h3,
 body.high-contrast .despieceItem p {
   color: #FFD600 !important;

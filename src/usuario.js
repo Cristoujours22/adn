@@ -15,6 +15,35 @@ function Usuario() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
   const { currentUser } = useAuth();
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
+  const [highContrast, setHighContrast] = useState(() => {
+    const savedMode = localStorage.getItem("highContrast");
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedMode = localStorage.getItem("darkMode");
+      if (savedMode !== null) {
+        setDarkMode(JSON.parse(savedMode));
+      }
+      const savedContrast = localStorage.getItem("highContrast");
+      if (savedContrast !== null) {
+        setHighContrast(JSON.parse(savedContrast));
+      }
+    };
+    window.addEventListener("darkModeChanged", handleStorageChange);
+    window.addEventListener("highContrastChanged", handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("darkModeChanged", handleStorageChange);
+      window.removeEventListener("highContrastChanged", handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -50,37 +79,59 @@ function Usuario() {
       return;
     }
 
-    // Validar el tipo y tamaño del archivo
+    // Validar el tipo de archivo
     if (!file.type.startsWith('image/')) {
       alert('Por favor, selecciona un archivo de imagen válido.');
-      return;
-    }
-
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      alert('La imagen es demasiado grande. El tamaño máximo es 5MB.');
       return;
     }
 
     try {
       setIsUploading(true);
 
-      // Convertir la imagen a base64
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result;
+      const base64String = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const maxSize = 400; // 400px maximum width/height
+            let width = img.width;
+            let height = img.height;
 
-        // Actualizar Firestore con la cadena base64
-        const userDocRef = doc(db, "usuarios", currentUser.uid);
-        await updateDoc(userDocRef, {
-          photoBase64: base64String,
-          lastPhotoUpdate: new Date().toISOString()
-        });
+            if (width > height) {
+              if (width > maxSize) {
+                height = Math.round((height * maxSize) / width);
+                width = maxSize;
+              }
+            } else {
+              if (height > maxSize) {
+                width = Math.round((width * maxSize) / height);
+                height = maxSize;
+              }
+            }
 
-        setProfileImage(base64String);
-        console.log('Imagen almacenada en Firestore como base64');
-      };
-      reader.readAsDataURL(file);
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.7)); // 70% quality JPEG
+          };
+          img.onerror = () => reject(new Error("Error al cargar la imagen."));
+          img.src = event.target.result;
+        };
+        reader.onerror = () => reject(new Error("Error al leer el archivo."));
+        reader.readAsDataURL(file);
+      });
+
+      // Actualizar Firestore con la cadena base64
+      const userDocRef = doc(db, "usuarios", currentUser.uid);
+      await updateDoc(userDocRef, {
+        photoBase64: base64String,
+        lastPhotoUpdate: new Date().toISOString()
+      });
+
+      setProfileImage(base64String);
+      alert('Foto de perfil actualizada exitosamente.');
     } catch (error) {
       console.error("Error al procesar la imagen:", error);
       alert("Ocurrió un error al subir la imagen. Por favor, intenta de nuevo.");
@@ -111,9 +162,10 @@ function Usuario() {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          paddingTop: "100px",
         }}
       >
-        <section className={estilos.section2} style={{ margin: 0 }}>
+        <section className={`${estilos.section2} ${darkMode ? estilos.despiecesSectionDark : ''}`} style={{ margin: 0, background: darkMode ? '#23272f' : 'hsla(0, 0%, 0%, 0.75)' }}>
           <div className={estilos.ContenedorFoto} style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{ position: 'relative', marginRight: '20px' }}>
               <img
@@ -146,32 +198,32 @@ function Usuario() {
             <div className={estilos.ContenedorInformacion} style={{ flex: 1 }}>
               <ul>
                 <li>
-                  <h1 className={estilos.Textoh1}>Nombre</h1>
+                  <h1 className={estilos.Textoh1} style={{ color: darkMode ? '#e0e0e0' : 'white' }}>Nombre</h1>
                 </li>
               </ul>
               <ul>
                 <li>
-                  <p className={estilos.Textop}>{userName}</p>
+                  <p className={estilos.Textop} style={{ color: darkMode ? '#f1f1f1' : 'white' }}>{userName}</p>
                 </li>
               </ul>
               <ul>
                 <li>
-                  <h1 className={estilos.Textoh1}>Cargo</h1>
+                  <h1 className={estilos.Textoh1} style={{ color: darkMode ? '#e0e0e0' : 'white' }}>Cargo</h1>
                 </li>
               </ul>
               <ul>
                 <li>
-                  <p className={estilos.Textop}>{userCargo}</p>
+                  <p className={estilos.Textop} style={{ color: darkMode ? '#f1f1f1' : 'white' }}>{userCargo}</p>
                 </li>
               </ul>
               <ul>
                 <li>
-                  <h1 className={estilos.Textoh1}>Fecha de creación</h1>
+                  <h1 className={estilos.Textoh1} style={{ color: darkMode ? '#e0e0e0' : 'white' }}>Fecha de creación</h1>
                 </li>
               </ul>
               <ul>
                 <li>
-                  <p className={estilos.Textop}>
+                  <p className={estilos.Textop} style={{ color: darkMode ? '#f1f1f1' : 'white' }}>
                     {fechaCreacion
                       ? new Date(fechaCreacion).toLocaleDateString()
                       : "No disponible"}

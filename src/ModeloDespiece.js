@@ -13,6 +13,60 @@ const createNewRow = () => ({
   cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: ''
 });
 
+// Lista de servicios por defecto basados en Excel del cliente
+const DEFAULT_SERVICES = [
+  { nomenclatura: 'CSARMADO', nombreOriginal: 'SERVICIO ARMADO DE PUERTA COMPLETO', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSRAPU1C', nombreOriginal: 'SERVICIO RANURA PUERTA 1 CARA', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSCORTEB', nombreOriginal: 'SERVICIO CAMBIO BASTIDOR', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSCORTEP', nombreOriginal: 'SERVICIO CORTE REFILADO PUERTA', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSHCHAPA', nombreOriginal: 'SERVICIO DE HUECO CHAPA', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSICHAPA', nombreOriginal: 'SERVICIO INSTALACION CHAPA TAMBOR', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERCORP', nombreOriginal: 'SERVICIO CORTE DE PERFILERIA ALUMINIO', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSPERALM', nombreOriginal: 'SERVICIO PEGADO PERFIL MANIJA ALUMINIO', tipoCobro: 'ml_largo_ancho' }, // Usualmente L o A, asumo unidad o ML
+  { nomenclatura: 'CSCANTOA', nombreOriginal: 'SERVICIO PEGADO PERFIL CANTO ALUMINIO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SCUBMDLAR1', nombreOriginal: 'SERVICIOS CORTE CUBO MODULAR', tipoCobro: 'unidad' },
+  { nomenclatura: 'SCUBMDLAR2', nombreOriginal: 'SERVICIO DE CORTE Y PERFORACIÓN CUBO MODULAR', tipoCobro: 'unidad' },
+  { nomenclatura: 'SCUBMDLAR3', nombreOriginal: 'SERVICIO DE CORTE, PERFORACIÓN Y AVELLANADO', tipoCobro: 'unidad' },
+  { nomenclatura: 'SESTRAL', nombreOriginal: 'SERVICIO DE CORTE MARCO DE ALUMINIO', tipoCobro: 'unidad' },
+  { nomenclatura: 'SRRANUPE', nombreOriginal: 'SERVICIO RANURA PARA PERFIL', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SERPERBIS', nombreOriginal: 'SERVICIO DE PERFORACION BISAGRA', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSRANUFO', nombreOriginal: 'SERVICIO DE RANURA FONDO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'RANULED', nombreOriginal: 'SERVICIO DE RANURA PARA DIFUSOR LED', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSCURVA1', nombreOriginal: 'SERVICIO DE CURVA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SRNAR000', nombreOriginal: 'SERVICIO NARIZ, ENGRUESE', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SRREPEGA', nombreOriginal: 'SERVICIO ENGRUESE COMPLETO O ENSANDUCHAR', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SERVREME', nombreOriginal: 'SERVICIO ENGRUESE COMPLETO SOLO CON PEGANTE', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SERVIMARCO', nombreOriginal: 'SERVICIO DE MARCO, ENGRUESE EN MELAMINA', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'SERVICIOS DE CIRCULOS', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERANGUL', nombreOriginal: 'SERVICIO DE ANGULO', tipoCobro: 'escala_60' },
+  { nomenclatura: 'CSCALADO', nombreOriginal: 'SERVICIO DE CALADO', tipoCobro: 'escala_60' },
+  { nomenclatura: 'SRCALAEI', nombreOriginal: 'SERVICIO DE CALADO CON ENCHAPE INTERNO', tipoCobro: 'escala_60' },
+  { nomenclatura: 'SERVIENL', nombreOriginal: 'SERVICIO EN L O ESCRITORIO', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSCHAFLA', nombreOriginal: 'SERVICIO CHAFLAN O CORTE A 45º', tipoCobro: 'unidad' },
+  { nomenclatura: 'SENCHAMANUAL', nombreOriginal: 'SERVICIO DE ENCHAPE A PIEZA ESPECIAL', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SENCHACURVA', nombreOriginal: 'SERVICIO DE ENCHAPE EN MÁQUINA CURVA', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSCANTOC2', nombreOriginal: 'Servicio Enchape Canto Curvo 2mm. (Rígido)', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSINGLES', nombreOriginal: 'SERVICIO DE CAJA MEDIA MADERA ESTANTERÍA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERVICENEFA', nombreOriginal: 'SERVICIO DE CAJA CENEFA ESQUINERA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERPASACABLE', nombreOriginal: 'SERVICIO DE HUECO PARA PASACABLE', tipoCobro: 'unidad' },
+  { nomenclatura: 'MANICHAFLAN', nombreOriginal: 'SERVICIO DE MANIJA CHAFLAN', tipoCobro: 'unidad' },
+  { nomenclatura: 'CORLISTON', nombreOriginal: 'SERVICIO CORTE LISTON MADERA', tipoCobro: 'unidad' },
+  { nomenclatura: 'MANICRUS', nombreOriginal: 'SERVICIO DE CAJA PARA MANIJA DE INCRUSTAR', tipoCobro: 'unidad' },
+  { nomenclatura: 'MANIGAVETA', nombreOriginal: 'SERVICIO DE CALADO PARA MANIJA EN V', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERCURML', nombreOriginal: 'SERVICIO DE CURVA MEDIA LUNA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERMESCORTO', nombreOriginal: 'SERVICIO DE ADECUACION LADO CORTO MESON', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERMESLARGO', nombreOriginal: 'SERVICIO DE ADECUACION LADO LARGO MESON', tipoCobro: 'unidad' },
+  { nomenclatura: 'SCALMEPOZ', nombreOriginal: 'SERVICIO DE CALADO DE POZUELO PARA MESON', tipoCobro: 'unidad' },
+  { nomenclatura: 'SCALMECUB', nombreOriginal: 'SERVICIO DE CALADO DE CUBIERTA PARA MESON', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERSALCORTE', nombreOriginal: 'SERVICIO DE ADECUACION LADO CORTO SALPICADERO 57CM', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERSALLARGO', nombreOriginal: 'SERVICIO DE ADECUACION LADO LARGO SALPICADERO 57CM', tipoCobro: 'unidad' },
+  { nomenclatura: 'SESUSTRALAP', nombreOriginal: 'SERVICIO DE ENCHAPE CON LAP TABLERO COMPLETO 122x244', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERINSKIT', nombreOriginal: 'SERVICIO DE PEGADO DE PERFIL PARA PIZARRON 122*244', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERVTSMU', nombreOriginal: 'SERVICIO TALADRO MULTIPLE', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERHRCNC', nombreOriginal: 'PAGO DE 1 HORA POR SERVICIO DE CNC', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERHRSACCNC', nombreOriginal: 'PAGO DE 1 HORA POR SERV DE CNC CON SACRI', tipoCobro: 'unidad' }
+];
+
 const ModeloDespiece = () => {
   const { id } = useParams();
   const [rows, setRows] = useState([createNewRow()]);
@@ -20,7 +74,52 @@ const ModeloDespiece = () => {
   const [clientName, setClientName] = useState('');
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
+  const [services, setServices] = useState(DEFAULT_SERVICES); // Inicializar con lista excel
+  const [newServiceNombre, setNewServiceNombre] = useState('');
+  const [newServiceNomenclatura, setNewServiceNomenclatura] = useState('');
+  const [newServiceTipoCobro, setNewServiceTipoCobro] = useState('unidad');
+  const [editingService, setEditingService] = useState(null);
+  const [showNomenclaturesModal, setShowNomenclaturesModal] = useState(false);
+  const [totalPieces, setTotalPieces] = useState(0);
+  const [serviceCounts, setServiceCounts] = useState({});
   const { currentUser } = useAuth();
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
+  const [highContrast, setHighContrast] = useState(() => {
+    const savedMode = localStorage.getItem("highContrast");
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedMode = localStorage.getItem("darkMode");
+      if (savedMode !== null) {
+        setDarkMode(JSON.parse(savedMode));
+      }
+      const savedContrast = localStorage.getItem("highContrast");
+      if (savedContrast !== null) {
+        setHighContrast(JSON.parse(savedContrast));
+      }
+    };
+
+    const handleOpenModal = () => setShowNomenclaturesModal(true);
+    
+    // Listen to our custom event for instant updates within the same window
+    window.addEventListener("darkModeChanged", handleStorageChange);
+    window.addEventListener("highContrastChanged", handleStorageChange);
+    window.addEventListener("openNomenclaturesModal", handleOpenModal);
+    // Listen to storage event for cross-tab updates
+    window.addEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("darkModeChanged", handleStorageChange);
+      window.removeEventListener("highContrastChanged", handleStorageChange);
+      window.removeEventListener("openNomenclaturesModal", handleOpenModal);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   // Cargar despiece si hay id en la URL
   useEffect(() => {
@@ -48,6 +147,15 @@ const ModeloDespiece = () => {
           });
           rowIdCounter = maxRowId;
           setRows(loadedRows.length ? loadedRows : [createNewRow()]);
+          // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
+          if (data.serviciosGuardados) {
+            const parsedServices = data.serviciosGuardados.map(s => {
+              if (typeof s === 'string') return { nombreOriginal: s, nomenclatura: s, tipoCobro: 'unidad' };
+              if (!s.tipoCobro) return { ...s, tipoCobro: 'unidad' };
+              return s;
+            });
+            setServices(parsedServices);
+          }
         }
       } catch (err) {
         alert('Error al cargar el despiece para edición.');
@@ -56,6 +164,136 @@ const ModeloDespiece = () => {
     fetchDespiece();
     // eslint-disable-next-line
   }, [id]);
+
+  // Calcular totales (piezas y servicios) cada vez que cambien rows o services
+  useEffect(() => {
+    let piecesCount = 0;
+    const sCounts = {};
+    
+    // Inicializar contadores de servicios a 0
+    services.forEach(service => {
+      sCounts[service.nomenclatura] = 0;
+    });
+
+    rows.forEach(row => {
+      const cant = parseInt(row.cant, 10);
+      if (!isNaN(cant) && cant > 0) {
+        piecesCount += cant;
+        
+        // Contar servicios en el detalle usando nombre original o nomenclatura
+        const detalle = row.detalle ? row.detalle.toLowerCase() : '';
+        services.forEach(service => {
+          // Escapar caracteres especiales y asegurar límite de palabra (\b)
+          const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
+          const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
+          
+          const matchesNombre = detalle.match(regexNombre);
+          const matchesNom = detalle.match(regexNom);
+          // Combine matches correctly. Since usually they just type one of them, sum them.
+          // Better: just check total overlaps or use one if identical. To not double count:
+          let count = 0;
+          if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
+             count = matchesNombre ? matchesNombre.length : 0;
+          } else {
+             count = (matchesNombre ? matchesNombre.length : 0) + (matchesNom ? matchesNom.length : 0);
+          }
+          if (count > 0) {
+            // Aplicar regla de cobro
+            const l = parseFloat(row.largo) || 0;
+            const a = parseFloat(row.ancho) || 0;
+            let multiplier = 1;
+            
+            switch (service.tipoCobro) {
+              case 'ml_largo':
+                multiplier = l / 1000;
+                break;
+              case 'ml_ancho':
+                multiplier = a / 1000;
+                break;
+              case 'ml_largo_ancho':
+                multiplier = (l + a) / 1000;
+                break;
+              case 'ml_perimetro':
+                multiplier = ((l * 2) + (a * 2)) / 1000;
+                break;
+              case 'm2':
+                multiplier = (l / 1000) * (a / 1000);
+                break;
+              case 'escala_60':
+                // Escala: 0-600mm = 1, 601-1200mm = 2, etc. (Usando el lado más largo)
+                multiplier = Math.ceil(Math.max(l, a) / 600) || 1;
+                break;
+              case 'unidad':
+              default:
+                multiplier = 1;
+                break;
+            }
+            
+            sCounts[service.nomenclatura] += (count * cant * multiplier);
+          }
+        });
+      }
+    });
+
+    setTotalPieces(piecesCount);
+    setServiceCounts(sCounts);
+  }, [rows, services]);
+
+  const handleAddService = (e) => {
+    e.preventDefault();
+    if (newServiceNombre.trim() && newServiceNomenclatura.trim()) {
+      if (editingService) {
+         // Update existing
+         const exists = services.find(s => s.nomenclatura !== editingService && (s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase()));
+         if (exists) {
+            alert('Ya existe otro servicio con ese nombre o nomenclatura.');
+            return;
+         }
+         setServices(services.map(s => s.nomenclatura === editingService ? {
+             nombreOriginal: newServiceNombre.trim(),
+             nomenclatura: newServiceNomenclatura.trim(),
+             tipoCobro: newServiceTipoCobro
+         } : s));
+         setEditingService(null);
+      } else {
+         // Add new
+         const exists = services.find(s => s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase());
+         if (!exists) {
+            setServices([...services, { 
+                nombreOriginal: newServiceNombre.trim(), 
+                nomenclatura: newServiceNomenclatura.trim(),
+                tipoCobro: newServiceTipoCobro
+            }]);
+         } else {
+            alert('Ya existe un servicio con ese nombre o nomenclatura.');
+            return;
+         }
+      }
+      setNewServiceNombre('');
+      setNewServiceNomenclatura('');
+      setNewServiceTipoCobro('unidad');
+    } else {
+        alert('Debes ingresar el nombre original y la nomenclatura.');
+    }
+  };
+
+  const handleEditService = (service) => {
+      setNewServiceNombre(service.nombreOriginal);
+      setNewServiceNomenclatura(service.nomenclatura);
+      setNewServiceTipoCobro(service.tipoCobro);
+      setEditingService(service.nomenclatura);
+  };
+
+  const handleRemoveService = (nomenclaturaToRemove) => {
+    setServices(services.filter(s => s.nomenclatura !== nomenclaturaToRemove));
+  };
+
+  const handleRestoreDefaultServices = () => {
+    if (window.confirm("¿Seguro que deseas restaurar los servicios predeterminados? Se perderán los que hayas agregado manualmente.")) {
+      setServices(DEFAULT_SERVICES);
+    }
+  };
 
   const handleInputChange = useCallback((index, field, value) => {
     setRows((prevRows) => {
@@ -123,7 +361,8 @@ const ModeloDespiece = () => {
             cliente: clientName,
             fechaCreacion: creationDate,
             ultimaModificacion: new Date().toLocaleDateString(),
-            filas: rows
+            filas: rows,
+            serviciosGuardados: services
           });
           alert('Despiece actualizado exitosamente.');
         } else {
@@ -135,6 +374,7 @@ const ModeloDespiece = () => {
             fechaCreacion: creationDate,
             ultimaModificacion: lastModifiedDate,
             filas: rows,
+            serviciosGuardados: services,
             userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
           };
           await addDoc(despiecesCollection, despieceData);
@@ -257,33 +497,166 @@ const ModeloDespiece = () => {
   };
 
   return (
-    <div className={estilos.modeloDespieceContainer} style={{ marginTop: '50px' }}>
+    <div className={`${estilos.modeloDespieceContainer} ${darkMode ? estilos.despiecesSectionDark : ''}`} style={{ marginTop: '50px' }}>
       <Menu />
       <h2>Crear Nuevo Despiece</h2>
-      <form onSubmit={handleSubmit} className={estilos.formularioDespiece} onPaste={handlePaste}>
-        <div className={estilos.projectInfo} style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <label style={{ flex: 1 }}>
-            Nombre del Cliente:
-            <input
-              type="text"
-              value={clientName}
-              onChange={handleClientNameChange}
-              className={estilos.inputLargo}
-            />
-          </label>
-          <label style={{ flex: 1 }}>
-            Nombre del Proyecto:
-            <input
-              type="text"
-              value={projectName}
-              onChange={handleProjectNameChange}
-              className={estilos.inputLargo}
-            />
-          </label>
-          <p>Fecha de Creación: {creationDate}</p>
-          <p>Última Fecha de Modificación: {lastModifiedDate}</p>
+
+      {/* MODAL DE NOMENCLATURAS */}
+      {showNomenclaturesModal && (
+        <div className={estilos.modalOverlay}>
+            <div className={estilos.modalContent} style={{ maxWidth: '600px' }}>
+                <button className={estilos.closeButton} onClick={() => setShowNomenclaturesModal(false)}>×</button>
+                <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>Gestión de Nomenclaturas (Servicios)</h3>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'flex-start' }}>
+                    <input
+                        type="text"
+                        value={newServiceNombre}
+                        onChange={(e) => setNewServiceNombre(e.target.value)}
+                        placeholder="Nombre Original (ej: Calado)"
+                        className={estilos.controls}
+                        style={{ flex: 1, margin: 0, height: '40px' }}
+                    />
+                    <input
+                        type="text"
+                        value={newServiceNomenclatura}
+                        onChange={(e) => setNewServiceNomenclatura(e.target.value)}
+                        placeholder="Nomenclatura (ej: CAL)"
+                        className={estilos.controls}
+                        style={{ flex: 1, margin: 0, height: '40px' }}
+                    />
+                    <select
+                        value={newServiceTipoCobro}
+                        onChange={(e) => setNewServiceTipoCobro(e.target.value)}
+                        className={estilos.controls}
+                        style={{ flex: 1, margin: 0, height: '40px' }}
+                    >
+                        <option value="unidad">Por Unidad / Hueco</option>
+                        <option value="ml_largo">Metro Lineal (Largo)</option>
+                        <option value="ml_ancho">Metro Lineal (Ancho)</option>
+                        <option value="ml_largo_ancho">Metro Lineal (Largo + Ancho)</option>
+                        <option value="ml_perimetro">Metro Lineal (Perímetro)</option>
+                        <option value="m2">Metro Cuadrado (m²)</option>
+                        <option value="escala_60">Escala Tamaño (cada 60cm)</option>
+                    </select>
+                    <button
+                        onClick={handleAddService}
+                        className={estilos.botonAgregar}
+                        type="button"
+                        style={{ padding: '0 20px', margin: 0, height: '40px', lineHeight: '40px' }}
+                    >
+                        {editingService ? "Actualizar" : "Agregar"}
+                    </button>
+                    {editingService && (
+                        <button
+                            onClick={() => {
+                                setNewServiceNombre('');
+                                setNewServiceNomenclatura('');
+                                setNewServiceTipoCobro('unidad');
+                                setEditingService(null);
+                            }}
+                            className={estilos.botonEliminar}
+                            type="button"
+                            style={{ padding: '0 20px', margin: 0, height: '40px', lineHeight: '40px' }}
+                        >
+                            Cancelar
+                        </button>
+                    )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                    <button 
+                        onClick={handleRestoreDefaultServices}
+                        style={{ background: 'transparent', color: '#17a2b8', border: '1px solid #17a2b8', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                    >
+                        ↻ Restaurar Servicios Excel
+                    </button>
+                </div>
+                
+                <div style={{ background: '#2c303a', padding: '10px', borderRadius: '5px', maxHeight: '300px', overflowY: 'auto' }}>
+                    {services.length === 0 ? (
+                        <p style={{ color: '#aaa', textAlign: 'center' }}>No hay nomenclaturas agregadas.</p>
+                    ) : (
+                        <table style={{ width: '100%', color: 'white', borderCollapse: 'collapse', fontSize: '14px' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid #444', textAlign: 'left' }}>
+                                    <th style={{ padding: '8px' }}>Nombre</th>
+                                    <th style={{ padding: '8px' }}>Nom</th>
+                                    <th style={{ padding: '8px' }}>Cobro</th>
+                                    <th style={{ padding: '8px', textAlign: 'center' }}>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {services.map(s => (
+                                    <tr key={s.nomenclatura} style={{ borderBottom: '1px solid #444' }}>
+                                        <td style={{ padding: '8px' }}>{s.nombreOriginal}</td>
+                                        <td style={{ padding: '8px' }}><strong>{s.nomenclatura}</strong></td>
+                                        <td style={{ padding: '8px', color: '#888' }}>
+                                            {s.tipoCobro === 'unidad' ? 'Unidad' : 
+                                             s.tipoCobro === 'ml_largo' ? 'ML (Largo)' :
+                                             s.tipoCobro === 'ml_ancho' ? 'ML (Ancho)' :
+                                             s.tipoCobro === 'ml_largo_ancho' ? 'ML (L+A)' :
+                                             s.tipoCobro === 'ml_perimetro' ? 'ML (Perím)' :
+                                             s.tipoCobro === 'm2' ? 'Área (m²)' :
+                                             s.tipoCobro === 'escala_60' ? 'Esc. 60cm' : s.tipoCobro}
+                                        </td>
+                                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                                            <button 
+                                                onClick={() => handleEditService(s)} 
+                                                className={estilos.botonEliminar}
+                                                style={{ margin: '0 5px 0 0', padding: '4px 8px', fontSize: '12px', background: '#e6a800', border: 'none' }}
+                                                title="Editar"
+                                            >
+                                                ✎
+                                            </button>
+                                            <button 
+                                                onClick={() => handleRemoveService(s.nomenclatura)} 
+                                                className={estilos.botonEliminar}
+                                                style={{ margin: 0, padding: '4px 8px', fontSize: '12px' }}
+                                                title="Eliminar"
+                                            >
+                                                ✖
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
         </div>
-        <div className={estilos.tablaDespiece}>
+      )}
+
+      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        {/* PARTE IZQUIERDA: FORMULARIO Y TABLA */}
+        <div style={{ flex: '1 1 65%', minWidth: '300px' }}>
+          <form onSubmit={handleSubmit} className={estilos.formularioDespiece} onPaste={handlePaste}>
+            <div className={estilos.projectInfo} style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ flex: '1 1 300px', color: darkMode ? '#f1f1f1' : '#333' }}>
+                Nombre del Cliente:
+                <input
+                  type="text"
+                  value={clientName}
+                  onChange={handleClientNameChange}
+                  className={estilos.inputLargo}
+                />
+              </label>
+              <label style={{ flex: '1 1 300px', color: darkMode ? '#f1f1f1' : '#333' }}>
+                Nombre del Proyecto:
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={handleProjectNameChange}
+                  className={estilos.inputLargo}
+                />
+              </label>
+              <div style={{ flex: '1 1 100%' }}>
+                <p style={{ color: darkMode ? '#ccc' : '#555', margin: '5px 0' }}>Fecha de Creación: {creationDate}</p>
+                <p style={{ color: darkMode ? '#ccc' : '#555', margin: '5px 0' }}>Última Fecha de Modificación: {lastModifiedDate}</p>
+              </div>
+            </div>
+
+            <div className={estilos.tablaDespiece} style={{ marginTop: '20px' }}>
           <div className={estilos.filaDespiece}>
             <div className={estilos.celdaTitulo}>CANT</div>
             <div className={estilos.celdaTitulo}>LARGO</div>
@@ -406,6 +779,7 @@ const ModeloDespiece = () => {
                   <button
                     onClick={() => handleRemoveRow(index)}
                     className={estilos.botonEliminar}
+                    type="button"
                   >
                     Eliminar
                   </button>
@@ -413,14 +787,94 @@ const ModeloDespiece = () => {
               </div>
             </div>
           ))}
+          </div>
+          </form>
+          <footer className={estilos.footerDespiece} style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button onClick={handleSaveToFirestore} className={estilos.botonSubmit}>
+              Guardar Despiece
+            </button>
+            <button className={estilos.botonCopiar} onClick={handleCopyDespiece}>
+              Copiar Despiece
+            </button>
+          </footer>
         </div>
-      </form>
-      <footer className={estilos.footerDespiece}>
-        <button onClick={handleSaveToFirestore} className={estilos.botonSubmit}>
-          Guardar Despiece
-        </button>
-        <button className={estilos.botonCopiar} onClick={handleCopyDespiece}>Copiar Despiece</button>
-      </footer>
+
+        {/* PARTE DERECHA: RESUMEN Y CONTEO DE SERVICIOS */}
+        <div style={{ 
+          flex: '1 1 30%', 
+          minWidth: '250px',
+          background: darkMode ? '#1c1f26' : '#f8f9fa',
+          borderRadius: '8px',
+          border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
+          padding: '20px',
+          position: 'sticky',
+          top: '80px'
+        }}>
+          <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333', borderBottom: `2px solid ${darkMode ? '#444' : '#eee'}`, paddingBottom: '10px' }}>Resumen del Despiece</h3>
+          
+          <div style={{
+            background: darkMode ? '#2d3342' : '#fff',
+            padding: '15px',
+            borderRadius: '8px',
+            textAlign: 'center',
+            marginBottom: '20px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+             <h4 style={{ margin: '0 0 10px 0', color: darkMode ? '#ccc' : '#666' }}>Piezas Totales</h4>
+             <p style={{ margin: 0, fontSize: '36px', fontWeight: 'bold', color: '#007bff' }}>{totalPieces}</p>
+          </div>
+
+          <h4 style={{ color: darkMode ? '#ccc' : '#666', marginBottom: '15px' }}>Conteo de Servicios</h4>
+          {services.length === 0 ? (
+            <p style={{ color: darkMode ? '#888' : '#888', fontSize: '14px', fontStyle: 'italic' }}>
+              No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas.
+            </p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {services.map(s => {
+                  const count = serviceCounts[s.nomenclatura] || 0;
+                  
+                  // Formatear display del contador dependiendo del tipo de cobro
+                  let countDisplay = count;
+                  if (count > 0 && s.tipoCobro && s.tipoCobro !== 'unidad' && s.tipoCobro !== 'escala_60') {
+                      countDisplay = Number(count).toFixed(2);
+                      if (s.tipoCobro.startsWith('ml')) countDisplay += ' ml';
+                      else if (s.tipoCobro === 'm2') countDisplay += ' m²';
+                  } else if (count > 0 && s.tipoCobro === 'escala_60') {
+                      countDisplay += ' ser';
+                  }
+
+                  return (
+                    <li key={s.nomenclatura} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px',
+                        borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
+                        background: count > 0 ? (darkMode ? '#1e2b22' : '#e8f5e9') : 'transparent'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <strong style={{ color: darkMode ? '#fff' : '#333' }}>{s.nombreOriginal}</strong>
+                            <span style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
+                        </div>
+                        <span style={{
+                            background: count > 0 ? '#28a745' : (darkMode ? '#444' : '#ddd'),
+                            color: count > 0 ? '#fff' : (darkMode ? '#aaa' : '#333'),
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            fontWeight: 'bold',
+                            fontSize: '16px',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {countDisplay}
+                        </span>
+                    </li>
+                  );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
