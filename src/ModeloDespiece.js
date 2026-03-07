@@ -87,20 +87,12 @@ const ModeloDespiece = () => {
     const savedMode = localStorage.getItem("darkMode");
     return savedMode ? JSON.parse(savedMode) : false;
   });
-  const [highContrast, setHighContrast] = useState(() => {
-    const savedMode = localStorage.getItem("highContrast");
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
 
   useEffect(() => {
     const handleStorageChange = () => {
       const savedMode = localStorage.getItem("darkMode");
       if (savedMode !== null) {
         setDarkMode(JSON.parse(savedMode));
-      }
-      const savedContrast = localStorage.getItem("highContrast");
-      if (savedContrast !== null) {
-        setHighContrast(JSON.parse(savedContrast));
       }
     };
 

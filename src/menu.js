@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaHome, FaSun, FaMoon, FaUsersCog } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
@@ -128,7 +128,7 @@ const Menu = () => {
   }, [mostrarUserMenu]);
 
   // Utilidad para recargar despieces desde Firestore
-  const fetchDespieces = async () => {
+  const fetchDespieces = useCallback(async () => {
     if (!isMountedRef.current || !currentUser) {
         if (isMountedRef.current) {
             setDespieces([]);
@@ -160,7 +160,7 @@ const Menu = () => {
     } finally {
       if (isMountedRef.current) setLoadingDespieces(false);
     }
-  };
+  }, [currentUser, userCargo]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -204,7 +204,7 @@ const Menu = () => {
     } else if (!currentUser) {
       setDespieces([]);
     }
-  }, [currentUser, userCargo]);
+  }, [currentUser, userCargo, fetchDespieces]);
 
   // Cargar lista de usuarios para el filtro de administrador
   useEffect(() => {
