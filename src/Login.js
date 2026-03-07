@@ -124,15 +124,16 @@ function LoginPage() {
               required
               autoComplete="current-password"
             />
-            <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
               <input
                 type="checkbox"
                 id="recordar"
                 name="recordar"
                 checked={recordar}
                 onChange={(e) => setRecordar(e.target.checked)}
+                style={{ margin: 0, cursor: 'pointer' }}
               />
-              <label htmlFor="recordar">Recordar datos</label>
+              <label htmlFor="recordar" style={{ margin: 0, cursor: 'pointer' }}>Recordar datos</label>
             </div>
             <button type="submit" className={estilos.butom} id="submit" name="submit">
               Ingresar

@@ -34,8 +34,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/modelo-despiece" element={<ModeloDespiece />} />
-            <Route path="/modelo-despiece/:id" element={<ModeloDespiece />} />
+            <Route 
+              path="/modelo-despiece" 
+              element={
+                <ProtectedRoute>
+                  <ModeloDespiece />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/modelo-despiece/:id" 
+              element={
+                <ProtectedRoute>
+                  <ModeloDespiece />
+                </ProtectedRoute>
+              } 
+            />
             <Route
               path="/admin/usuarios"
               element={
