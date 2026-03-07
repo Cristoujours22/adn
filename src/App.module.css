@@ -1,6 +1,39 @@
 /* === Contenido de App.module.css === */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
+/* ====== DESIGN TOKENS (CSS Variables) ====== */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f6f8;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --accent-color: #1976d2;
+  --accent-hover: #1565c0;
+  --danger-color: #d32f2f;
+  --danger-hover: #b71c1c;
+  --border-color: #dddddd;
+  --card-bg: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+}
+
+body.dark-mode {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaaaaa;
+  --accent-color: #4fc3f7;
+  --accent-hover: #29b6f6;
+  --danger-color: #ef5350;
+  --danger-hover: #e53935;
+  --border-color: #333333;
+  --card-bg: #1e1e1e;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.6);
+  --input-bg: #2c2c2c;
+}
+
 /* Estilos Globales y de otras páginas (proporcionados por ti) */
 * {
   margin: 0;
@@ -105,25 +138,26 @@ button {
 }
 
 .butom {
-  background: linear-gradient(135deg, #fe0004 0%, #aa0003 100%);
-  color: white;
   width: 100%;
-  padding: 12px 20px;
-  margin: 16px 0;
-  /* font-family inhered from body */
-  font-size: 18px;
-  font-weight: bold;
-  border: none;
-  border-radius: 8px;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--border-color);
+  padding: 12px 24px;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 18px;
   transition: all 0.3s ease;
+  margin: 16px 0;
+  /* Kept from original */
 }
 
 .butom:hover {
-  background: linear-gradient(135deg, #aa0003 0%, #fe0004 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-color) 100%);
+  color: white;
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(254, 0, 4, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
 .footer {
@@ -177,7 +211,8 @@ button {
   width: 600px;
   background: hsla(0, 0%, 0%, 0.75);
   /* Considera usar variables CSS */
-  padding: 30px;
+  padding: 30px 20px;
+  /* Adjusted padding to match .butom1 */
   margin: 30px auto;
   border-radius: 10px;
   /* font-family inhered from body */
@@ -194,14 +229,13 @@ button {
 }
 
 .butom1 {
-  background: linear-gradient(135deg, #313131 0%, #1a1a1a 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
   letter-spacing: 1px;
   width: auto;
   height: auto;
   padding: 12px 24px;
   margin: 16px 0;
-  /* font-family inhered from body */
   font-size: 18px;
   font-weight: bold;
   border-radius: 8px;
@@ -209,14 +243,14 @@ button {
   display: flex;
   align-items: flex-start;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
 }
 
 .butom1:hover {
-  background: linear-gradient(135deg, #fe0004 0%, #aa0003 100%);
+  background: linear-gradient(135deg, var(--danger-hover) 0%, var(--danger-color) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(254, 0, 4, 0.4);
+  box-shadow: var(--shadow-md);
   color: white;
 }
 

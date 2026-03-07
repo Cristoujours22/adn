@@ -8,6 +8,8 @@ import { useAuth } from './authContext';
 import TabsDespiece from './components/Despieces/TabsDespiece';
 import PanelResumen from './components/Despieces/PanelResumen';
 import TablaPiezas from './components/Despieces/TablaPiezas';
+import { useTheme } from './ThemeContext';
+import { calcularTotalesDespiece } from './utils/despieceCalculations';
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
@@ -96,33 +98,16 @@ const ModeloDespiece = () => {
   const [serviceCounts, setServiceCounts] = useState({});
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem("darkMode");
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
+  const { darkMode } = useTheme();
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      const savedMode = localStorage.getItem("darkMode");
-      if (savedMode !== null) {
-        setDarkMode(JSON.parse(savedMode));
-      }
-    };
-
     const handleOpenModal = () => setShowNomenclaturesModal(true);
     
     // Listen to our custom event for instant updates within the same window
-    window.addEventListener("darkModeChanged", handleStorageChange);
-    window.addEventListener("highContrastChanged", handleStorageChange);
     window.addEventListener("openNomenclaturesModal", handleOpenModal);
-    // Listen to storage event for cross-tab updates
-    window.addEventListener("storage", handleStorageChange);
     
     return () => {
-      window.removeEventListener("darkModeChanged", handleStorageChange);
-      window.removeEventListener("highContrastChanged", handleStorageChange);
       window.removeEventListener("openNomenclaturesModal", handleOpenModal);
-      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
@@ -197,80 +182,9 @@ const ModeloDespiece = () => {
 
   // Calcular totales (piezas y servicios) cada vez que cambien rows o services
   useEffect(() => {
-    let piecesCount = 0;
-    const sCounts = {};
-    
-    // Inicializar contadores de servicios a 0
-    services.forEach(service => {
-      sCounts[service.nomenclatura] = 0;
-    });
-
-    // Sumar filas de TODOS los despieces de forma segura
-    despieces.forEach(despiece => {
-      (despiece.filas || []).forEach(row => {
-        const cant = parseInt(row?.cant, 10);
-        if (!isNaN(cant) && cant > 0) {
-          piecesCount += cant;
-          
-          // Contar servicios en el detalle usando nombre original o nomenclatura
-          const detalle = row?.detalle ? row.detalle.toLowerCase() : '';
-          services.forEach(service => {
-          // Escapar caracteres especiales y asegurar límite de palabra (\b)
-          const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
-          const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
-          
-          const matchesNombre = detalle.match(regexNombre);
-          const matchesNom = detalle.match(regexNom);
-          // Combine matches correctly. Since usually they just type one of them, sum them.
-          // Better: just check total overlaps or use one if identical. To not double count:
-          let count = 0;
-          if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
-             count = matchesNombre ? matchesNombre.length : 0;
-          } else {
-             count = (matchesNombre ? matchesNombre.length : 0) + (matchesNom ? matchesNom.length : 0);
-          }
-          if (count > 0) {
-            // Aplicar regla de cobro
-            const l = parseFloat(row.largo) || 0;
-            const a = parseFloat(row.ancho) || 0;
-            let multiplier = 1;
-            
-            switch (service.tipoCobro) {
-              case 'ml_largo':
-                multiplier = l / 1000;
-                break;
-              case 'ml_ancho':
-                multiplier = a / 1000;
-                break;
-              case 'ml_largo_ancho':
-                multiplier = (l + a) / 1000;
-                break;
-              case 'ml_perimetro':
-                multiplier = ((l * 2) + (a * 2)) / 1000;
-                break;
-              case 'm2':
-                multiplier = (l / 1000) * (a / 1000);
-                break;
-              case 'escala_60':
-                // Escala: 0-600mm = 1, 601-1200mm = 2, etc. (Usando el lado más largo)
-                multiplier = Math.ceil(Math.max(l, a) / 600) || 1;
-                break;
-              case 'unidad':
-              default:
-                multiplier = 1;
-                break;
-            }
-            
-            sCounts[service.nomenclatura] += (count * cant * multiplier);
-          }
-        });
-      }
-    });
-    });
-
-    setTotalPieces(piecesCount);
-    setServiceCounts(sCounts);
+    const { totalPieces, serviceCounts } = calcularTotalesDespiece(despieces, services);
+    setTotalPieces(totalPieces);
+    setServiceCounts(serviceCounts);
   }, [despieces, services]);
 
   const handleAddService = (e) => {

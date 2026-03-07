@@ -6,6 +6,7 @@ import { useAuth } from './authContext';
 import Menu from './menu';
 import estilos from './App.module.css';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from './ThemeContext';
 
 function AdminUsuarios() {
     const [users, setUsers] = useState([]);
@@ -16,25 +17,7 @@ function AdminUsuarios() {
     const [showAddUserForm, setShowAddUserForm] = useState(false);
     const [newUserData, setNewUserData] = useState({ Nombre: '', email: '', password: '', Cargo: 'Vendedor' });
     const [isAddingUser, setIsAddingUser] = useState(false);
-    const [darkMode, setDarkMode] = useState(() => {
-        const savedMode = localStorage.getItem("darkMode");
-        return savedMode ? JSON.parse(savedMode) : false;
-    });
-
-    useEffect(() => {
-        const handleStorageChange = () => {
-            const savedMode = localStorage.getItem("darkMode");
-            if (savedMode !== null) {
-                setDarkMode(JSON.parse(savedMode));
-            }
-        };
-        window.addEventListener("darkModeChanged", handleStorageChange);
-        window.addEventListener("storage", handleStorageChange);
-        return () => {
-            window.removeEventListener("darkModeChanged", handleStorageChange);
-            window.removeEventListener("storage", handleStorageChange);
-        };
-    }, []);
+    const { darkMode } = useTheme();
 
     useEffect(() => {
         const checkAdmin = async () => {

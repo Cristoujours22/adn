@@ -5,6 +5,7 @@ import estilos from "./App.module.css";
 import { db } from "./credenciales";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useAuth } from "./authContext";
+import { useTheme } from "./ThemeContext";
 import Menu from "./menu";
 
 function Usuario() {
@@ -15,25 +16,7 @@ function Usuario() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
   const { currentUser } = useAuth();
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem("darkMode");
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedMode = localStorage.getItem("darkMode");
-      if (savedMode !== null) {
-        setDarkMode(JSON.parse(savedMode));
-      }
-    };
-    window.addEventListener("darkModeChanged", handleStorageChange);
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("darkModeChanged", handleStorageChange);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
+  const { darkMode } = useTheme();
 
   useEffect(() => {
     const fetchUserData = async () => {

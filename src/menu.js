@@ -9,25 +9,20 @@ import { auth, db } from "./credenciales";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useAuth } from "./authContext";
+import { useTheme } from "./ThemeContext";
 
 const Menu = () => {
   const location = useLocation();
   const [userName, setUserName] = useState("Nombre usuario");
   const [mostrarMenu, setMostrarMenu] = useState(false);
   const [mostrarUserMenu, setMostrarUserMenu] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem("darkMode");
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
+  const { darkMode, highContrast, toggleDarkMode, toggleHighContrast } = useTheme();
+  
   const [despieces, setDespieces] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtroFecha, setFiltroFecha] = useState("");
   const [userPhoto, setUserPhoto] = useState(userIcon);
   const [loadingDespieces, setLoadingDespieces] = useState(true);
-  const [highContrast, setHighContrast] = useState(() => {
-    const saved = localStorage.getItem("highContrast");
-    return saved ? JSON.parse(saved) : false;
-  });
   const [userCargo, setUserCargo] = useState("");
   const userMenuRef = useRef(null);
   const userInfoRef = useRef(null);
@@ -63,49 +58,12 @@ const Menu = () => {
     }
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode((prevMode) => {
-      const newMode = !prevMode;
-      localStorage.setItem("darkMode", JSON.stringify(newMode));
-      if (newMode) {
-        document.body.classList.add("dark-mode");
-      } else {
-        document.body.classList.remove("dark-mode");
-      }
-      window.dispatchEvent(new Event("darkModeChanged"));
-      return newMode;
-    });
-  };
-
-  const toggleHighContrast = () => {
-    setHighContrast((prev) => {
-      const newVal = !prev;
-      localStorage.setItem("highContrast", JSON.stringify(newVal));
-      if (newVal) {
-        document.body.classList.add("high-contrast");
-      } else {
-        document.body.classList.remove("high-contrast");
-      }
-      window.dispatchEvent(new Event("highContrastChanged"));
-      return newVal;
-    });
-  };
-
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    // Aplicar alto contraste al cargar
-    if (highContrast) {
-      document.body.classList.add("high-contrast");
-    } else {
-      document.body.classList.remove("high-contrast");
-    }
-  }, [highContrast]);
 
   useEffect(() => {
     // Use a stable event handler and always remove it on cleanup
