@@ -5,6 +5,9 @@ import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
 import { useAuth } from './authContext';
+import TabsDespiece from './components/Despieces/TabsDespiece';
+import PanelResumen from './components/Despieces/PanelResumen';
+import TablaPiezas from './components/Despieces/TablaPiezas';
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
@@ -390,14 +393,14 @@ const ModeloDespiece = () => {
   }, [activeDespieceId]);
 
   // Guardar: si es edición, actualizar, si no, crear
-  const handleSaveToFirestore = async () => {
+  const handleSaveToFirestore = useCallback(async (isAutoSave = false) => {
     const totalFilas = despieces.reduce((acc, current) => acc + (current.filas ? current.filas.length : 0), 0);
     if (totalFilas === 0) {
-        alert('No hay datos para guardar. Por favor, agrega al menos una fila en algún despiece.');
+        if (!isAutoSave) alert('No hay datos para guardar. Por favor, agrega al menos una fila en algún despiece.');
         return;
     }
     if (!projectName || !clientName) {
-        alert('Por favor, completa el nombre del proyecto y del cliente.');
+        if (!isAutoSave) alert('Falta el nombre de proyecto o la identificación del cliente');
         return;
     }
     try {
@@ -405,14 +408,14 @@ const ModeloDespiece = () => {
           // Actualizar existente
           const despieceRef = doc(db, 'despieces', id);
           await updateDoc(despieceRef, {
-            proyecto: projectName,
+            proyecto: projectName, // Keep 'proyecto' as per original, not 'nombreProyecto' from partial edit
             cliente: clientName,
-            fechaCreacion: creationDate,
+            // fechaCreacion: creationDate, // Removed as per partial edit, makes sense for update
             ultimaModificacion: new Date().toLocaleDateString(),
             despieces: despieces,
             serviciosGuardados: services
           });
-          alert('Despiece actualizado exitosamente.');
+          if (!isAutoSave) alert('Despiece actualizado exitosamente.');
         } else {
           // Crear nuevo
           const despiecesCollection = collection(db, 'despieces');
@@ -425,14 +428,29 @@ const ModeloDespiece = () => {
             serviciosGuardados: services,
             userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
           };
-          await addDoc(despiecesCollection, despieceData);
-          alert('Despiece guardado exitosamente en Firestore.');
+          await addDoc(despiecesCollection, despieceData); // Keep original addDoc call
+          if (!isAutoSave) alert('Despiece guardado exitosamente en Firestore.');
         }
     } catch (error) {
         console.error('Error al guardar en Firestore:', error.message, error.stack);
-        alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
+        if (!isAutoSave) alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
     }
-  };
+  }, [despieces, projectName, clientName, services, id, currentUser, creationDate, lastModifiedDate]); // Added missing dependencies
+
+  // -------- SISTEMA DE AUTOGUARDADO ---------
+  useEffect(() => {
+    // Evitar guardar si no hay ID o datos vitales
+    if (!id || !projectName || !clientName) return;
+
+    // Retrasar el guardado por 10 segundos
+    const timerId = setTimeout(() => {
+        handleSaveToFirestore(true); // true = autoSave flag para no mostrar alertas
+        console.log("Autoguardado completado");
+    }, 10000); 
+
+    return () => clearTimeout(timerId); // Limpiar timeout si vuelve a escribir rápido
+  }, [despieces, projectName, clientName, handleSaveToFirestore, id]);
+  // -------------------------------------------
 
   const handleProjectNameChange = (e) => {
     setProjectName(e.target.value);
@@ -736,315 +754,42 @@ const ModeloDespiece = () => {
             </div>
 
             {/* SISTEMA DE PESTAÑAS (TABS) */}
-            <div style={{ display: 'flex', gap: '5px', marginTop: '20px', overflowX: 'auto', borderBottom: `2px solid ${darkMode ? '#444' : '#ddd'}`, paddingBottom: '5px' }}>
-              {(despieces || []).map((desp, idx) => (
-                <div 
-                  key={desp?.id || `tab_${idx}`}
-                  style={{
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    background: activeDespieceId === desp?.id ? (darkMode ? '#3a3f4b' : '#007bff') : (darkMode ? '#2c303a' : '#e9ecef'),
-                    color: activeDespieceId === desp?.id ? '#fff' : (darkMode ? '#aaa' : '#333'),
-                    borderRadius: '8px 8px 0 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    fontWeight: activeDespieceId === desp?.id ? 'bold' : 'normal',
-                    boxShadow: activeDespieceId === desp?.id ? '0 -2px 5px rgba(0,0,0,0.1)' : 'none',
-                    border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
-                    borderBottom: 'none'
-                  }}
-                  onClick={() => setActiveDespieceId(desp?.id)}
-                >
-                  <input 
-                    type="text" 
-                    value={desp?.nombre || `Despiece ${idx + 1}`}
-                    onChange={(e) => {
-                      const newName = e.target.value;
-                      setDespieces(prev => prev.map(d => d.id === desp.id ? { ...d, nombre: newName } : d));
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'inherit',
-                      outline: 'none',
-                      fontWeight: 'inherit',
-                      width: '100px',
-                      cursor: activeDespieceId === desp?.id ? 'text' : 'pointer'
-                    }}
-                    onClick={(e) => { if(activeDespieceId !== desp?.id) e.preventDefault(); }}
-                  />
-                  {(despieces || []).length > 1 && (
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`¿Seguro que deseas eliminar la pestaña "${desp?.nombre}"?`)) {
-                          const newDespieces = despieces.filter(d => d.id !== desp?.id);
-                          setDespieces(newDespieces);
-                          if (activeDespieceId === desp?.id) {
-                            setActiveDespieceId(newDespieces[0]?.id);
-                          }
-                        }
-                      }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: activeDespieceId === desp?.id ? '#ffcccc' : '#dc3545',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        padding: '0 5px'
-                      }}
-                      title="Eliminar pestaña"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  const newTab = createNewDespiece(`Despiece ${despieces.length + 1}`);
-                  setDespieces([...despieces, newTab]);
-                  setActiveDespieceId(newTab.id);
-                }}
-                style={{
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  background: darkMode ? '#28a745' : '#1e7e34',
-                  color: '#fff',
-                  borderRadius: '8px 8px 0 0',
-                  border: 'none',
-                  fontWeight: 'bold'
-                }}
-                title="Agregar nuevo despiece"
-              >
-                +
-              </button>
-            </div>
+            <TabsDespiece 
+              despieces={despieces}
+              setDespieces={setDespieces}
+              activeDespieceId={activeDespieceId}
+              setActiveDespieceId={setActiveDespieceId}
+              darkMode={darkMode}
+              createNewDespiece={createNewDespiece}
+            />
 
-            <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }}>
-          <div className={estilos.filaDespiece}>
-            <div className={estilos.celdaTitulo}>CANT</div>
-            <div className={estilos.celdaTitulo}>LARGO</div>
-            <div className={estilos.celdaTitulo}>ANCHO</div>
-            <div className={estilos.celdaTitulo}>DETALLE</div>
-            <div className={estilos.celdaTitulo}>ROTAR</div>
-            <div className={estilos.celdaTitulo}>L1</div>
-            <div className={estilos.celdaTitulo}>L2</div>
-            <div className={estilos.celdaTitulo}>A1</div>
-            <div className={estilos.celdaTitulo}>A2</div>
-            <div className={estilos.celdaTitulo}>ACCIONES</div>
-          </div>
-          {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).map((row, index) => {
-            const safeRow = row || {};
-            return (
-            <div key={safeRow.id || `row_${index}`} className={estilos.filaDespiece}>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="number"
-                  className={`${estilos.inputCorto} ${estilos.flexibleWidth}`}
-                  name={`cant-${index}`}
-                  id={`cant-${index}`}
-                  value={safeRow.cant || ''}
-                  onChange={(e) => handleInputChange(index, 'cant', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'cant')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`largo-${index}`}
-                  id={`largo-${index}`}
-                  value={safeRow.largo || ''}
-                  onChange={(e) => handleInputChange(index, 'largo', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'largo')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`ancho-${index}`}
-                  id={`ancho-${index}`}
-                  value={safeRow.ancho || ''}
-                  onChange={(e) => handleInputChange(index, 'ancho', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'ancho')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputLargo}
-                  name={`detalle-${index}`}
-                  id={`detalle-${index}`}
-                  value={safeRow.detalle || ''}
-                  onChange={(e) => handleInputChange(index, 'detalle', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'detalle')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`rotar-${index}`}
-                  id={`rotar-${index}`}
-                  value={safeRow.rotar || ''}
-                  onChange={(e) => handleInputChange(index, 'rotar', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'rotar')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`l1-${index}`}
-                  id={`l1-${index}`}
-                  value={safeRow.l1 || ''}
-                  onChange={(e) => handleInputChange(index, 'l1', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'l1')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`l2-${index}`}
-                  id={`l2-${index}`}
-                  value={safeRow.l2 || ''}
-                  onChange={(e) => handleInputChange(index, 'l2', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'l2')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`a1-${index}`}
-                  id={`a1-${index}`}
-                  value={safeRow.a1 || ''}
-                  onChange={(e) => handleInputChange(index, 'a1', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'a1')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`a2-${index}`}
-                  id={`a2-${index}`}
-                  value={safeRow.a2 || ''}
-                  onChange={(e) => handleInputChange(index, 'a2', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'a2')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).length > 1 && (
-                  <button
-                    onClick={() => handleRemoveRow(index)}
-                    className={estilos.botonEliminar}
-                    type="button"
-                  >
-                    Eliminar
-                  </button>
-                )}
-              </div>
-            </div>
-          )})}
-          </div>
+            {/* TABLA DE PIEZAS */}
+            <TablaPiezas 
+              despieces={despieces}
+              activeDespieceId={activeDespieceId}
+              handleInputChange={handleInputChange}
+              handleKeyDown={handleKeyDown}
+              handleRemoveRow={handleRemoveRow}
+            />
+
           </form>
           <footer className={estilos.footerDespiece} style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={handleSaveToFirestore} className={estilos.botonSubmit}>
+            <button type="button" onClick={() => handleSaveToFirestore(false)} className={estilos.botonSubmit}>
               Guardar Despiece
             </button>
-            <button className={estilos.botonCopiar} onClick={handleCopyDespiece}>
-              Copiar Despiece
+            <button type="button" className={estilos.botonCopiar} onClick={handleCopyDespiece}>
+              Copiar a Excel
             </button>
           </footer>
         </div>
 
         {/* PARTE DERECHA: RESUMEN Y CONTEO DE SERVICIOS */}
-        <div style={{ 
-          flex: '1 1 30%', 
-          minWidth: '250px',
-          background: darkMode ? '#1c1f26' : '#f8f9fa',
-          borderRadius: '8px',
-          border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
-          padding: '20px',
-          position: 'sticky',
-          top: '80px'
-        }}>
-          <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333', borderBottom: `2px solid ${darkMode ? '#444' : '#eee'}`, paddingBottom: '10px' }}>Resumen del Despiece</h3>
-          
-          <div style={{
-            background: darkMode ? '#2d3342' : '#fff',
-            padding: '15px',
-            borderRadius: '8px',
-            textAlign: 'center',
-            marginBottom: '20px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-             <h4 style={{ margin: '0 0 10px 0', color: darkMode ? '#ccc' : '#666' }}>Piezas Totales</h4>
-             <p style={{ margin: 0, fontSize: '36px', fontWeight: 'bold', color: '#007bff' }}>{totalPieces}</p>
-          </div>
-
-          <h4 style={{ color: darkMode ? '#ccc' : '#666', marginBottom: '15px' }}>Conteo de Servicios</h4>
-          {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).length === 0 ? (
-            <p style={{ color: darkMode ? '#888' : '#888', fontSize: '14px', fontStyle: 'italic' }}>
-              {services.length === 0 ? "No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas." : "No hay servicios asociados detectados en el detalle de las piezas."}
-            </p>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).map(s => {
-                  const count = serviceCounts[s.nomenclatura] || 0;
-                  
-                  // Formatear display del contador dependiendo del tipo de cobro
-                  let countDisplay = count;
-                  if (s.tipoCobro && s.tipoCobro !== 'unidad' && s.tipoCobro !== 'escala_60') {
-                      countDisplay = Number(count).toFixed(2);
-                      if (s.tipoCobro.startsWith('ml')) countDisplay += ' ml';
-                      else if (s.tipoCobro === 'm2') countDisplay += ' m²';
-                  } else if (s.tipoCobro === 'escala_60') {
-                      countDisplay += ' ser';
-                  }
-
-                  return (
-                    <li key={s.nomenclatura} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '10px',
-                        borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
-                        background: darkMode ? '#1e2b22' : '#e8f5e9'
-                    }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <strong style={{ color: darkMode ? '#fff' : '#333' }}>{s.nombreOriginal}</strong>
-                            <span style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
-                        </div>
-                        <span style={{
-                            background: '#28a745',
-                            color: '#fff',
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            whiteSpace: 'nowrap'
-                        }}>
-                            {countDisplay}
-                        </span>
-                    </li>
-                  );
-              })}
-            </ul>
-          )}
-        </div>
+        <PanelResumen 
+          darkMode={darkMode}
+          totalPieces={totalPieces}
+          services={services}
+          serviceCounts={serviceCounts}
+        />
       </div>
     </div>
   );

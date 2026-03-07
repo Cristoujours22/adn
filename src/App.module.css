@@ -1232,3 +1232,124 @@ body.high-contrast .despieceItem h3,
 body.high-contrast .despieceItem p {
   color: #FFD600 !important;
 }
+
+/* RESPONSIVE MÓVIL (TARJETAS DESPIECE) */
+@media (max-width: 768px) {
+  .filaDespiece {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .celdaTitulo {
+    display: none !important;
+  }
+
+  .celdaDespiece {
+    flex: 1 1 45% !important;
+    margin-bottom: 8px;
+    position: relative;
+    padding-top: 15px;
+    /* Para el label simulado */
+  }
+
+  .celdaDespiece:nth-child(4) {
+    /* Detalle (Text Largo) */
+    flex: 1 1 100% !important;
+  }
+
+  /* Simulando Títulos de Columnas */
+  .celdaDespiece:nth-child(1)::before {
+    content: "Cant";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(2)::before {
+    content: "Largo";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(3)::before {
+    content: "Ancho";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(4)::before {
+    content: "Detalle / Descripción";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(5)::before {
+    content: "Rotar";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(6)::before {
+    content: "L1";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(7)::before {
+    content: "L2";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(8)::before {
+    content: "A1";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(9)::before {
+    content: "A2";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .inputCorto,
+  .inputLargo {
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 10px;
+    font-size: 16px;
+    /* Evitar zoom en iOS */
+  }
+}
