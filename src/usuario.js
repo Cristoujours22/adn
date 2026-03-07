@@ -19,10 +19,6 @@ function Usuario() {
     const savedMode = localStorage.getItem("darkMode");
     return savedMode ? JSON.parse(savedMode) : false;
   });
-  const [highContrast, setHighContrast] = useState(() => {
-    const savedMode = localStorage.getItem("highContrast");
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -30,17 +26,11 @@ function Usuario() {
       if (savedMode !== null) {
         setDarkMode(JSON.parse(savedMode));
       }
-      const savedContrast = localStorage.getItem("highContrast");
-      if (savedContrast !== null) {
-        setHighContrast(JSON.parse(savedContrast));
-      }
     };
     window.addEventListener("darkModeChanged", handleStorageChange);
-    window.addEventListener("highContrastChanged", handleStorageChange);
     window.addEventListener("storage", handleStorageChange);
     return () => {
       window.removeEventListener("darkModeChanged", handleStorageChange);
-      window.removeEventListener("highContrastChanged", handleStorageChange);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
