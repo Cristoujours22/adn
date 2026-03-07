@@ -83,6 +83,7 @@ const ModeloDespiece = () => {
   const [totalPieces, setTotalPieces] = useState(0);
   const [serviceCounts, setServiceCounts] = useState({});
   const { currentUser } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem("darkMode");
     return savedMode ? JSON.parse(savedMode) : false;
@@ -555,7 +556,15 @@ const ModeloDespiece = () => {
                     )}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <input
+                        type="text"
+                        placeholder="Buscar servicio..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className={estilos.controls}
+                        style={{ margin: 0, height: '30px', flex: '0 1 300px' }}
+                    />
                     <button 
                         onClick={handleRestoreDefaultServices}
                         style={{ background: 'transparent', color: '#17a2b8', border: '1px solid #17a2b8', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
@@ -578,7 +587,7 @@ const ModeloDespiece = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {services.map(s => (
+                                {services.filter(s => s.nombreOriginal.toLowerCase().includes(searchTerm.toLowerCase()) || s.nomenclatura.toLowerCase().includes(searchTerm.toLowerCase())).map(s => (
                                     <tr key={s.nomenclatura} style={{ borderBottom: '1px solid #444' }}>
                                         <td style={{ padding: '8px' }}>{s.nombreOriginal}</td>
                                         <td style={{ padding: '8px' }}><strong>{s.nomenclatura}</strong></td>
