@@ -13,7 +13,7 @@ function App() {
   return (
     <AuthProvider>
       <Router basename="/">
-        <main aria-label="Aplicación ADN">
+        <div aria-label="Aplicación ADN" className="App_main__wrapper">
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginPage />} />
@@ -60,7 +60,7 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
-        </main>
+        </div>
       </Router>
     </AuthProvider>
   );
