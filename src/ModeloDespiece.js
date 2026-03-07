@@ -13,6 +13,14 @@ const createNewRow = () => ({
   cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: ''
 });
 
+// Generador de ID para despieces (pestañas)
+let despieceIdCounter = Date.now();
+const createNewDespiece = (name = "Despiece 1") => ({
+  id: `tab_${despieceIdCounter++}`,
+  nombre: name,
+  filas: [createNewRow()]
+});
+
 // Lista de servicios por defecto basados en Excel del cliente
 const DEFAULT_SERVICES = [
   { nomenclatura: 'CSARMADO', nombreOriginal: 'SERVICIO ARMADO DE PUERTA COMPLETO', tipoCobro: 'unidad' },
@@ -69,7 +77,8 @@ const DEFAULT_SERVICES = [
 
 const ModeloDespiece = () => {
   const { id } = useParams();
-  const [rows, setRows] = useState([createNewRow()]);
+  const [despieces, setDespieces] = useState([createNewDespiece()]);
+  const [activeDespieceId, setActiveDespieceId] = useState(despieces[0]?.id);
   const [projectName, setProjectName] = useState('');
   const [clientName, setClientName] = useState('');
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
@@ -130,16 +139,41 @@ const ModeloDespiece = () => {
           // IDs únicos y estables
           let usedIds = new Set();
           let maxRowId = rowIdCounter;
-          const loadedRows = (data.filas || []).map((row, idx) => {
-            let rowId = row.id && /^row_\d+$/.test(row.id) ? parseInt(row.id.split('_')[1], 10) : null;
-            if (rowId === null || usedIds.has(row.id)) {
-              rowId = maxRowId++;
-            }
-            usedIds.add(`row_${rowId}`);
-            return { ...row, id: `row_${rowId}` };
-          });
+          // Compatibilidad hacia atrás: si tiene "filas" directamente asume formato viejo
+          if (data.filas && Array.isArray(data.filas)) {
+              const loadedRows = data.filas.map((row) => {
+                  let rowId = row.id && /^row_\d+$/.test(row.id) ? parseInt(row.id.split('_')[1], 10) : null;
+                  if (rowId === null || usedIds.has(row.id)) rowId = maxRowId++;
+                  usedIds.add(`row_${rowId}`);
+                  return { ...row, id: `row_${rowId}` };
+              });
+              const newTab = createNewDespiece("Mueble Principal");
+              newTab.filas = loadedRows.length ? loadedRows : [createNewRow()];
+              setDespieces([newTab]);
+              setActiveDespieceId(newTab.id);
+          } else if (data.despieces && Array.isArray(data.despieces)) {
+              // Formato nuevo: sanitizar filas en TODAS las pestañas
+              const loadedDespieces = data.despieces.map(desp => {
+                  const safeRows = (desp.filas || []).map(row => {
+                      let rowId = row.id && /^row_\d+$/.test(row.id) ? parseInt(row.id.split('_')[1], 10) : null;
+                      if (rowId === null || usedIds.has(row.id)) rowId = maxRowId++;
+                      usedIds.add(`row_${rowId}`);
+                      return { ...row, id: `row_${rowId}` };
+                  });
+                  return {
+                      ...desp,
+                      id: desp.id || `tab_${despieceIdCounter++}`,
+                      filas: safeRows.length ? safeRows : [createNewRow()]
+                  };
+              });
+              setDespieces(loadedDespieces.length ? loadedDespieces : [createNewDespiece()]);
+              if (loadedDespieces.length > 0) setActiveDespieceId(loadedDespieces[0].id);
+          } else {
+              const def = createNewDespiece();
+              setDespieces([def]);
+              setActiveDespieceId(def.id);
+          }
           rowIdCounter = maxRowId;
-          setRows(loadedRows.length ? loadedRows : [createNewRow()]);
           // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
           if (data.serviciosGuardados) {
             const parsedServices = data.serviciosGuardados.map(s => {
@@ -168,14 +202,16 @@ const ModeloDespiece = () => {
       sCounts[service.nomenclatura] = 0;
     });
 
-    rows.forEach(row => {
-      const cant = parseInt(row.cant, 10);
-      if (!isNaN(cant) && cant > 0) {
-        piecesCount += cant;
-        
-        // Contar servicios en el detalle usando nombre original o nomenclatura
-        const detalle = row.detalle ? row.detalle.toLowerCase() : '';
-        services.forEach(service => {
+    // Sumar filas de TODOS los despieces de forma segura
+    despieces.forEach(despiece => {
+      (despiece.filas || []).forEach(row => {
+        const cant = parseInt(row?.cant, 10);
+        if (!isNaN(cant) && cant > 0) {
+          piecesCount += cant;
+          
+          // Contar servicios en el detalle usando nombre original o nomenclatura
+          const detalle = row?.detalle ? row.detalle.toLowerCase() : '';
+          services.forEach(service => {
           // Escapar caracteres especiales y asegurar límite de palabra (\b)
           const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
@@ -228,10 +264,11 @@ const ModeloDespiece = () => {
         });
       }
     });
+    });
 
     setTotalPieces(piecesCount);
     setServiceCounts(sCounts);
-  }, [rows, services]);
+  }, [despieces, services]);
 
   const handleAddService = (e) => {
     e.preventDefault();
@@ -298,16 +335,22 @@ const ModeloDespiece = () => {
   };
 
   const handleInputChange = useCallback((index, field, value) => {
-    setRows((prevRows) => {
-      const newRows = [...prevRows];
-      newRows[index][field] = value;
-      return newRows;
-    });
-  }, []);
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const newRows = [...(despiece.filas || [])];
+      if (newRows[index]) {
+        newRows[index] = { ...newRows[index], [field]: value };
+      }
+      return { ...despiece, filas: newRows };
+    }));
+  }, [activeDespieceId]);
 
   const handleRemoveRow = useCallback((indexToRemove) => {
-    setRows((prevRows) => prevRows.filter((_, index) => index !== indexToRemove));
-  }, []);
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      return { ...despiece, filas: (despiece.filas || []).filter((_, index) => index !== indexToRemove) };
+    }));
+  }, [activeDespieceId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -334,20 +377,23 @@ const ModeloDespiece = () => {
         a2: columns[8] || '',
       };
     }).filter(row => Object.values(row).some(val => val !== ''));
-    setRows((prevRows) => {
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const prevRows = despiece.filas || [];
       // Si la primera fila está vacía, reemplazarla
-      if (prevRows.length === 1 && Object.values(prevRows[0]).every((v, i) => v === '' || (i === 0 && /^row_/.test(v)))) {
-        return newRows.length ? newRows : [createNewRow()];
+      if (prevRows.length === 1 && Object.values(prevRows[0] || {}).every((v, i) => v === '' || (i === 0 && (typeof v === 'string' && /^row_/.test(v))))) {
+        return { ...despiece, filas: newRows.length ? newRows : [createNewRow()] };
       }
       // Si no, agregar normalmente
-      return [...prevRows, ...newRows];
-    });
-  }, []);
+      return { ...despiece, filas: [...prevRows, ...newRows] };
+    }));
+  }, [activeDespieceId]);
 
   // Guardar: si es edición, actualizar, si no, crear
   const handleSaveToFirestore = async () => {
-    if (rows.length === 0) {
-        alert('No hay datos para guardar. Por favor, agrega al menos una fila.');
+    const totalFilas = despieces.reduce((acc, current) => acc + (current.filas ? current.filas.length : 0), 0);
+    if (totalFilas === 0) {
+        alert('No hay datos para guardar. Por favor, agrega al menos una fila en algún despiece.');
         return;
     }
     if (!projectName || !clientName) {
@@ -363,7 +409,7 @@ const ModeloDespiece = () => {
             cliente: clientName,
             fechaCreacion: creationDate,
             ultimaModificacion: new Date().toLocaleDateString(),
-            filas: rows,
+            despieces: despieces,
             serviciosGuardados: services
           });
           alert('Despiece actualizado exitosamente.');
@@ -375,7 +421,7 @@ const ModeloDespiece = () => {
             cliente: clientName,
             fechaCreacion: creationDate,
             ultimaModificacion: lastModifiedDate,
-            filas: rows,
+            despieces: despieces,
             serviciosGuardados: services,
             userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
           };
@@ -404,12 +450,13 @@ const ModeloDespiece = () => {
       if (nextInput) nextInput.focus();
     };
 
+    const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
     switch (e.key) {
       case 'ArrowUp':
         if (index > 0) focusField(index - 1, field);
         break;
       case 'ArrowDown':
-        if (index < rows.length - 1) focusField(index + 1, field);
+        if (index < activeRows.length - 1) focusField(index + 1, field);
         break;
       case 'ArrowLeft':
         if (field !== 'cant') {
@@ -428,10 +475,11 @@ const ModeloDespiece = () => {
       default:
         break;
     }
-  }, [rows]);
+  }, [despieces, activeDespieceId]);
 
   // Mejorar navegación tipo Google Sheets
   const handleKeyDown = useCallback((e, index, field) => {
+    const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
     }
@@ -444,15 +492,18 @@ const ModeloDespiece = () => {
         const nextField = fields[currentIndex + 1];
         const nextInput = document.getElementById(`${nextField}-${index}`);
         if (nextInput) nextInput.focus();
-      } else if (index < rows.length - 1) {
+      } else if (index < activeRows.length - 1) {
         // Mover al primer campo de la siguiente fila
         const nextInput = document.getElementById(`cant-${index + 1}`);
         if (nextInput) nextInput.focus();
       } else {
         // Agregar una nueva fila y mover al primer campo de esa fila
-        setRows((prevRows) => [...prevRows, createNewRow()]);
+        setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+          if (despiece.id !== activeDespieceId) return despiece;
+          return { ...despiece, filas: [...(despiece.filas || []), createNewRow()] };
+        }));
         setTimeout(() => {
-          const nextInput = document.getElementById(`cant-${rows.length}`);
+          const nextInput = document.getElementById(`cant-${activeRows.length}`);
           if (nextInput) nextInput.focus();
         }, 0);
       }
@@ -473,10 +524,11 @@ const ModeloDespiece = () => {
     } else {
       handleArrowNavigation(e, index, field);
     }
-  }, [rows, handleArrowNavigation]);
+  }, [despieces, activeDespieceId, handleArrowNavigation]);
 
   const handleCopyDespiece = () => {
-    const rowsForExcel = rows.map(row => [
+    const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
+    const rowsForExcel = activeRows.map(row => [
       row.cant,
       row.largo,
       row.ancho,
@@ -683,7 +735,97 @@ const ModeloDespiece = () => {
               </div>
             </div>
 
-            <div className={estilos.tablaDespiece} style={{ marginTop: '20px' }}>
+            {/* SISTEMA DE PESTAÑAS (TABS) */}
+            <div style={{ display: 'flex', gap: '5px', marginTop: '20px', overflowX: 'auto', borderBottom: `2px solid ${darkMode ? '#444' : '#ddd'}`, paddingBottom: '5px' }}>
+              {(despieces || []).map((desp, idx) => (
+                <div 
+                  key={desp?.id || `tab_${idx}`}
+                  style={{
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    background: activeDespieceId === desp?.id ? (darkMode ? '#3a3f4b' : '#007bff') : (darkMode ? '#2c303a' : '#e9ecef'),
+                    color: activeDespieceId === desp?.id ? '#fff' : (darkMode ? '#aaa' : '#333'),
+                    borderRadius: '8px 8px 0 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontWeight: activeDespieceId === desp?.id ? 'bold' : 'normal',
+                    boxShadow: activeDespieceId === desp?.id ? '0 -2px 5px rgba(0,0,0,0.1)' : 'none',
+                    border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
+                    borderBottom: 'none'
+                  }}
+                  onClick={() => setActiveDespieceId(desp?.id)}
+                >
+                  <input 
+                    type="text" 
+                    value={desp?.nombre || `Despiece ${idx + 1}`}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      setDespieces(prev => prev.map(d => d.id === desp.id ? { ...d, nombre: newName } : d));
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'inherit',
+                      outline: 'none',
+                      fontWeight: 'inherit',
+                      width: '100px',
+                      cursor: activeDespieceId === desp?.id ? 'text' : 'pointer'
+                    }}
+                    onClick={(e) => { if(activeDespieceId !== desp?.id) e.preventDefault(); }}
+                  />
+                  {(despieces || []).length > 1 && (
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`¿Seguro que deseas eliminar la pestaña "${desp?.nombre}"?`)) {
+                          const newDespieces = despieces.filter(d => d.id !== desp?.id);
+                          setDespieces(newDespieces);
+                          if (activeDespieceId === desp?.id) {
+                            setActiveDespieceId(newDespieces[0]?.id);
+                          }
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: activeDespieceId === desp?.id ? '#ffcccc' : '#dc3545',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        padding: '0 5px'
+                      }}
+                      title="Eliminar pestaña"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const newTab = createNewDespiece(`Despiece ${despieces.length + 1}`);
+                  setDespieces([...despieces, newTab]);
+                  setActiveDespieceId(newTab.id);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  background: darkMode ? '#28a745' : '#1e7e34',
+                  color: '#fff',
+                  borderRadius: '8px 8px 0 0',
+                  border: 'none',
+                  fontWeight: 'bold'
+                }}
+                title="Agregar nuevo despiece"
+              >
+                +
+              </button>
+            </div>
+
+            <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }}>
           <div className={estilos.filaDespiece}>
             <div className={estilos.celdaTitulo}>CANT</div>
             <div className={estilos.celdaTitulo}>LARGO</div>
@@ -696,15 +838,17 @@ const ModeloDespiece = () => {
             <div className={estilos.celdaTitulo}>A2</div>
             <div className={estilos.celdaTitulo}>ACCIONES</div>
           </div>
-          {rows.map((row, index) => (
-            <div key={row.id} className={estilos.filaDespiece}>
+          {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).map((row, index) => {
+            const safeRow = row || {};
+            return (
+            <div key={safeRow.id || `row_${index}`} className={estilos.filaDespiece}>
               <div className={estilos.celdaDespiece}>
                 <input
                   type="number"
                   className={`${estilos.inputCorto} ${estilos.flexibleWidth}`}
                   name={`cant-${index}`}
                   id={`cant-${index}`}
-                  value={row.cant}
+                  value={safeRow.cant || ''}
                   onChange={(e) => handleInputChange(index, 'cant', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'cant')}
                   required
@@ -716,7 +860,7 @@ const ModeloDespiece = () => {
                   className={estilos.inputCorto}
                   name={`largo-${index}`}
                   id={`largo-${index}`}
-                  value={row.largo}
+                  value={safeRow.largo || ''}
                   onChange={(e) => handleInputChange(index, 'largo', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'largo')}
                   required
@@ -728,7 +872,7 @@ const ModeloDespiece = () => {
                   className={estilos.inputCorto}
                   name={`ancho-${index}`}
                   id={`ancho-${index}`}
-                  value={row.ancho}
+                  value={safeRow.ancho || ''}
                   onChange={(e) => handleInputChange(index, 'ancho', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'ancho')}
                   required
@@ -740,7 +884,7 @@ const ModeloDespiece = () => {
                   className={estilos.inputLargo}
                   name={`detalle-${index}`}
                   id={`detalle-${index}`}
-                  value={row.detalle}
+                  value={safeRow.detalle || ''}
                   onChange={(e) => handleInputChange(index, 'detalle', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'detalle')}
                   required
@@ -752,7 +896,7 @@ const ModeloDespiece = () => {
                   className={estilos.inputCorto}
                   name={`rotar-${index}`}
                   id={`rotar-${index}`}
-                  value={row.rotar}
+                  value={safeRow.rotar || ''}
                   onChange={(e) => handleInputChange(index, 'rotar', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'rotar')}
                 />
@@ -763,7 +907,7 @@ const ModeloDespiece = () => {
                   className={estilos.inputCorto}
                   name={`l1-${index}`}
                   id={`l1-${index}`}
-                  value={row.l1}
+                  value={safeRow.l1 || ''}
                   onChange={(e) => handleInputChange(index, 'l1', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'l1')}
                 />
@@ -774,7 +918,7 @@ const ModeloDespiece = () => {
                   className={estilos.inputCorto}
                   name={`l2-${index}`}
                   id={`l2-${index}`}
-                  value={row.l2}
+                  value={safeRow.l2 || ''}
                   onChange={(e) => handleInputChange(index, 'l2', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'l2')}
                 />
@@ -785,7 +929,7 @@ const ModeloDespiece = () => {
                   className={estilos.inputCorto}
                   name={`a1-${index}`}
                   id={`a1-${index}`}
-                  value={row.a1}
+                  value={safeRow.a1 || ''}
                   onChange={(e) => handleInputChange(index, 'a1', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'a1')}
                 />
@@ -796,13 +940,13 @@ const ModeloDespiece = () => {
                   className={estilos.inputCorto}
                   name={`a2-${index}`}
                   id={`a2-${index}`}
-                  value={row.a2}
+                  value={safeRow.a2 || ''}
                   onChange={(e) => handleInputChange(index, 'a2', e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, index, 'a2')}
                 />
               </div>
               <div className={estilos.celdaDespiece}>
-                {rows.length > 1 && (
+                {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).length > 1 && (
                   <button
                     onClick={() => handleRemoveRow(index)}
                     className={estilos.botonEliminar}
@@ -813,7 +957,7 @@ const ModeloDespiece = () => {
                 )}
               </div>
             </div>
-          ))}
+          )})}
           </div>
           </form>
           <footer className={estilos.footerDespiece} style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
