@@ -282,6 +282,15 @@ const ModeloDespiece = () => {
     setServices(services.filter(s => s.nomenclatura !== nomenclaturaToRemove));
   };
 
+  const handleToggleServiceActive = (nomen) => {
+    setServices(services.map(s => s.nomenclatura === nomen ? { ...s, activo: s.activo === false ? true : false } : s));
+  };
+
+  const handleToggleAllServices = () => {
+    const allActive = services.every(s => s.activo !== false);
+    setServices(services.map(s => ({ ...s, activo: !allActive })));
+  };
+
   const handleRestoreDefaultServices = () => {
     if (window.confirm("¿Seguro que deseas restaurar los servicios predeterminados? Se perderán los que hayas agregado manualmente.")) {
       setServices(DEFAULT_SERVICES);
@@ -565,12 +574,20 @@ const ModeloDespiece = () => {
                         className={estilos.controls}
                         style={{ margin: 0, height: '30px', flex: '0 1 300px' }}
                     />
-                    <button 
-                        onClick={handleRestoreDefaultServices}
-                        style={{ background: 'transparent', color: '#17a2b8', border: '1px solid #17a2b8', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                    >
-                        ↻ Restaurar Servicios Excel
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button 
+                            onClick={handleToggleAllServices}
+                            style={{ background: 'transparent', color: '#28a745', border: '1px solid #28a745', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                            {services.every(s => s.activo !== false) ? 'Ocultar Todos' : 'Mostrar Todos'}
+                        </button>
+                        <button 
+                            onClick={handleRestoreDefaultServices}
+                            style={{ background: 'transparent', color: '#17a2b8', border: '1px solid #17a2b8', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                            ↻ Restaurar Servicios Excel
+                        </button>
+                    </div>
                 </div>
                 
                 <div style={{ background: '#2c303a', padding: '10px', borderRadius: '5px', maxHeight: '300px', overflowY: 'auto' }}>
@@ -580,6 +597,7 @@ const ModeloDespiece = () => {
                         <table style={{ width: '100%', color: 'white', borderCollapse: 'collapse', fontSize: '14px' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #444', textAlign: 'left' }}>
+                                    <th style={{ padding: '8px', width: '30px', textAlign: 'center' }}>✓</th>
                                     <th style={{ padding: '8px' }}>Nombre</th>
                                     <th style={{ padding: '8px' }}>Nom</th>
                                     <th style={{ padding: '8px' }}>Cobro</th>
@@ -588,7 +606,15 @@ const ModeloDespiece = () => {
                             </thead>
                             <tbody>
                                 {services.filter(s => s.nombreOriginal.toLowerCase().includes(searchTerm.toLowerCase()) || s.nomenclatura.toLowerCase().includes(searchTerm.toLowerCase())).map(s => (
-                                    <tr key={s.nomenclatura} style={{ borderBottom: '1px solid #444' }}>
+                                    <tr key={s.nomenclatura} style={{ borderBottom: '1px solid #444', opacity: s.activo === false ? 0.5 : 1 }}>
+                                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={s.activo !== false}
+                                                onChange={() => handleToggleServiceActive(s.nomenclatura)}
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                        </td>
                                         <td style={{ padding: '8px' }}>{s.nombreOriginal}</td>
                                         <td style={{ padding: '8px' }}><strong>{s.nomenclatura}</strong></td>
                                         <td style={{ padding: '8px', color: '#888' }}>
@@ -826,22 +852,22 @@ const ModeloDespiece = () => {
           </div>
 
           <h4 style={{ color: darkMode ? '#ccc' : '#666', marginBottom: '15px' }}>Conteo de Servicios</h4>
-          {services.length === 0 ? (
+          {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).length === 0 ? (
             <p style={{ color: darkMode ? '#888' : '#888', fontSize: '14px', fontStyle: 'italic' }}>
-              No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas.
+              {services.length === 0 ? "No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas." : "No hay servicios asociados detectados en el detalle de las piezas."}
             </p>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {services.map(s => {
+              {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).map(s => {
                   const count = serviceCounts[s.nomenclatura] || 0;
                   
                   // Formatear display del contador dependiendo del tipo de cobro
                   let countDisplay = count;
-                  if (count > 0 && s.tipoCobro && s.tipoCobro !== 'unidad' && s.tipoCobro !== 'escala_60') {
+                  if (s.tipoCobro && s.tipoCobro !== 'unidad' && s.tipoCobro !== 'escala_60') {
                       countDisplay = Number(count).toFixed(2);
                       if (s.tipoCobro.startsWith('ml')) countDisplay += ' ml';
                       else if (s.tipoCobro === 'm2') countDisplay += ' m²';
-                  } else if (count > 0 && s.tipoCobro === 'escala_60') {
+                  } else if (s.tipoCobro === 'escala_60') {
                       countDisplay += ' ser';
                   }
 
@@ -852,15 +878,15 @@ const ModeloDespiece = () => {
                         alignItems: 'center',
                         padding: '10px',
                         borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
-                        background: count > 0 ? (darkMode ? '#1e2b22' : '#e8f5e9') : 'transparent'
+                        background: darkMode ? '#1e2b22' : '#e8f5e9'
                     }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <strong style={{ color: darkMode ? '#fff' : '#333' }}>{s.nombreOriginal}</strong>
                             <span style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
                         </div>
                         <span style={{
-                            background: count > 0 ? '#28a745' : (darkMode ? '#444' : '#ddd'),
-                            color: count > 0 ? '#fff' : (darkMode ? '#aaa' : '#333'),
+                            background: '#28a745',
+                            color: '#fff',
                             padding: '4px 12px',
                             borderRadius: '12px',
                             fontWeight: 'bold',
