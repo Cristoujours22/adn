@@ -28,19 +28,8 @@ const createNewDespiece = (name = "Despiece 1") => ({
 
 // Lista de servicios por defecto basados en Excel del cliente
 const DEFAULT_SERVICES = [
-  { nomenclatura: 'CSARMADO', nombreOriginal: 'ARMADO DE PUERTA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSRAPU1C', nombreOriginal: 'RANURA PUERTA 1 CARA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCORTEB', nombreOriginal: 'CAMBIO BASTIDOR', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCORTEP', nombreOriginal: 'CORTE REFILADO PUERTA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSHCHAPA', nombreOriginal: 'HUECO CHAPA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSICHAPA', nombreOriginal: 'INSTALACION CHAPA TAMBOR', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERCORP', nombreOriginal: 'CORTE DE PERFILERIA ALUMINIO', tipoCobro: 'unidad' },
   { nomenclatura: 'CSPERALM', nombreOriginal: 'PEGADO PERFIL MANIJA ALUMINIO', tipoCobro: 'ml_largo_ancho' }, // Usualmente L o A, asumo unidad o ML
   { nomenclatura: 'CSCANTOA', nombreOriginal: 'PEGADO PERFIL CANTO ALUMINIO', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SCUBMDLAR1', nombreOriginal: 'CORTE CUBO MODULAR', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCUBMDLAR2', nombreOriginal: 'CORTE Y PERFORACIÓN CUBO MODULAR', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCUBMDLAR3', nombreOriginal: 'CORTE, PERFORACIÓN Y AVELLANADO', tipoCobro: 'unidad' },
-  { nomenclatura: 'SESTRAL', nombreOriginal: 'CORTE MARCO DE ALUMINIO', tipoCobro: 'unidad' },
   { nomenclatura: 'SRRANUPE', nombreOriginal: 'RANURA PARA PERFIL', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERPERBIS', nombreOriginal: 'PERFORACION BISAGRA', tipoCobro: 'unidad' },
   { nomenclatura: 'CSRANUFO', nombreOriginal: 'RANURA FONDO', tipoCobro: 'ml_largo_ancho' },
@@ -63,21 +52,9 @@ const DEFAULT_SERVICES = [
   { nomenclatura: 'SERVICENEFA', nombreOriginal: 'CAJA CENEFA ESQUINERA', tipoCobro: 'unidad' },
   { nomenclatura: 'SERPASACABLE', nombreOriginal: 'HUECO PARA PASACABLE', tipoCobro: 'unidad' },
   { nomenclatura: 'MANICHAFLAN', nombreOriginal: 'MANIJA CHAFLAN', tipoCobro: 'unidad' },
-  { nomenclatura: 'CORLISTON', nombreOriginal: 'CORTE LISTON MADERA', tipoCobro: 'unidad' },
   { nomenclatura: 'MANICRUS', nombreOriginal: 'CAJA PARA MANIJA DE INCRUSTAR', tipoCobro: 'unidad' },
   { nomenclatura: 'MANIGAVETA', nombreOriginal: 'CALADO PARA MANIJA EN V', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERCURML', nombreOriginal: 'CURVA MEDIA LUNA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERMESCORTO', nombreOriginal: 'ADECUACION LADO CORTO MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERMESLARGO', nombreOriginal: 'ADECUACION LADO LARGO MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCALMEPOZ', nombreOriginal: 'CALADO DE POZUELO PARA MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCALMECUB', nombreOriginal: 'CALADO DE CUBIERTA PARA MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERSALCORTE', nombreOriginal: 'ADECUACION LADO CORTO SALPICADERO 57CM', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERSALLARGO', nombreOriginal: 'ADECUACION LADO LARGO SALPICADERO 57CM', tipoCobro: 'unidad' },
-  { nomenclatura: 'SESUSTRALAP', nombreOriginal: 'ENCHAPE CON LAP TABLERO COMPLETO 122x244', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERINSKIT', nombreOriginal: 'PEGADO DE PERFIL PARA PIZARRON 122*244', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERVTSMU', nombreOriginal: 'TALADRO MULTIPLE', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERHRCNC', nombreOriginal: 'PAGO DE 1 HORA POR SERVICIO DE CNC', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERHRSACCNC', nombreOriginal: 'PAGO DE 1 HORA POR SERV DE CNC CON SACRI', tipoCobro: 'unidad' }
+  { nomenclatura: 'SERCURML', nombreOriginal: 'CURVA MEDIA LUNA', tipoCobro: 'unidad' }
 ];
 
 const ModeloDespiece = () => {
