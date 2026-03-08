@@ -66,6 +66,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                     } else {
                         // Lógica estándar para el resto de los servicios
                         const isNariz = service.nomenclatura.toLowerCase() === 'nar' || service.nombreOriginal.toLowerCase().includes('nariz') || service.nombreOriginal.toLowerCase().includes('narices') || service.nombreOriginal.toLowerCase().includes('nar');
+                        const isSenchaManual = service.nomenclatura.toUpperCase() === 'SENCHAMANUAL' || service.nombreOriginal.toLowerCase().includes('enchape a pieza especial');
 
                         const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
                         const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
@@ -79,15 +80,36 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         if (isNariz) {
                             const basicNarRegex = /\bnar(?:iz(?:es)?)?\b/gi;
                             count = (detalle.match(basicNarRegex) || []).length;
+                        } else if (isSenchaManual) {
+                            const basicSenchaRegex = /\b(?:senchamanual|enchape manual|manigaveta|manichaflan)\b/gi;
+                            count = (detalle.match(basicSenchaRegex) || []).length;
+                            
+                            // Revisión automática si no hay texto relevante, pero cumple la regla <= 119
+                            if (count === 0) {
+                                const localL = parseFloat(row.largo) || 0;
+                                const localA = parseFloat(row.ancho) || 0;
+                                if ((localL > 0 && localL <= 119) || (localA > 0 && localA <= 119)) {
+                                    const vc = ['1', '2', '3', '4'];
+                                    if (vc.includes(String(row.l1)) || vc.includes(String(row.l2)) || vc.includes(String(row.a1)) || vc.includes(String(row.a2))) {
+                                        count = 1;
+                                    }
+                                }
+                            }
                         } else if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
                             count = matchesNombre ? matchesNombre.length : 0;
                         } else {
                             count = (matchesNombre ? matchesNombre.length : 0) + (matchesNom ? matchesNom.length : 0);
                         }
 
-                        if (count > 0 || (isNariz && row.narizCobro !== undefined && row.narizCobro !== '')) {
-                            // Reajustamos count a 1 mínimo si detectamos sintaxis de cobro oculto.
-                            if (isNariz && count === 0 && row.narizCobro !== undefined && row.narizCobro !== '') count = 1;
+                        const detLower = detalle.toLowerCase();
+                        const isEnchapeButtonActive = detLower.includes('senchamanual') || detLower.includes('enchape manual');
+                        const isNarizButtonActive = !isEnchapeButtonActive && detLower.includes('nar');
+
+                        let forceNariz = isNariz && count === 0 && row.narizCobro !== undefined && row.narizCobro !== '' && isNarizButtonActive;
+                        let forceSencha = isSenchaManual && count === 0 && row.narizCobro !== undefined && row.narizCobro !== '' && isEnchapeButtonActive;
+
+                        if (count > 0 || forceNariz || forceSencha) {
+                            if (forceNariz || forceSencha) count = 1;
                             const l = parseFloat(row.largo) || 0;
                             const a = parseFloat(row.ancho) || 0;
                             let m = 1;
@@ -102,8 +124,8 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                 let totalNarizUnits = 0;
                                 let foundExplicitAmount = false;
                                 
-                                // Prioridad 1: Sintaxis explícita inyectada por el Modal internamente
-                                if (row.narizCobro !== undefined && row.narizCobro !== '') {
+                                // Prioridad 1: Sintaxis explícita inyectada por el Modal internamente (Solo si le corresponde a Nariz)
+                                if (row.narizCobro !== undefined && row.narizCobro !== '' && isNarizButtonActive) {
                                     totalNarizUnits += parseFloat(row.narizCobro) || 0;
                                     foundExplicitAmount = true;
                                 }
@@ -121,6 +143,41 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                 }
                                 
                                 serviceTotalInRow += (totalNarizUnits * 1); // 1 = tipo unidad
+
+                            } else if (isSenchaManual) {
+                                let totalSenchaMm = 0;
+                                
+                                // Auto-sum para partes pequeñas <= 119 con cantos '1', '2', '3', '4'
+                                const validCantos = ['1', '2', '3', '4'];
+                                if (l > 0 && l <= 119) {
+                                    if (validCantos.includes(String(row.l1))) totalSenchaMm += l;
+                                    if (validCantos.includes(String(row.l2))) totalSenchaMm += l;
+                                }
+                                if (a > 0 && a <= 119) {
+                                    if (validCantos.includes(String(row.a1))) totalSenchaMm += a;
+                                    if (validCantos.includes(String(row.a2))) totalSenchaMm += a;
+                                }
+
+                                // Suma adicional por Circulo (Perimetro completo en mm)
+                                const hasCirculo = detalle.toLowerCase().includes('circulo');
+                                if (hasCirculo) {
+                                    totalSenchaMm += (l * 2) + (a * 2);
+                                }
+
+                                // Suma exacta extraida de manigavetas/manichaflan
+                                const regexMani = /(?:manigaveta|manichaflan)[\s/xX]*(\d+(?:\.\d+)?)/gi;
+                                let matchMani;
+                                while ((matchMani = regexMani.exec(detalle)) !== null) {
+                                    totalSenchaMm += parseFloat(matchMani[1]) || 0;
+                                }
+
+                                // Si el operario usó el botón de Enchape Manual oculto (Solo si le corresponde a Enchape y NO es círculo)
+                                if (row.narizCobro !== undefined && row.narizCobro !== '' && isEnchapeButtonActive && !hasCirculo) {
+                                    totalSenchaMm += parseFloat(row.narizCobro) || 0;
+                                }
+
+                                // Sumamos los milimetros totales convertidos a Metros Lineales.
+                                serviceTotalInRow += (totalSenchaMm / 1000); 
 
                             } else {
                                 switch (service.tipoCobro) {
@@ -144,6 +201,13 @@ export const calcularTotalesDespiece = (despieces, services) => {
                 });
             }
         });
+    });
+
+    // Redondear SENCHAMANUAL a unidades al final del despiece
+    Object.keys(sCounts).forEach(key => {
+        if (key === 'SENCHAMANUAL') {
+            sCounts[key] = Math.ceil(sCounts[key] || 0);
+        }
     });
 
     return { totalPieces: piecesCount, serviceCounts: sCounts };

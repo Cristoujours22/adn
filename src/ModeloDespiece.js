@@ -436,17 +436,17 @@ const ModeloDespiece = () => {
     }
   }, [despieces, activeDespieceId, handleArrowNavigation]);
 
-  const handleOpenNarizModal = useCallback((index) => {
+  const handleOpenNarizModal = useCallback((index, label = 'Nariz') => {
     const activeRows = despieces.find(d => d.id === activeDespieceId)?.filas || [];
     const row = activeRows[index];
     if (!row) return;
 
     let prefill = row.narizCobro !== undefined ? String(row.narizCobro) : '';
-    setNarizModal({ isOpen: true, rowIndex: index, value: prefill });
+    setNarizModal({ isOpen: true, rowIndex: index, value: prefill, label: label });
   }, [despieces, activeDespieceId]);
 
   const handleCloseNarizModal = () => {
-    setNarizModal({ isOpen: false, rowIndex: null, value: '' });
+    setNarizModal({ isOpen: false, rowIndex: null, value: '', label: 'Nariz' });
   };
 
   const handleSaveNarizModal = () => {
@@ -715,7 +715,7 @@ const ModeloDespiece = () => {
         />
       </div>
 
-      {/* MODAL PARA COBRO DE NARIZ */}
+      {/* MODAL DINÁMICO PARA COBROS EXACTOS (NARIZ, ENCHAPE) */}
       {narizModal.isOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -727,9 +727,9 @@ const ModeloDespiece = () => {
             padding: '20px', borderRadius: '8px', minWidth: '300px',
             boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
           }}>
-            <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333' }}>Medida de Nariz</h3>
+            <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333' }}>Medida de {narizModal.label}</h3>
             <p style={{ fontSize: '13px', color: darkMode ? '#aaa' : '#666', marginBottom: '15px' }}>
-              Ingresa el total a cobrar (ej: m² o ml). Esto se añadirá como 'Nar:X' en el detalle.
+              Ingresa el total exacto a cobrar (ej: m² o ml). Esto se procesará como valor directo.
             </p>
             <input
               type="number"

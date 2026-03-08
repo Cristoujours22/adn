@@ -131,17 +131,26 @@ const TablaPiezas = ({
                             />
                         </div>
                         <div className={estilos.celdaDespiece} style={{ display: 'flex', flexDirection: 'column', gap: '5px', justifyContent: 'center', alignItems: 'center', padding: '0 5px' }}>
-                            {safeRow.detalle?.toLowerCase().includes('nar') && (
-                                <button
-                                    onClick={() => handleOpenNarizModal && handleOpenNarizModal(index)}
-                                    className={estilos.botonSubmit}
-                                    style={{ margin: 0, padding: '4px', fontSize: safeRow.narizCobro ? '10px' : '11px', background: safeRow.narizCobro ? '#28a745' : '#e6a800', color: safeRow.narizCobro ? '#fff' : '#000', border: 'none', borderRadius: '4px', fontWeight: 'bold', width: '100%', minWidth: '55px', maxWidth: '80px', boxSizing: 'border-box' }}
-                                    type="button"
-                                    title="Cobrar Nariz"
-                                >
-                                    {safeRow.narizCobro ? `Nariz (${safeRow.narizCobro})` : 'Nariz'}
-                                </button>
-                            )}
+                            {(() => {
+                                const detLower = safeRow.detalle?.toLowerCase() || '';
+                                let labelAction = '';
+                                if ((detLower.includes('senchamanual') || detLower.includes('enchape manual')) && !detLower.includes('circulo')) labelAction = 'Enchape';
+                                else if (detLower.includes('nar')) labelAction = 'Nariz';
+
+                                if (!labelAction) return null;
+
+                                return (
+                                    <button
+                                        onClick={() => handleOpenNarizModal && handleOpenNarizModal(index, labelAction)}
+                                        className={estilos.botonSubmit}
+                                        style={{ margin: 0, padding: '4px', fontSize: safeRow.narizCobro ? '10px' : '11px', background: safeRow.narizCobro ? '#28a745' : '#e6a800', color: safeRow.narizCobro ? '#fff' : '#000', border: 'none', borderRadius: '4px', fontWeight: 'bold', width: '100%', minWidth: '55px', maxWidth: '80px', boxSizing: 'border-box' }}
+                                        type="button"
+                                        title={`Cobrar ${labelAction}`}
+                                    >
+                                        {safeRow.narizCobro ? `${labelAction} (${safeRow.narizCobro})` : labelAction}
+                                    </button>
+                                );
+                            })()}
                             {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).length > 1 && (
                                 <button
                                     onClick={() => handleRemoveRow(index)}
