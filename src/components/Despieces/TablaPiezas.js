@@ -6,7 +6,8 @@ const TablaPiezas = ({
     activeDespieceId,
     handleInputChange,
     handleKeyDown,
-    handleRemoveRow
+    handleRemoveRow,
+    handleOpenNarizModal
 }) => {
     return (
         <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }}>
@@ -129,14 +130,26 @@ const TablaPiezas = ({
                                 onKeyDown={(e) => handleKeyDown(e, index, 'a2')}
                             />
                         </div>
-                        <div className={estilos.celdaDespiece}>
+                        <div className={estilos.celdaDespiece} style={{ display: 'flex', flexDirection: 'column', gap: '5px', justifyContent: 'center', alignItems: 'center', padding: '0 5px' }}>
+                            {safeRow.detalle?.toLowerCase().includes('nar') && (
+                                <button
+                                    onClick={() => handleOpenNarizModal && handleOpenNarizModal(index)}
+                                    className={estilos.botonSubmit}
+                                    style={{ margin: 0, padding: '4px', fontSize: safeRow.narizCobro ? '10px' : '11px', background: safeRow.narizCobro ? '#28a745' : '#e6a800', color: safeRow.narizCobro ? '#fff' : '#000', border: 'none', borderRadius: '4px', fontWeight: 'bold', width: '100%', minWidth: '55px', maxWidth: '80px', boxSizing: 'border-box' }}
+                                    type="button"
+                                    title="Cobrar Nariz"
+                                >
+                                    {safeRow.narizCobro ? `Nariz (${safeRow.narizCobro})` : 'Nariz'}
+                                </button>
+                            )}
                             {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).length > 1 && (
                                 <button
                                     onClick={() => handleRemoveRow(index)}
                                     className={estilos.botonEliminar}
+                                    style={{ margin: 0, padding: '4px', width: '100%', minWidth: '55px', maxWidth: '80px', borderRadius: '4px', boxSizing: 'border-box' }}
                                     type="button"
                                 >
-                                    Eliminar
+                                    ✖
                                 </button>
                             )}
                         </div>

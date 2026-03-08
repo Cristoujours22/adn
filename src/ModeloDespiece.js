@@ -15,7 +15,7 @@ import { calcularTotalesDespiece } from './utils/despieceCalculations';
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
 const createNewRow = () => ({
   id: `row_${rowIdCounter++}`,
-  cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: ''
+  cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: '', narizCobro: ''
 });
 
 // Generador de ID para despieces (pestañas)
@@ -98,6 +98,7 @@ const ModeloDespiece = () => {
   const [serviceCounts, setServiceCounts] = useState({});
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [narizModal, setNarizModal] = useState({ isOpen: false, rowIndex: null, value: '' });
   const { darkMode } = useTheme();
 
   useEffect(() => {
@@ -458,6 +459,36 @@ const ModeloDespiece = () => {
     }
   }, [despieces, activeDespieceId, handleArrowNavigation]);
 
+  const handleOpenNarizModal = useCallback((index) => {
+    const activeRows = despieces.find(d => d.id === activeDespieceId)?.filas || [];
+    const row = activeRows[index];
+    if (!row) return;
+
+    let prefill = row.narizCobro !== undefined ? String(row.narizCobro) : '';
+    setNarizModal({ isOpen: true, rowIndex: index, value: prefill });
+  }, [despieces, activeDespieceId]);
+
+  const handleCloseNarizModal = () => {
+    setNarizModal({ isOpen: false, rowIndex: null, value: '' });
+  };
+
+  const handleSaveNarizModal = () => {
+    if (narizModal.rowIndex === null) return;
+    const value = narizModal.value.trim();
+    
+    setDespieces(prevDespieces => prevDespieces.map(desp => {
+        if (desp.id !== activeDespieceId) return desp;
+        const newFilas = [...desp.filas];
+        const row = { ...newFilas[narizModal.rowIndex] };
+
+        row.narizCobro = value; // Guardar en campo interno
+        
+        newFilas[narizModal.rowIndex] = row;
+        return { ...desp, filas: newFilas };
+    }));
+    handleCloseNarizModal();
+  };
+
   const handleCopyDespiece = () => {
     const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
     const rowsForExcel = activeRows.map(row => [
@@ -684,6 +715,7 @@ const ModeloDespiece = () => {
               handleInputChange={handleInputChange}
               handleKeyDown={handleKeyDown}
               handleRemoveRow={handleRemoveRow}
+              handleOpenNarizModal={handleOpenNarizModal}
             />
 
           </form>
@@ -705,6 +737,63 @@ const ModeloDespiece = () => {
           serviceCounts={serviceCounts}
         />
       </div>
+
+      {/* MODAL PARA COBRO DE NARIZ */}
+      {narizModal.isOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div style={{
+            background: darkMode ? '#2c303a' : '#fff',
+            padding: '20px', borderRadius: '8px', minWidth: '300px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333' }}>Medida de Nariz</h3>
+            <p style={{ fontSize: '13px', color: darkMode ? '#aaa' : '#666', marginBottom: '15px' }}>
+              Ingresa el total a cobrar (ej: m² o ml). Esto se añadirá como 'Nar:X' en el detalle.
+            </p>
+            <input
+              type="number"
+              step="any"
+              autoFocus
+              className={estilos.controls}
+              value={narizModal.value}
+              onChange={(e) => setNarizModal({ ...narizModal, value: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveNarizModal();
+                } else if (e.key === 'Escape') {
+                  handleCloseNarizModal();
+                }
+              }}
+              placeholder="Ej: 10.5"
+              style={{ width: '100%', marginBottom: '15px', padding: '10px' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                type="button" 
+                onClick={handleCloseNarizModal} 
+                className={estilos.botonEliminar}
+                style={{ padding: '8px 15px', margin: 0 }}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSaveNarizModal} 
+                className={estilos.botonGuardar}
+                style={{ background: '#28a745', border: 'none', color: '#fff', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                Guardar Valor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

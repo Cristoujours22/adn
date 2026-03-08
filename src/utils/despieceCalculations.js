@@ -65,6 +65,8 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         }
                     } else {
                         // Lógica estándar para el resto de los servicios
+                        const isNariz = service.nomenclatura.toLowerCase() === 'nar' || service.nombreOriginal.toLowerCase().includes('nariz') || service.nombreOriginal.toLowerCase().includes('narices') || service.nombreOriginal.toLowerCase().includes('nar');
+
                         const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
                         const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
 
@@ -72,28 +74,67 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         const matchesNom = detalle.match(regexNom);
                         
                         let count = 0;
-                        if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
+                        // Flexibilizamos la búsqueda para que baste con "nar" o "nariz"
+                        // ya que la nomenclatura "NARIZ, ENGRUESE" casi nunca se escribe textualmente.
+                        if (isNariz) {
+                            const basicNarRegex = /\bnar(?:iz(?:es)?)?\b/gi;
+                            count = (detalle.match(basicNarRegex) || []).length;
+                        } else if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
                             count = matchesNombre ? matchesNombre.length : 0;
                         } else {
                             count = (matchesNombre ? matchesNombre.length : 0) + (matchesNom ? matchesNom.length : 0);
                         }
 
-                        if (count > 0) {
+                        if (count > 0 || (isNariz && row.narizCobro !== undefined && row.narizCobro !== '')) {
+                            // Reajustamos count a 1 mínimo si detectamos sintaxis de cobro oculto.
+                            if (isNariz && count === 0 && row.narizCobro !== undefined && row.narizCobro !== '') count = 1;
                             const l = parseFloat(row.largo) || 0;
                             const a = parseFloat(row.ancho) || 0;
                             let m = 1;
 
-                            switch (service.tipoCobro) {
-                                case 'ml_largo': m = l / 1000; break;
-                                case 'ml_ancho': m = a / 1000; break;
-                                case 'ml_largo_ancho': m = (l + a) / 1000; break;
-                                case 'ml_perimetro': m = ((l * 2) + (a * 2)) / 1000; break;
-                                case 'm2': m = (l / 1000) * (a / 1000); break;
-                                case 'escala_60': m = Math.ceil(Math.max(l, a) / 600) || 1; break;
-                                case 'unidad':
-                                default: m = 1; break;
+                            if (isNariz) {
+                                // Regex estandarizada para Narices (independiente de nomenclatura de Admin)
+                                const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
+                                const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
+                                const baseRegexStr = baseName === baseNom ? `\\b${baseName}\\b` : `\\b${baseName}\\b|\\b${baseNom}\\b`;
+                                const regexNarizOld = new RegExp(`(${baseRegexStr})(?:\\s*(\\d+)(?:L)?)?`, 'gi');
+                                
+                                let totalNarizUnits = 0;
+                                let foundExplicitAmount = false;
+                                
+                                // Prioridad 1: Sintaxis explícita inyectada por el Modal internamente
+                                if (row.narizCobro !== undefined && row.narizCobro !== '') {
+                                    totalNarizUnits += parseFloat(row.narizCobro) || 0;
+                                    foundExplicitAmount = true;
+                                }
+
+                                // Prioridad 2: Si no hay monto explícito en la celda oculta, sumar lo que digan las literales (Ej: nariz 3L)
+                                if (!foundExplicitAmount) {
+                                    let matchOld;
+                                    while ((matchOld = regexNarizOld.exec(detalle)) !== null) {
+                                        let localUnits = 1; // 1 unidad por defecto al mencionar "nariz"
+                                        if (matchOld[2]) {
+                                            localUnits = parseInt(matchOld[2], 10);
+                                        }
+                                        totalNarizUnits += localUnits;
+                                    }
+                                }
+                                
+                                serviceTotalInRow += (totalNarizUnits * 1); // 1 = tipo unidad
+
+                            } else {
+                                switch (service.tipoCobro) {
+                                    case 'ml_largo': m = l / 1000; break;
+                                    case 'ml_ancho': m = a / 1000; break;
+                                    case 'ml_largo_ancho': m = (l + a) / 1000; break;
+                                    case 'ml_perimetro': m = ((l * 2) + (a * 2)) / 1000; break;
+                                    case 'm2': m = (l / 1000) * (a / 1000); break;
+                                    case 'escala_60': m = Math.ceil(Math.max(l, a) / 600) || 1; break;
+                                    case 'unidad':
+                                    default: m = 1; break;
+                                }
+                                serviceTotalInRow += (count * m);
                             }
-                            serviceTotalInRow += (count * m);
                         }
                     }
 
