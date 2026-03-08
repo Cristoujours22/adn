@@ -25,55 +25,80 @@ export const calcularTotalesDespiece = (despieces, services) => {
                 // Contar servicios en el detalle usando nombre original o nomenclatura
                 const detalle = row?.detalle ? row.detalle.toLowerCase() : '';
                 services.forEach(service => {
-                    // Escapar caracteres especiales y asegurar límite de palabra (\b)
                     const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
-                    const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
-
-                    const matchesNombre = detalle.match(regexNombre);
-                    const matchesNom = detalle.match(regexNom);
+                    const isCalado = service.nomenclatura.toLowerCase() === 'calado' || service.nombreOriginal.toLowerCase().includes('calado');
                     
-                    // Combine matches correctly.
-                    let count = 0;
-                    if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
-                        count = matchesNombre ? matchesNombre.length : 0;
+                    let serviceTotalInRow = 0;
+
+                    if (isCalado) {
+                        const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
+                        const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
+                        const baseRegexStr = baseName === baseNom ? `\\b${baseName}\\b` : `\\b${baseName}\\b|\\b${baseNom}\\b`;
+                        
+                        // Captura la palabra base, seguida opcionalmente por " 1L...4L", seguido opcionalmente por "/medida*medida"
+                        const regex = new RegExp(`(${baseRegexStr})(?:\\s*([1-4])L)?(?:\\/(\\d+(?:\\.\\d+)?)\\*(\\d+(?:\\.\\d+)?))?`, 'gi');
+                        
+                        let match;
+                        while ((match = regex.exec(detalle)) !== null) {
+                            let localMultiplier = 1;
+                            if (match[2]) {
+                                localMultiplier = parseInt(match[2], 10);
+                            }
+                            
+                            let customL = null;
+                            let customA = null;
+                            if (match[3] && match[4]) {
+                                customL = parseFloat(match[3]);
+                                customA = parseFloat(match[4]);
+                            }
+                            
+                            let m = 1;
+                            if (customL !== null && customA !== null) {
+                                // Regla especial exclusiva para calado sobreescrito: se suman las dimensiones
+                                // y se aplica la regla de 1 unidad cada 600mm.
+                                m = Math.ceil((customL + customA) / 600) || 1;
+                            }
+                            // Si el operario solo escribió "calado", customL/A son nulos y m se mantiene en 1.
+                            // Si el operario escribió "calado 2L", localMultiplier es 2 y m es 1.
+                            
+                            serviceTotalInRow += (localMultiplier * m);
+                        }
                     } else {
-                        count = (matchesNombre ? matchesNombre.length : 0) + (matchesNom ? matchesNom.length : 0);
-                    }
+                        // Lógica estándar para el resto de los servicios
+                        const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
+                        const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
 
-                    if (count > 0) {
-                        // Aplicar regla de cobro
-                        const l = parseFloat(row.largo) || 0;
-                        const a = parseFloat(row.ancho) || 0;
-                        let multiplier = 1;
-
-                        switch (service.tipoCobro) {
-                            case 'ml_largo':
-                                multiplier = l / 1000;
-                                break;
-                            case 'ml_ancho':
-                                multiplier = a / 1000;
-                                break;
-                            case 'ml_largo_ancho':
-                                multiplier = (l + a) / 1000;
-                                break;
-                            case 'ml_perimetro':
-                                multiplier = ((l * 2) + (a * 2)) / 1000;
-                                break;
-                            case 'm2':
-                                multiplier = (l / 1000) * (a / 1000);
-                                break;
-                            case 'escala_60':
-                                // Escala: 0-600mm = 1, 601-1200mm = 2, etc. (Usando el lado más largo)
-                                multiplier = Math.ceil(Math.max(l, a) / 600) || 1;
-                                break;
-                            case 'unidad':
-                            default:
-                                multiplier = 1;
-                                break;
+                        const matchesNombre = detalle.match(regexNombre);
+                        const matchesNom = detalle.match(regexNom);
+                        
+                        let count = 0;
+                        if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
+                            count = matchesNombre ? matchesNombre.length : 0;
+                        } else {
+                            count = (matchesNombre ? matchesNombre.length : 0) + (matchesNom ? matchesNom.length : 0);
                         }
 
-                        sCounts[service.nomenclatura] += (count * cant * multiplier);
+                        if (count > 0) {
+                            const l = parseFloat(row.largo) || 0;
+                            const a = parseFloat(row.ancho) || 0;
+                            let m = 1;
+
+                            switch (service.tipoCobro) {
+                                case 'ml_largo': m = l / 1000; break;
+                                case 'ml_ancho': m = a / 1000; break;
+                                case 'ml_largo_ancho': m = (l + a) / 1000; break;
+                                case 'ml_perimetro': m = ((l * 2) + (a * 2)) / 1000; break;
+                                case 'm2': m = (l / 1000) * (a / 1000); break;
+                                case 'escala_60': m = Math.ceil(Math.max(l, a) / 600) || 1; break;
+                                case 'unidad':
+                                default: m = 1; break;
+                            }
+                            serviceTotalInRow += (count * m);
+                        }
+                    }
+
+                    if (serviceTotalInRow > 0) {
+                        sCounts[service.nomenclatura] += (serviceTotalInRow * cant);
                     }
                 });
             }
