@@ -8,8 +8,8 @@ const PanelResumen = ({
 }) => {
     return (
         <div style={{ 
-            flex: '1 1 30%', 
-            minWidth: '250px',
+            flex: '1 1 20%', 
+            minWidth: '200px',
             background: darkMode ? '#1c1f26' : '#f8f9fa',
             borderRadius: '8px',
             border: `1px solid ${darkMode ? '#444' : '#ddd'}`,

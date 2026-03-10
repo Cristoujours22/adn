@@ -648,9 +648,16 @@ const ModeloDespiece = () => {
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* PARTE IZQUIERDA: FORMULARIO Y TABLA */}
-        <div style={{ flex: '1 1 65%', minWidth: '300px' }}>
+        <div style={{ flex: '1 1 75%', minWidth: '300px' }}>
           <form onSubmit={handleSubmit} className={estilos.formularioDespiece} onPaste={handlePaste}>
-            <div className={estilos.projectInfo} style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className={estilos.projectInfo} style={{ 
+              display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap',
+              background: darkMode ? '#1c1f26' : '#f8f9fa',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
+              padding: '20px',
+              marginBottom: '20px'
+            }}>
               <label style={{ flex: '1 1 300px', color: darkMode ? '#f1f1f1' : '#333' }}>
                 Nombre del Cliente:
                 <input
@@ -658,6 +665,7 @@ const ModeloDespiece = () => {
                   value={clientName}
                   onChange={handleClientNameChange}
                   className={estilos.inputLargo}
+                  style={{ marginTop: '8px' }}
                 />
               </label>
               <label style={{ flex: '1 1 300px', color: darkMode ? '#f1f1f1' : '#333' }}>
@@ -667,6 +675,7 @@ const ModeloDespiece = () => {
                   value={projectName}
                   onChange={handleProjectNameChange}
                   className={estilos.inputLargo}
+                  style={{ marginTop: '8px' }}
                 />
               </label>
               <div style={{ flex: '1 1 100%' }}>
