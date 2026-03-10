@@ -8,10 +8,27 @@ const TablaPiezas = ({
     handleKeyDown,
     handleRemoveRow,
     handleOpenNarizModal,
-    darkMode
+    darkMode,
+    activeCell,
+    setActiveCell,
+    isEditing,
+    setIsEditing,
+    dragSelection,
+    setDragSelection,
+    handleCellClick,
+    handleCellDoubleClick,
+    handleDragFill
 }) => {
+    // End dragging when mouse is released anywhere on the table
+    const handleMouseUp = () => {
+        if (dragSelection && dragSelection.startIndex !== null) {
+            handleDragFill(dragSelection.startIndex, dragSelection.endIndex, dragSelection.startField, dragSelection.endField, dragSelection.value);
+            setDragSelection(null);
+        }
+    };
+
     return (
-        <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }}>
+        <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
             <div className={estilos.filaDespiece} style={{
                 position: 'sticky',
                 top: '49px', // Ajustado a la altura de la topBar
@@ -33,111 +50,115 @@ const TablaPiezas = ({
             </div>
             {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).map((row, index) => {
                 const safeRow = row || {};
+
+                // Helper to render individual cells with Excel-like behavior
+                const renderCell = (field, classNameExtras = '') => {
+                    const isActive = activeCell?.index === index && activeCell?.field === field;
+                    
+                    const columnGroups = {
+                        l1: 'edges', l2: 'edges', a1: 'edges', a2: 'edges',
+                        largo: 'dim', ancho: 'dim',
+                        cant: 'cant', detalle: 'detalle', rotar: 'rotar'
+                    };
+                    
+                    let isDragTarget = false;
+                    if (dragSelection && dragSelection.startIndex !== null) {
+                        const startGrp = columnGroups[dragSelection.startField];
+                        if (startGrp === 'cant' || startGrp === 'detalle' || startGrp === 'rotar') {
+                            isDragTarget = field === dragSelection.startField && 
+                                           index >= Math.min(dragSelection.startIndex, dragSelection.endIndex) && 
+                                           index <= Math.max(dragSelection.startIndex, dragSelection.endIndex);
+                        } else {
+                            const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+                            const i1 = fields.indexOf(dragSelection.startField);
+                            const i2 = fields.indexOf(dragSelection.endField);
+                            if (i1 !== -1 && i2 !== -1) {
+                                const startF = Math.min(i1, i2);
+                                const endF = Math.max(i1, i2);
+                                const currF = fields.indexOf(field);
+                                
+                                isDragTarget = columnGroups[field] === startGrp && 
+                                            currF >= startF && currF <= endF &&
+                                            index >= Math.min(dragSelection.startIndex, dragSelection.endIndex) && 
+                                            index <= Math.max(dragSelection.startIndex, dragSelection.endIndex);
+                            }
+                        }
+                    }
+                    
+                    const cellStyle = {
+                        width: '100%',
+                        height: '100%',
+                        position: 'relative',
+                        boxSizing: 'border-box',
+                    };
+
+                    const inputStyle = {
+                        width: '100%',
+                        height: '100%',
+                        outline: isActive ? `2px solid #1a73e8` : 'none',
+                        outlineOffset: '-2px',
+                        cursor: isEditing && isActive ? 'text' : 'cell',
+                        backgroundColor: isDragTarget ? (darkMode ? '#2c3e50' : '#d2e3fc') : 
+                                         (isActive && !isEditing ? (darkMode ? '#3a404d' : '#e8f0fe') : undefined),
+                        color: (isActive && !isEditing && darkMode) || isDragTarget ? '#fff' : undefined
+                    };
+
+                    return (
+                        <div className={estilos.celdaDespiece} key={field}>
+                             <div style={cellStyle}
+                                 onMouseEnter={() => {
+                                     if (dragSelection) setDragSelection(prev => ({ ...prev, endIndex: index, endField: field }));
+                                 }}
+                            >
+                                <input
+                                    type={field === 'cant' ? 'number' : 'text'}
+                                    className={`${classNameExtras}`}
+                                    name={`${field}-${index}`}
+                                    id={`${field}-${index}`}
+                                    value={safeRow[field] || ''}
+                                    onChange={(e) => handleInputChange(index, field, e.target.value)}
+                                    onClick={() => handleCellClick(index, field)}
+                                    onDoubleClick={() => handleCellDoubleClick(index, field)}
+                                    onKeyDown={(e) => handleKeyDown(e, index, field)}
+                                    readOnly={isActive && !isEditing && document.activeElement !== document.getElementById(`${field}-${index}`)} // Prevent standard text selection when not editing, but keep focusability
+                                    style={inputStyle}
+                                    required={['cant', 'largo', 'ancho', 'detalle'].includes(field)}
+                                />
+                                {isActive && !isEditing && (
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            right: '-4px',
+                                            bottom: '-4px',
+                                            width: '8px',
+                                            height: '8px',
+                                            backgroundColor: '#1a73e8',
+                                            cursor: 'crosshair',
+                                            zIndex: 2,
+                                        }}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setDragSelection({ startIndex: index, endIndex: index, startField: field, endField: field, value: safeRow[field] });
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    );
+                };
+
                 return (
                     <div key={safeRow.id || `row_${index}`} className={estilos.filaDespiece}>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="number"
-                                className={`${estilos.inputCorto} ${estilos.flexibleWidth}`}
-                                name={`cant-${index}`}
-                                id={`cant-${index}`}
-                                value={safeRow.cant || ''}
-                                onChange={(e) => handleInputChange(index, 'cant', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'cant')}
-                                required
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputCorto}
-                                name={`largo-${index}`}
-                                id={`largo-${index}`}
-                                value={safeRow.largo || ''}
-                                onChange={(e) => handleInputChange(index, 'largo', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'largo')}
-                                required
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputCorto}
-                                name={`ancho-${index}`}
-                                id={`ancho-${index}`}
-                                value={safeRow.ancho || ''}
-                                onChange={(e) => handleInputChange(index, 'ancho', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'ancho')}
-                                required
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputLargo}
-                                name={`detalle-${index}`}
-                                id={`detalle-${index}`}
-                                value={safeRow.detalle || ''}
-                                onChange={(e) => handleInputChange(index, 'detalle', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'detalle')}
-                                required
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputCorto}
-                                name={`rotar-${index}`}
-                                id={`rotar-${index}`}
-                                value={safeRow.rotar || ''}
-                                onChange={(e) => handleInputChange(index, 'rotar', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'rotar')}
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputCorto}
-                                name={`l1-${index}`}
-                                id={`l1-${index}`}
-                                value={safeRow.l1 || ''}
-                                onChange={(e) => handleInputChange(index, 'l1', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'l1')}
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputCorto}
-                                name={`l2-${index}`}
-                                id={`l2-${index}`}
-                                value={safeRow.l2 || ''}
-                                onChange={(e) => handleInputChange(index, 'l2', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'l2')}
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputCorto}
-                                name={`a1-${index}`}
-                                id={`a1-${index}`}
-                                value={safeRow.a1 || ''}
-                                onChange={(e) => handleInputChange(index, 'a1', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'a1')}
-                            />
-                        </div>
-                        <div className={estilos.celdaDespiece}>
-                            <input
-                                type="text"
-                                className={estilos.inputCorto}
-                                name={`a2-${index}`}
-                                id={`a2-${index}`}
-                                value={safeRow.a2 || ''}
-                                onChange={(e) => handleInputChange(index, 'a2', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index, 'a2')}
-                            />
-                        </div>
+                        {renderCell('cant', `${estilos.inputCorto} ${estilos.flexibleWidth}`)}
+                        {renderCell('largo', estilos.inputCorto)}
+                        {renderCell('ancho', estilos.inputCorto)}
+                        {renderCell('detalle', estilos.inputLargo)}
+                        {renderCell('rotar', estilos.inputCorto)}
+                        {renderCell('l1', estilos.inputCorto)}
+                        {renderCell('l2', estilos.inputCorto)}
+                        {renderCell('a1', estilos.inputCorto)}
+                        {renderCell('a2', estilos.inputCorto)}
                         <div className={estilos.celdaDespiece} style={{ display: 'flex', flexDirection: 'column', gap: '5px', justifyContent: 'center', alignItems: 'center', padding: '0 5px' }}>
                             {(() => {
                                 const detLower = safeRow.detalle?.toLowerCase() || '';

@@ -455,6 +455,7 @@ const Menu = () => {
                     <p>Creado por: {users.find(u => u.id === despiece.userId)?.nombre || 'Desconocido'}</p>
                   )}
                   <p>Fecha de Creación: {despiece.fechaCreacion || despiece.fecha || '-'}</p>
+                  <p>Última Modificación: {despiece.ultimaModificacion || '-'}</p>
                 </li>
               ))}
             </ul>

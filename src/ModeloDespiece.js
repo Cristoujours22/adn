@@ -78,6 +78,41 @@ const ModeloDespiece = () => {
   const [narizModal, setNarizModal] = useState({ isOpen: false, rowIndex: null, value: '' });
   const { darkMode } = useTheme();
 
+  // Excel-like table state
+  const [activeCell, setActiveCell] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [dragSelection, setDragSelection] = useState(null); // { startIndex, endIndex, startField, endField, value }
+  const [, setHistory] = useState([]);
+
+  const saveToHistory = useCallback(() => {
+    setHistory(prev => {
+        const newHistory = [...prev, JSON.stringify(despieces)];
+        if (newHistory.length > 50) newHistory.shift();
+        return newHistory;
+    });
+  }, [despieces]);
+
+  const undo = useCallback(() => {
+    setHistory(prev => {
+        if (prev.length === 0) return prev;
+        const newHistory = [...prev];
+        const lastState = newHistory.pop();
+        setDespieces(JSON.parse(lastState));
+        return newHistory;
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            undo();
+        }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [undo]);
+
   useEffect(() => {
     const handleOpenModal = () => setShowNomenclaturesModal(true);
     
@@ -241,11 +276,12 @@ const ModeloDespiece = () => {
   }, [activeDespieceId]);
 
   const handleRemoveRow = useCallback((indexToRemove) => {
+    saveToHistory();
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       return { ...despiece, filas: (despiece.filas || []).filter((_, index) => index !== indexToRemove) };
     }));
-  }, [activeDespieceId]);
+  }, [activeDespieceId, saveToHistory]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -255,6 +291,7 @@ const ModeloDespiece = () => {
   // Al pegar filas, asegurar IDs únicos y evitar fila vacía inicial
   const handlePaste = useCallback((e) => {
     e.preventDefault();
+    saveToHistory();
     const clipboardData = e.clipboardData.getData('text');
     const rowsFromClipboard = clipboardData.split('\n').filter(row => row.trim() !== '');
     const newRows = rowsFromClipboard.map((row) => {
@@ -282,7 +319,7 @@ const ModeloDespiece = () => {
       // Si no, agregar normalmente
       return { ...despiece, filas: [...prevRows, ...newRows] };
     }));
-  }, [activeDespieceId]);
+  }, [activeDespieceId, saveToHistory]);
 
   // Guardar: si es edición, actualizar, si no, crear
   const handleSaveToFirestore = useCallback(async (isAutoSave = false) => {
@@ -292,8 +329,10 @@ const ModeloDespiece = () => {
         return;
     }
     if (!projectName || !clientName) {
-        if (!isAutoSave) alert('Falta el nombre de proyecto o la identificación del cliente');
-        return;
+        if (!isAutoSave) {
+            alert('No hay nombre de cliente y proyecto para guardar. Por favor, llena esos campos.');
+        } 
+        return; // No permitimos guardar si faltan estos datos
     }
     try {
         if (id) {
@@ -354,87 +393,132 @@ const ModeloDespiece = () => {
     setLastModifiedDate(new Date().toLocaleDateString());
   };
 
-  const handleArrowNavigation = useCallback((e, index, field) => {
-    const focusField = (rowIndex, fieldName) => {
-      const nextInput = document.getElementById(`${fieldName}-${rowIndex}`);
-      if (nextInput) nextInput.focus();
-    };
-
-    const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
-    switch (e.key) {
-      case 'ArrowUp':
-        if (index > 0) focusField(index - 1, field);
-        break;
-      case 'ArrowDown':
-        if (index < activeRows.length - 1) focusField(index + 1, field);
-        break;
-      case 'ArrowLeft':
-        if (field !== 'cant') {
-          const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
-          const currentIndex = fields.indexOf(field);
-          focusField(index, fields[currentIndex - 1]);
-        }
-        break;
-      case 'ArrowRight':
-        if (field !== 'a2') {
-          const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
-          const currentIndex = fields.indexOf(field);
-          focusField(index, fields[currentIndex + 1]);
-        }
-        break;
-      default:
-        break;
-    }
-  }, [despieces, activeDespieceId]);
-
-  // Mejorar navegación tipo Google Sheets
+  // --- EXCEL-LIKE NAVIGATION & EVENT HANDLERS ---
   const handleKeyDown = useCallback((e, index, field) => {
     const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-    }
     const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
     const currentIndex = fields.indexOf(field);
-    if (e.key === 'Enter') {
+
+    if (e.key === 'Tab') {
       e.preventDefault();
-      if (currentIndex < fields.length - 1) {
-        // Mover al siguiente campo en la misma fila
-        const nextField = fields[currentIndex + 1];
-        const nextInput = document.getElementById(`${nextField}-${index}`);
-        if (nextInput) nextInput.focus();
-      } else if (index < activeRows.length - 1) {
-        // Mover al primer campo de la siguiente fila
-        const nextInput = document.getElementById(`cant-${index + 1}`);
-        if (nextInput) nextInput.focus();
-      } else {
-        // Agregar una nueva fila y mover al primer campo de esa fila
-        setDespieces((prevDespieces) => prevDespieces.map(despiece => {
-          if (despiece.id !== activeDespieceId) return despiece;
-          return { ...despiece, filas: [...(despiece.filas || []), createNewRow()] };
-        }));
-        setTimeout(() => {
-          const nextInput = document.getElementById(`cant-${activeRows.length}`);
-          if (nextInput) nextInput.focus();
-        }, 0);
+      setIsEditing(false); // Cancel edit on tab
+      if (e.shiftKey) { // Shift+Tab
+          if (currentIndex > 0) setActiveCell({ index, field: fields[currentIndex - 1] });
+          else if (index > 0) setActiveCell({ index: index - 1, field: fields[fields.length - 1] });
+      } else { // Tab
+          if (currentIndex < fields.length - 1) setActiveCell({ index, field: fields[currentIndex + 1] });
+          else if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field: fields[0] });
       }
-    } else if (e.key === 'Tab') {
-      // Permitir tabulación normal
-    } else if (e.key === 'ArrowLeft') {
-      if (currentIndex > 0) {
-        const prevField = fields[currentIndex - 1];
-        const prevInput = document.getElementById(`${prevField}-${index}`);
-        if (prevInput) prevInput.focus();
-      }
-    } else if (e.key === 'ArrowRight') {
-      if (currentIndex < fields.length - 1) {
-        const nextField = fields[currentIndex + 1];
-        const nextInput = document.getElementById(`${nextField}-${index}`);
-        if (nextInput) nextInput.focus();
+      return;
+    }
+
+    if (!isEditing) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (index > 0) setActiveCell({ index: index - 1, field });
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
+        else {
+          setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+          setTimeout(() => setActiveCell({ index: activeRows.length, field }), 0);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentIndex > 0) setActiveCell({ index, field: fields[currentIndex - 1] });
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentIndex < fields.length - 1) setActiveCell({ index, field: fields[currentIndex + 1] });
+      } else if (e.key === 'Enter' || e.key === 'F2') {
+        e.preventDefault();
+        saveToHistory();
+        setIsEditing(true);
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        saveToHistory();
+        handleInputChange(index, field, '');
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Start editing implicitly on typing
+        saveToHistory();
+        setIsEditing(true);
       }
     } else {
-      handleArrowNavigation(e, index, field);
+      // Edit Mode
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        setIsEditing(false);
+        if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
+        else {
+          setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+          setTimeout(() => setActiveCell({ index: activeRows.length, field }), 0);
+        }
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setIsEditing(false);
+        if (e.key === 'ArrowUp' && index > 0) setActiveCell({ index: index - 1, field });
+        else if (e.key === 'ArrowDown' && index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
+      }
     }
-  }, [despieces, activeDespieceId, handleArrowNavigation]);
+  }, [despieces, activeDespieceId, isEditing, handleInputChange, saveToHistory]);
+
+  const handleCellClick = useCallback((index, field) => {
+     setActiveCell({ index, field });
+     setIsEditing(false);
+  }, []);
+
+  const handleCellDoubleClick = useCallback((index, field) => {
+     setActiveCell({ index, field });
+     saveToHistory();
+     setIsEditing(true);
+  }, [saveToHistory]);
+
+  const handleDragFill = useCallback((startIndex, endIndex, startField, endField, sourceValue) => {
+    saveToHistory();
+    
+    // Determine valid columns to fill horizontally based on rules
+    const columnGroups = {
+        l1: 'edges', l2: 'edges', a1: 'edges', a2: 'edges',
+        largo: 'dim', ancho: 'dim',
+        cant: 'cant', detalle: 'detalle', rotar: 'rotar'
+    };
+    const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+    
+    let validFields = [startField];
+    const group = columnGroups[startField];
+    
+    if (group !== 'cant' && group !== 'detalle' && group !== 'rotar') {
+        const i1 = fields.indexOf(startField);
+        const i2 = fields.indexOf(endField);
+        if (i1 !== -1 && i2 !== -1) {
+            const start = Math.min(i1, i2);
+            const end = Math.max(i1, i2);
+            validFields = [];
+            for (let i = start; i <= end; i++) {
+                if (columnGroups[fields[i]] === group) validFields.push(fields[i]);
+            }
+            if (validFields.length === 0) validFields = [startField];
+        }
+    }
+
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const newRows = [...(despiece.filas || [])];
+      const startIdx = Math.min(startIndex, endIndex);
+      const endIdx = Math.max(startIndex, endIndex);
+      
+      for (let i = startIdx; i <= endIdx; i++) {
+        if (newRows[i]) {
+            const updatedRow = { ...newRows[i] };
+            validFields.forEach(f => {
+                updatedRow[f] = sourceValue;
+            });
+            newRows[i] = updatedRow;
+        }
+      }
+      return { ...despiece, filas: newRows };
+    }));
+  }, [activeDespieceId, saveToHistory]);
+  // ----------------------------------------------
 
   const handleOpenNarizModal = useCallback((index, label = 'Nariz') => {
     const activeRows = despieces.find(d => d.id === activeDespieceId)?.filas || [];
@@ -451,6 +535,7 @@ const ModeloDespiece = () => {
 
   const handleSaveNarizModal = () => {
     if (narizModal.rowIndex === null) return;
+    saveToHistory();
     const value = narizModal.value.trim();
     
     setDespieces(prevDespieces => prevDespieces.map(desp => {
@@ -702,6 +787,15 @@ const ModeloDespiece = () => {
               handleRemoveRow={handleRemoveRow}
               handleOpenNarizModal={handleOpenNarizModal}
               darkMode={darkMode}
+              activeCell={activeCell}
+              setActiveCell={setActiveCell}
+              isEditing={isEditing}
+              setIsEditing={setIsEditing}
+              dragSelection={dragSelection}
+              setDragSelection={setDragSelection}
+              handleCellClick={handleCellClick}
+              handleCellDoubleClick={handleCellDoubleClick}
+              handleDragFill={handleDragFill}
             />
 
           </form>
