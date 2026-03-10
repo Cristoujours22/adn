@@ -67,6 +67,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         // Lógica estándar para el resto de los servicios
                         const isNariz = service.nomenclatura.toLowerCase() === 'nar' || service.nombreOriginal.toLowerCase().includes('nariz') || service.nombreOriginal.toLowerCase().includes('narices') || service.nombreOriginal.toLowerCase().includes('nar');
                         const isSenchaManual = service.nomenclatura.toUpperCase() === 'SENCHAMANUAL' || service.nombreOriginal.toLowerCase().includes('enchape a pieza especial');
+                        const isPerbis = service.nomenclatura.toUpperCase() === 'PERBIS' || service.nombreOriginal.toLowerCase().includes('perbis');
 
                         const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
                         const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
@@ -94,6 +95,19 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                         count = 1;
                                     }
                                 }
+                            }
+                        } else if (isPerbis) {
+                            const perbisRegex = /(\d+)\s*perbis/gi;
+                            let matchResult;
+                            let foundAny = false;
+                            while ((matchResult = perbisRegex.exec(detalle)) !== null) {
+                                count += parseInt(matchResult[1], 10);
+                                foundAny = true;
+                            }
+                            if (!foundAny) {
+                                // Fallback a búsqueda normal de palabra
+                                const basicPerbisRegex = /\bperbis\b/gi;
+                                count = (detalle.match(basicPerbisRegex) || []).length;
                             }
                         } else if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
                             count = matchesNombre ? matchesNombre.length : 0;
