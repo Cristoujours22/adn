@@ -27,6 +27,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                 services.forEach(service => {
                     const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const isCalado = service.nomenclatura.toLowerCase() === 'calado' || service.nombreOriginal.toLowerCase().includes('calado');
+                    const isCurva = service.nomenclatura.toLowerCase() === 'cscurva1' || service.nombreOriginal.toLowerCase() === 'curva';
                     
                     let serviceTotalInRow = 0;
 
@@ -62,6 +63,21 @@ export const calcularTotalesDespiece = (despieces, services) => {
                             // Si el operario escribió "calado 2L", localMultiplier es 2 y m es 1.
                             
                             serviceTotalInRow += (localMultiplier * m);
+                        }
+                    } else if (isCurva) {
+                        const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
+                        const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
+                        const baseRegexStr = baseName === baseNom ? `\\b${baseName}\\b` : `\\b${baseName}\\b|\\b${baseNom}\\b`;
+                        
+                        const regex = new RegExp(`(${baseRegexStr})(?:\\s*([1-4])(?:L|l)?)?`, 'gi');
+                        
+                        let match;
+                        while ((match = regex.exec(detalle)) !== null) {
+                            let localMultiplier = 1;
+                            if (match[2]) {
+                                localMultiplier = parseInt(match[2], 10);
+                            }
+                            serviceTotalInRow += localMultiplier;
                         }
                     } else {
                         // Lógica estándar para el resto de los servicios

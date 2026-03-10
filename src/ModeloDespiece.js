@@ -82,11 +82,16 @@ const ModeloDespiece = () => {
   const [activeCell, setActiveCell] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [dragSelection, setDragSelection] = useState(null); // { startIndex, endIndex, startField, endField, value }
-  const [, setHistory] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [history, setHistory] = useState([]);
 
   const saveToHistory = useCallback(() => {
     setHistory(prev => {
-        const newHistory = [...prev, JSON.stringify(despieces)];
+        const currentStateStr = JSON.stringify(despieces);
+        if (prev.length > 0 && prev[prev.length - 1] === currentStateStr) {
+            return prev;
+        }
+        const newHistory = [...prev, currentStateStr];
         if (newHistory.length > 50) newHistory.shift();
         return newHistory;
     });
@@ -429,18 +434,27 @@ const ModeloDespiece = () => {
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         if (currentIndex < fields.length - 1) setActiveCell({ index, field: fields[currentIndex + 1] });
-      } else if (e.key === 'Enter' || e.key === 'F2') {
+      } else if (e.key === 'F2') {
         e.preventDefault();
         saveToHistory();
         setIsEditing(true);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
+        else {
+          setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+          setTimeout(() => setActiveCell({ index: activeRows.length, field }), 0);
+        }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         saveToHistory();
         handleInputChange(index, field, '');
       } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        // Start editing implicitly on typing
+        // Start editing implicitly on typing and overwrite the cell natively
+        e.preventDefault();
         saveToHistory();
         setIsEditing(true);
+        handleInputChange(index, field, e.key);
       }
     } else {
       // Edit Mode
