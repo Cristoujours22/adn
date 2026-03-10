@@ -694,7 +694,6 @@ const ModeloDespiece = () => {
               createNewDespiece={createNewDespiece}
             />
 
-            {/* TABLA DE PIEZAS */}
             <TablaPiezas 
               despieces={despieces}
               activeDespieceId={activeDespieceId}
@@ -702,6 +701,7 @@ const ModeloDespiece = () => {
               handleKeyDown={handleKeyDown}
               handleRemoveRow={handleRemoveRow}
               handleOpenNarizModal={handleOpenNarizModal}
+              darkMode={darkMode}
             />
 
           </form>

@@ -63,16 +63,16 @@ const PanelResumen = ({
                                 background: darkMode ? '#1e2b22' : '#e8f5e9'
                             }}>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <strong style={{ color: darkMode ? '#fff' : '#333' }}>{s.nombreOriginal}</strong>
-                                    <span style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
+                                    <strong style={{ color: darkMode ? '#fff' : '#333', fontSize: '13px' }}>{s.nombreOriginal}</strong>
+                                    <span style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
                                 </div>
                                 <span style={{
                                     background: '#28a745',
                                     color: '#fff',
-                                    padding: '4px 12px',
+                                    padding: '3px 10px',
                                     borderRadius: '12px',
                                     fontWeight: 'bold',
-                                    fontSize: '16px',
+                                    fontSize: '13px',
                                     whiteSpace: 'nowrap'
                                 }}>
                                     {countDisplay}

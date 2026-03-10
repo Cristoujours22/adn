@@ -7,11 +7,19 @@ const TablaPiezas = ({
     handleInputChange,
     handleKeyDown,
     handleRemoveRow,
-    handleOpenNarizModal
+    handleOpenNarizModal,
+    darkMode
 }) => {
     return (
         <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }}>
-            <div className={estilos.filaDespiece}>
+            <div className={estilos.filaDespiece} style={{
+                position: 'sticky',
+                top: '49px', // Ajustado a la altura de la topBar
+                zIndex: 10,
+                backgroundColor: darkMode ? '#222' : '#f4f6f8',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                paddingBottom: '5px'
+            }}>
                 <div className={estilos.celdaTitulo}>CANT</div>
                 <div className={estilos.celdaTitulo}>LARGO</div>
                 <div className={estilos.celdaTitulo}>ANCHO</div>
