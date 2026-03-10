@@ -4,6 +4,10 @@ import estilos from '../../App.module.css';
 const TablaPiezas = ({
     despieces,
     activeDespieceId,
+    pieceSearchTerm,
+    pieceSearchLargo,
+    pieceSearchAncho,
+    pieceSearchType,
     handleInputChange,
     handleKeyDown,
     handleRemoveRow,
@@ -50,6 +54,19 @@ const TablaPiezas = ({
             </div>
             {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).map((row, index) => {
                 const safeRow = row || {};
+
+                if (pieceSearchType === 'detalle') {
+                    if (pieceSearchTerm) {
+                        const term = pieceSearchTerm.toLowerCase();
+                        if (!safeRow.detalle || !safeRow.detalle.toLowerCase().includes(term)) return null;
+                    }
+                } else if (pieceSearchType === 'medida') {
+                    const largoStr = (safeRow.largo || '').toString();
+                    const anchoStr = (safeRow.ancho || '').toString();
+                    
+                    if (pieceSearchLargo && !largoStr.includes(pieceSearchLargo)) return null;
+                    if (pieceSearchAncho && !anchoStr.includes(pieceSearchAncho)) return null;
+                }
 
                 // Helper to render individual cells with Excel-like behavior
                 const renderCell = (field, classNameExtras = '') => {

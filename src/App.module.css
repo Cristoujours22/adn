@@ -1136,19 +1136,23 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .footerDespiece {
   position: fixed;
-  bottom: 0;
-  right: 0;
+  bottom: 15px;
+  right: 50px;
   background-color: transparent;
   padding: 5px 10px;
   box-shadow: none;
   text-align: right;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .footerDespiece .botonSubmit {
   margin: 0;
-  padding: 8px 16px;
-  font-size: 14px;
-  min-width: 150px;
+  padding: 6px 12px;
+  font-size: 13px;
+  min-width: 130px;
   font-weight: bold;
   color: #fff;
   background: linear-gradient(135deg, #1e7e34 0%, #145523 100%);
@@ -1168,9 +1172,9 @@ input[type="number"]::-webkit-outer-spin-button {
 .botonCopiar {
   display: block;
   margin: 0;
-  padding: 8px 16px;
-  font-size: 14px;
-  min-width: 150px;
+  padding: 6px 12px;
+  font-size: 13px;
+  min-width: 130px;
   font-weight: bold;
   color: #fff;
   background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
@@ -1386,4 +1390,257 @@ body.high-contrast .despieceItem p {
     font-size: 16px;
     /* Evitar zoom en iOS */
   }
+}
+
+/* =========================================================
+   USER PROFILE REDESIGN - BENTO GLASSMORPHISM
+   ========================================================= */
+
+.profileBentoContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1100px;
+  /* Ampliado para acomodar los stats */
+  margin: 0 auto;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glassBentoBox {
+  background: rgba(43, 48, 55, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 3rem;
+  width: 100%;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.glassBentoBoxDark {
+  background: rgba(20, 24, 28, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* responsive grid */
+@media (max-width: 768px) {
+  .glassBentoBox {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2rem;
+    text-align: center;
+  }
+}
+
+.profilePhotoBox {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+/* Foto circular pulida */
+.profilePhotoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease;
+}
+
+/* La cubierta del boton foto aparece al hover */
+.profilePhotoOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  /* invisible por defecto */
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.profilePhotoBox:hover .profilePhotoOverlay {
+  opacity: 1;
+  /* aparece on hover */
+}
+
+.profilePhotoBox:hover .profilePhotoImg {
+  transform: scale(0.97);
+  /* ligero hundimiento de la foto */
+}
+
+.cameraIconHover {
+  color: white;
+  font-size: 2rem;
+  transition: transform 0.2s ease;
+}
+
+.profilePhotoBox:hover .cameraIconHover {
+  transform: scale(1.1);
+  /* rebote de la camara */
+}
+
+/* Caja de informacion a la derecha */
+.profileInfoBox {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.infoItemBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: transparent;
+  padding: 0;
+}
+
+/* Tipografía de la viñeta-Label */
+.infoLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  color: #999;
+}
+
+/* Color especial para label en modo oscuro */
+.infoLabelDark {
+  color: #777;
+}
+
+/* Tipografía Principal del Valor */
+.infoValueName {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin: 0;
+  color: #fff;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+/* Destacar el Color ADN para el Rol si se requiere */
+.infoValueYellow {
+  color: #FFD600;
+  /* ADN Yellow */
+  text-shadow: 0 0 10px rgba(255, 214, 0, 0.2);
+}
+
+.infoValueRole {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+  color: #e0e0e0;
+}
+
+.infoValueDate {
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin: 0;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* STATS BENTO CELL */
+.profileStatsBox {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 3rem;
+  height: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .profileStatsBox {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 2rem;
+  }
+}
+
+.statCard {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.statIconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 214, 0, 0.1);
+  /* ADN Yellow tint */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  color: #FFD600;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

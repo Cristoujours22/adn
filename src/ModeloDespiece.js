@@ -75,6 +75,10 @@ const ModeloDespiece = () => {
   const [serviceCounts, setServiceCounts] = useState({});
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [pieceSearchTerm, setPieceSearchTerm] = useState('');
+  const [pieceSearchLargo, setPieceSearchLargo] = useState('');
+  const [pieceSearchAncho, setPieceSearchAncho] = useState('');
+  const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
   const [narizModal, setNarizModal] = useState({ isOpen: false, rowIndex: null, value: '' });
   const { darkMode } = useTheme();
 
@@ -783,19 +787,98 @@ const ModeloDespiece = () => {
               </div>
             </div>
 
-            {/* SISTEMA DE PESTAÑAS (TABS) */}
-            <TabsDespiece 
-              despieces={despieces}
-              setDespieces={setDespieces}
-              activeDespieceId={activeDespieceId}
-              setActiveDespieceId={setActiveDespieceId}
-              darkMode={darkMode}
-              createNewDespiece={createNewDespiece}
-            />
+            {/* SISTEMA DE PESTAÑAS (TABS) Y BUSCADOR DE PIEZAS */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ flex: '1 1 auto' }}>
+                <TabsDespiece 
+                  despieces={despieces}
+                  setDespieces={setDespieces}
+                  activeDespieceId={activeDespieceId}
+                  setActiveDespieceId={setActiveDespieceId}
+                  darkMode={darkMode}
+                  createNewDespiece={createNewDespiece}
+                />
+              </div>
+
+              {/* BUSCADOR DE PIEZAS */}
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center', marginBottom: '5px', flexWrap: 'wrap' }}>
+                <select 
+                  className={estilos.controls}
+                  style={{ width: 'auto', margin: 0, padding: '5px 10px', height: '35px', fontSize: '14px' }}
+                  value={pieceSearchType}
+                  onChange={(e) => {
+                    setPieceSearchType(e.target.value);
+                    setPieceSearchTerm('');
+                    setPieceSearchLargo('');
+                    setPieceSearchAncho('');
+                  }}
+                >
+                  <option value="detalle">Detalle</option>
+                  <option value="medida">Largo y Ancho</option>
+                </select>
+
+                {pieceSearchType === 'detalle' ? (
+                  <>
+                    <input 
+                      className={estilos.controls}
+                      style={{ width: '200px', margin: 0, padding: '5px 10px', height: '35px', fontSize: '14px' }}
+                      type="text"
+                      placeholder="Buscar detalle..."
+                      value={pieceSearchTerm}
+                      onChange={(e) => setPieceSearchTerm(e.target.value)}
+                    />
+                    {pieceSearchTerm && (
+                      <button 
+                        type="button"
+                        onClick={() => setPieceSearchTerm('')}
+                        style={{ background: 'transparent', border: 'none', color: darkMode ? '#ff6b6b' : '#dc3545', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
+                        title="Limpiar Búsqueda"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                    <input 
+                      className={estilos.controls}
+                      style={{ width: '100px', margin: 0, padding: '5px 10px', height: '35px', fontSize: '14px' }}
+                      type="number"
+                      placeholder="Largo"
+                      value={pieceSearchLargo}
+                      onChange={(e) => setPieceSearchLargo(e.target.value)}
+                    />
+                    <span style={{ color: darkMode ? '#ccc' : '#555', fontSize: '12px' }}>x</span>
+                    <input 
+                      className={estilos.controls}
+                      style={{ width: '100px', margin: 0, padding: '5px 10px', height: '35px', fontSize: '14px' }}
+                      type="number"
+                      placeholder="Ancho"
+                      value={pieceSearchAncho}
+                      onChange={(e) => setPieceSearchAncho(e.target.value)}
+                    />
+                    {(pieceSearchLargo || pieceSearchAncho) && (
+                      <button 
+                        type="button"
+                        onClick={() => { setPieceSearchLargo(''); setPieceSearchAncho(''); }}
+                        style={{ background: 'transparent', border: 'none', color: darkMode ? '#ff6b6b' : '#dc3545', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
+                        title="Limpiar Búsqueda"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <TablaPiezas 
               despieces={despieces}
               activeDespieceId={activeDespieceId}
+              pieceSearchTerm={pieceSearchTerm}
+              pieceSearchLargo={pieceSearchLargo}
+              pieceSearchAncho={pieceSearchAncho}
+              pieceSearchType={pieceSearchType}
               handleInputChange={handleInputChange}
               handleKeyDown={handleKeyDown}
               handleRemoveRow={handleRemoveRow}
@@ -813,11 +896,11 @@ const ModeloDespiece = () => {
             />
 
           </form>
-          <footer className={estilos.footerDespiece} style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <footer className={estilos.footerDespiece} style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
             <button type="button" onClick={() => handleSaveToFirestore(false)} className={estilos.botonSubmit}>
               Guardar Despiece
             </button>
-            <button type="button" className={estilos.botonCopiar} onClick={handleCopyDespiece}>
+            <button type="button" className={estilos.botonCopiar} onClick={handleCopyDespiece} style={{ margin: 0 }}>
               Copiar a Excel
             </button>
           </footer>
