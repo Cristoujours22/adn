@@ -1644,3 +1644,207 @@ body.high-contrast .despieceItem p {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* === MODAL SUGERENCIAS === */
+.modalOverlaySugerencias {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modalContentSugerencias {
+  background: #1e1e1e;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalContentSugerencias h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #fff;
+}
+
+.textareaSugerencia {
+  width: 100%;
+  height: 120px;
+  background: #2c2c2c;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  font-size: 1rem;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.textareaSugerencia:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+.btnSugerencia {
+  padding: 10px 20px;
+  background: #4fc3f7;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnSugerencia:hover {
+  background: #29b6f6;
+}
+
+.btnSugerencia:disabled {
+  background: #555;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.btnCancelarSugerencia {
+  padding: 10px 20px;
+  background: transparent;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnCancelarSugerencia:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sugerenciasAcciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* === FLOATING BELL & INBOX === */
+.floatingBellContainer {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  background: #1a73e8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  z-index: 1500;
+  transition: transform 0.2s;
+}
+
+.floatingBellContainer:hover {
+  transform: scale(1.1);
+}
+
+.floatingBellBadge {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background: #dc3545;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1a73e8;
+}
+
+.modalContentInbox {
+  background: #1e1e1e;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inboxList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 10px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+
+.inboxItem {
+  background: #2a2a2a;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #4fc3f7;
+}
+
+.inboxItem.leida {
+  border-left-color: #555;
+  opacity: 0.7;
+}
+
+.inboxItemHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.inboxItemText {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.btnMarcarLeida {
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid #4fc3f7;
+  color: #4fc3f7;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnMarcarLeida:hover {
+  background: rgba(79, 195, 247, 0.1);
+}

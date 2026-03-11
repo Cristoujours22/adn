@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FaHome, FaSun, FaMoon, FaUsersCog } from "react-icons/fa";
+import { FaHome, FaSun, FaMoon, FaUsersCog, FaCommentDots, FaBell } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
 import estilos from "./App.module.css";
 import userIcon from "./Assets/usuario.png";
 import adnLogo from "./Assets/ADN.png"; // Import at top
 import { auth, db } from "./credenciales";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, setDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useAuth } from "./authContext";
 import { useTheme } from "./ThemeContext";
@@ -32,6 +32,14 @@ const Menu = () => {
   const [users, setUsers] = useState([]);
   const [filtroUsuario, setFiltroUsuario] = useState("");
 
+  // Sugerencias States
+  const [mostrarModalSugerencias, setMostrarModalSugerencias] = useState(false);
+  const [textoSugerencia, setTextoSugerencia] = useState("");
+  const [enviandoSugerencia, setEnviandoSugerencia] = useState(false);
+  const [sugerencias, setSugerencias] = useState([]);
+  const [sugerenciasSinLeer, setSugerenciasSinLeer] = useState(0);
+  const [mostrarInbox, setMostrarInbox] = useState(false);
+
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
     setMostrarUserMenu(false);
@@ -39,6 +47,23 @@ const Menu = () => {
 
   const toggleUserMenu = () => {
     setMostrarUserMenu((prev) => !prev);
+  };
+
+  const handleDispararAlerta = async () => {
+    if (window.confirm("⚠️ ATENCIÓN: Esta acción enviará una pantalla roja de alerta a TODOS los usuarios conectados en este momento.\n\n¿Estás seguro de continuar con la alerta de actualización de servidor?")) {
+      try {
+        const alertaRef = doc(db, 'configuracion', 'alertaGlobal');
+        await setDoc(alertaRef, {
+          activa: true,
+          mensaje: "El servidor se actualizará pronto, por favor guarda tu información inmediatamente para no perder tus cambios.",
+          timestamp: serverTimestamp()
+        });
+        alert("Alerta global disparada correctamente. Todos los usuarios la están viendo.");
+      } catch (error) {
+        console.error("Error al disparar la alerta global:", error);
+        alert("Hubo un error al intentar mandar la alerta.");
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -183,6 +208,79 @@ const Menu = () => {
       fetchUsersList();
     }
   }, [userCargo]);
+
+  // Listener para Sugerencias (solo Admin)
+  useEffect(() => {
+    let unsubscribe = () => {};
+    if (userCargo === 'Administrador') {
+      const q = query(collection(db, "sugerencias"), orderBy("fecha", "desc"));
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!isMountedRef.current) return;
+        
+        const sugList = [];
+        let sinLeer = 0;
+        const now = new Date();
+
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          
+          // Auto-delete logic: Si está leída y pasó más de 24 hs desde que se marcó como leída
+          if (data.leida && data.leidaAt) {
+            const leidaDate = data.leidaAt.toDate();
+            const diffHours = (now - leidaDate) / (1000 * 60 * 60);
+            if (diffHours > 24) {
+              // Delete quietly in background
+              deleteDoc(docSnap.ref).catch(err => console.error("Error auto-deleting", err));
+              return; // Skip adding to user view
+            }
+          }
+
+          if (!data.leida) sinLeer++;
+          sugList.push({ id: docSnap.id, ...data });
+        });
+
+        setSugerencias(sugList);
+        setSugerenciasSinLeer(sinLeer);
+      }, (err) => {
+        console.error("Error listening to sugerencias: ", err);
+      });
+    }
+    return () => unsubscribe();
+  }, [userCargo]);
+
+  const handleEnviarSugerencia = async () => {
+    if (!textoSugerencia.trim()) return;
+    setEnviandoSugerencia(true);
+    try {
+      await addDoc(collection(db, "sugerencias"), {
+        texto: textoSugerencia.trim(),
+        usuarioId: currentUser.uid,
+        nombreUsuario: userName,
+        fecha: serverTimestamp(),
+        leida: false
+      });
+      alert("¡Sugerencia enviada con éxito! Gracias por ayudarnos a mejorar.");
+      setMostrarModalSugerencias(false);
+      setTextoSugerencia("");
+    } catch (error) {
+      console.error("Error enviando sugerencia: ", error);
+      alert("Hubo un error al enviar la sugerencia. Inténtalo más tarde.");
+    } finally {
+      if (isMountedRef.current) setEnviandoSugerencia(false);
+    }
+  };
+
+  const handleMarcarLeida = async (id) => {
+    try {
+      const sugRef = doc(db, "sugerencias", id);
+      await updateDoc(sugRef, {
+        leida: true,
+        leidaAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error marcando sugerencia como leída: ", error);
+    }
+  };
 
   const irADespieces = () => {
     // Agregué la navegación al modelo de despiece
@@ -354,6 +452,36 @@ const Menu = () => {
               Gestionar Usuarios
             </Link>
           )}
+          {/* Botón de Sugerencias para usuarios */}
+          <div
+            className={estilos.menuitem}
+            onClick={() => {
+              setMostrarModalSugerencias(true);
+              toggleMenu();
+            }}
+            style={{ cursor: "pointer", borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: "10px" }}
+          >
+            <span className={estilos.menuitemicon}>
+              <FaCommentDots />
+            </span>
+            Sugerencias
+          </div>
+          {/* Botón de Alerta Global para Administradores */}
+          {userCargo === 'Administrador' && (
+            <div
+              className={estilos.menuitem}
+              onClick={() => {
+                handleDispararAlerta();
+                toggleMenu();
+              }}
+              style={{ cursor: "pointer", color: "#dc3545", fontWeight: "bold" }}
+            >
+              <span className={estilos.menuitemicon} style={{ color: "#dc3545" }}>
+                ⚠️
+              </span>
+              Alerta Actualización
+            </div>
+          )}
         </nav>
       </div>
 
@@ -463,6 +591,76 @@ const Menu = () => {
             <p style={{textAlign:'center', color:'#888', marginTop:'2rem'}}>No hay proyectos guardados.</p>
           )}
         </section>
+      )}
+
+      {/* MODAL DE SUGERENCIAS */}
+      {mostrarModalSugerencias && (
+        <div className={estilos.modalOverlaySugerencias} onClick={(e) => { if(e.target === e.currentTarget) setMostrarModalSugerencias(false); }}>
+          <div className={estilos.modalContentSugerencias}>
+            <h3>Enviar Sugerencia</h3>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#ccc' }}>Hola {userName || 'diseñador/asesor'}, envíanos tus ideas o reporta un problema. Trataremos de revisarlo pronto.</p>
+            <textarea
+              className={estilos.textareaSugerencia}
+              placeholder="Escribe tu sugerencia aquí..."
+              value={textoSugerencia}
+              onChange={(e) => setTextoSugerencia(e.target.value)}
+            />
+            <div className={estilos.sugerenciasAcciones}>
+              <button className={estilos.btnCancelarSugerencia} onClick={() => setMostrarModalSugerencias(false)}>Cancelar</button>
+              <button 
+                className={estilos.btnSugerencia} 
+                onClick={handleEnviarSugerencia}
+                disabled={enviandoSugerencia || !textoSugerencia.trim()}
+              >
+                {enviandoSugerencia ? "Enviando..." : "Enviar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING BELL PARA ADMIN */}
+      {userCargo === 'Administrador' && sugerenciasSinLeer > 0 && (
+        <div className={estilos.floatingBellContainer} onClick={() => setMostrarInbox(true)} aria-label="Bandeja de sugerencias">
+          <FaBell />
+          <div className={estilos.floatingBellBadge}>{sugerenciasSinLeer}</div>
+        </div>
+      )}
+
+      {/* MODAL INBOX PARA ADMIN */}
+      {mostrarInbox && (
+        <div className={estilos.modalOverlaySugerencias} onClick={(e) => { if(e.target === e.currentTarget) setMostrarInbox(false); }}>
+          <div className={estilos.modalContentInbox}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #444', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0 }}>Buzón de Sugerencias</h3>
+              <button className={estilos.botonHamburguesa} onClick={() => setMostrarInbox(false)} style={{ fontSize: '1.2rem' }}>✖</button>
+            </div>
+            
+            <div className={estilos.inboxList}>
+              {sugerencias.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#888', marginTop: '20px' }}>No hay sugerencias recientes.</p>
+              ) : (
+                sugerencias.map((sug) => (
+                  <div key={sug.id} className={`${estilos.inboxItem} ${sug.leida ? estilos.leida : ''}`}>
+                    <div className={estilos.inboxItemHeader}>
+                      <strong>{sug.nombreUsuario || 'Usuario Anónimo'}</strong>
+                      <span>{sug.fecha ? sug.fecha.toDate().toLocaleDateString() : 'Reciente'}</span>
+                    </div>
+                    <p className={estilos.inboxItemText}>{sug.texto}</p>
+                    
+                    {!sug.leida && (
+                      <div style={{ textAlign: 'right', marginTop: '10px' }}>
+                        <button className={estilos.btnMarcarLeida} onClick={() => handleMarcarLeida(sug.id)}>
+                          ✔ Marcar como leída
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
