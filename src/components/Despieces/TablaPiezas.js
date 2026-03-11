@@ -1,5 +1,6 @@
 import React from 'react';
 import estilos from '../../App.module.css';
+import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
 
 const TablaPiezas = ({
     despieces,
@@ -52,7 +53,7 @@ const TablaPiezas = ({
                 <div className={estilos.celdaTitulo}>A2</div>
                 <div className={estilos.celdaTitulo}>ACCIONES</div>
             </div>
-            {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).map((row, index) => {
+            {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).map((row, index, currentFilas) => {
                 const safeRow = row || {};
 
                 if (pieceSearchType === 'detalle') {
@@ -176,37 +177,56 @@ const TablaPiezas = ({
                         {renderCell('l2', estilos.inputCorto)}
                         {renderCell('a1', estilos.inputCorto)}
                         {renderCell('a2', estilos.inputCorto)}
-                        <div className={estilos.celdaDespiece} style={{ display: 'flex', flexDirection: 'column', gap: '5px', justifyContent: 'center', alignItems: 'center', padding: '0 5px' }}>
-                            {(() => {
+                        <div className={estilos.celdaDespiece}>
+                            <div style={{ width: '100%', height: '100%', position: 'relative', boxSizing: 'border-box', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'center', alignItems: 'center', padding: '0 5px' }}>
+                                {(() => {
                                 const detLower = safeRow.detalle?.toLowerCase() || '';
-                                let labelAction = '';
-                                if ((detLower.includes('senchamanual') || detLower.includes('enchape manual')) && !detLower.includes('circulo')) labelAction = 'Enchape';
-                                else if (detLower.includes('nar')) labelAction = 'Nariz';
+                                const actions = [];
+                                if ((detLower.includes('senchamanual') || detLower.includes('enchape manual')) && !detLower.includes('circulo')) {
+                                    actions.push('Enchape');
+                                }
+                                if (detLower.includes('nar')) {
+                                    actions.push('Nariz');
+                                }
 
-                                if (!labelAction) return null;
+                                return actions.map((labelAction) => {
+                                    const isEnchape = labelAction === 'Enchape';
+                                    const IconToUse = isEnchape ? FaTools : FaRulerCombined;
+                                    const defaultBg = isEnchape ? '#e6a800' : '#17a2b8'; // Amarillo para enchape, azul claro para nariz
+                                    const bgHover = isEnchape ? '#d39e00' : '#138496';
+                                    const txtColor = safeRow.narizCobro ? '#fff' : (isEnchape ? '#212529' : '#fff');
 
-                                return (
-                                    <button
-                                        onClick={() => handleOpenNarizModal && handleOpenNarizModal(index, labelAction)}
-                                        className={estilos.botonSubmit}
-                                        style={{ margin: 0, padding: '4px', fontSize: safeRow.narizCobro ? '10px' : '11px', background: safeRow.narizCobro ? '#28a745' : '#e6a800', color: safeRow.narizCobro ? '#fff' : '#000', border: 'none', borderRadius: '4px', fontWeight: 'bold', width: '100%', minWidth: '55px', maxWidth: '80px', boxSizing: 'border-box' }}
-                                        type="button"
-                                        title={`Cobrar ${labelAction}`}
-                                    >
-                                        {safeRow.narizCobro ? `${labelAction} (${safeRow.narizCobro})` : labelAction}
-                                    </button>
-                                );
+                                    return (
+                                        <button
+                                            key={labelAction}
+                                            onClick={() => handleOpenNarizModal && handleOpenNarizModal(index, labelAction)}
+                                            className={estilos.botonSubmit}
+                                            style={{ width: 'auto', minWidth: 'unset', margin: 0, padding: '4px 6px', display: 'flex', alignItems: 'center', gap: '4px', background: safeRow.narizCobro ? '#28a745' : defaultBg, color: txtColor, border: 'none', borderRadius: '4px', cursor: 'pointer', boxSizing: 'border-box', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', transition: 'all 0.1s' }}
+                                            type="button"
+                                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; if(!safeRow.narizCobro){ e.currentTarget.style.background = bgHover; } }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; if(!safeRow.narizCobro){ e.currentTarget.style.background = defaultBg; } }}
+                                            title={safeRow.narizCobro ? `Cobrar ${labelAction} (${safeRow.narizCobro})` : `Cobrar ${labelAction}`}
+                                        >
+                                            <IconToUse size={12} />
+                                            {safeRow.narizCobro && <span style={{ fontSize: '10px', fontWeight: 'bold' }}>{safeRow.narizCobro}</span>}
+                                        </button>
+                                    );
+                                });
                             })()}
-                            {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).length > 1 && (
+                            {currentFilas.length > 1 && (
                                 <button
                                     onClick={() => handleRemoveRow(index)}
                                     className={estilos.botonEliminar}
-                                    style={{ margin: 0, padding: '4px', width: '100%', minWidth: '55px', maxWidth: '80px', borderRadius: '4px', boxSizing: 'border-box' }}
+                                    style={{ width: 'auto', minWidth: 'unset', margin: 0, padding: '4px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#dc3545', border: '1px solid #dc3545', borderRadius: '4px', cursor: 'pointer', boxSizing: 'border-box', transition: 'all 0.2s' }}
                                     type="button"
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#dc3545'; e.currentTarget.style.color = '#fff'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#dc3545'; }}
+                                    title="Eliminar fila"
                                 >
-                                    ✖
+                                    <FaTrash size={12} />
                                 </button>
                             )}
+                            </div>
                         </div>
                     </div>
                 );
