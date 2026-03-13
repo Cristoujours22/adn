@@ -80,6 +80,7 @@ const ModeloDespiece = () => {
   const [pieceSearchAncho, setPieceSearchAncho] = useState('');
   const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
   const [cobroExtraModal, setCobroExtraModal] = useState({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
+  const [renameModuleModal, setRenameModuleModal] = useState({ isOpen: false, oldName: '', newName: '' });
   const { darkMode } = useTheme();
 
   // Excel-like table state
@@ -320,6 +321,33 @@ const ModeloDespiece = () => {
       return { ...despiece, filas: (despiece.filas || []).filter((_, index) => index !== indexToRemove) };
     }));
   }, [activeDespieceId, saveToHistory]);
+
+  const handleRenameModule = useCallback((oldModuleName, newModuleName) => {
+    saveToHistory();
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      
+      const regex = new RegExp(`\\b${oldModuleName}\\b`, 'i');
+      
+      const newFilas = (despiece.filas || []).map(fila => {
+        if (fila.detalle && fila.detalle.toUpperCase().includes(oldModuleName.toUpperCase())) {
+          return { ...fila, detalle: fila.detalle.replace(regex, newModuleName.toUpperCase()) };
+        }
+        return fila;
+      });
+      
+      return { ...despiece, filas: newFilas };
+    }));
+  }, [activeDespieceId, saveToHistory]);
+
+  const handleSaveRenameModule = () => {
+      const { oldName, newName } = renameModuleModal;
+      if (newName && newName.trim() !== '' && newName.toUpperCase() !== oldName) {
+          const cleanName = newName.trim().replace(/\s+/g, '-').toUpperCase();
+          handleRenameModule(oldName, cleanName);
+      }
+      setRenameModuleModal({ isOpen: false, oldName: '', newName: '' });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1070,6 +1098,8 @@ const ModeloDespiece = () => {
               handleInputChange={handleInputChange}
               handleKeyDown={handleKeyDown}
               handleRemoveRow={handleRemoveRow}
+              handleRenameModule={handleRenameModule}
+              setRenameModuleModal={setRenameModuleModal}
               handleOpenCobroModal={handleOpenCobroModal}
               darkMode={darkMode}
               activeCell={activeCell}
@@ -1162,6 +1192,60 @@ const ModeloDespiece = () => {
         </div>
       )}
 
+      {/* MODAL PARA RENOMBRAR MÓDULO */}
+      {renameModuleModal.isOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div style={{
+            background: darkMode ? '#2c303a' : '#fff',
+            padding: '20px', borderRadius: '8px', minWidth: '350px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333' }}>Renombrar Módulo</h3>
+            <p style={{ fontSize: '13px', color: darkMode ? '#aaa' : '#666', marginBottom: '15px' }}>
+              Cambia el nombre de todas las piezas del módulo <strong>{renameModuleModal.oldName}</strong>.
+            </p>
+            <input
+              type="text"
+              autoFocus
+              className={estilos.controls}
+              value={renameModuleModal.newName}
+              onChange={(e) => setRenameModuleModal({ ...renameModuleModal, newName: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveRenameModule();
+                } else if (e.key === 'Escape') {
+                  setRenameModuleModal({ isOpen: false, oldName: '', newName: '' });
+                }
+              }}
+              placeholder={`Ej: ${renameModuleModal.oldName}-NUEVO`}
+              style={{ width: '100%', margin: '15px 0', padding: '10px' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                type="button" 
+                onClick={() => setRenameModuleModal({ isOpen: false, oldName: '', newName: '' })} 
+                className={estilos.botonEliminar}
+                style={{ padding: '8px 15px', margin: 0 }}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSaveRenameModule} 
+                className={estilos.botonSubmit}
+                style={{ padding: '8px 15px', margin: 0 }}
+              >
+                Renombrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

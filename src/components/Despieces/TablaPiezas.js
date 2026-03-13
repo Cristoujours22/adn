@@ -12,6 +12,8 @@ const TablaPiezas = ({
     handleInputChange,
     handleKeyDown,
     handleRemoveRow,
+    handleRenameModule,
+    setRenameModuleModal,
     handleOpenCobroModal,
     darkMode,
     activeCell,
@@ -41,8 +43,8 @@ const TablaPiezas = ({
 
     const getModuleName = (detalle) => {
         if (!detalle) return null;
-        // Buscar el patrón D1-0, D1-1512, D2-34
-        const match = detalle.match(/D\d+-\d+/i);
+        // Buscar el patrón D1-0, D1-1512, D2-34, D1-TEXTO
+        const match = detalle.match(/D\d+-[A-Za-z0-9]+/i);
         return match ? match[0].toUpperCase() : null;
     };
 
@@ -190,7 +192,14 @@ const TablaPiezas = ({
                                     <button
                                         type="button"
                                         tabIndex="-1"
-                                        onClick={(e) => { e.stopPropagation(); toggleModule(currentModule); }}
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            if (e.ctrlKey) {
+                                                setRenameModuleModal({ isOpen: true, oldName: currentModule, newName: currentModule });
+                                            } else {
+                                                toggleModule(currentModule); 
+                                            }
+                                        }}
                                         style={{
                                             position: 'absolute',
                                             left: '-18px',
