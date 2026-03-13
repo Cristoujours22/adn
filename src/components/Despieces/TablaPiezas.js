@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import estilos from '../../App.module.css';
 import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
 
@@ -12,7 +12,7 @@ const TablaPiezas = ({
     handleInputChange,
     handleKeyDown,
     handleRemoveRow,
-    handleOpenNarizModal,
+    handleOpenCobroModal,
     darkMode,
     activeCell,
     setActiveCell,
@@ -22,7 +22,8 @@ const TablaPiezas = ({
     setDragSelection,
     handleCellClick,
     handleCellDoubleClick,
-    handleDragFill
+    handleDragFill,
+    selection
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -30,6 +31,19 @@ const TablaPiezas = ({
             handleDragFill(dragSelection.startIndex, dragSelection.endIndex, dragSelection.startField, dragSelection.endField, dragSelection.value);
             setDragSelection(null);
         }
+    };
+
+    const [collapsedModules, setCollapsedModules] = useState({});
+    
+    const toggleModule = (moduleName) => {
+        setCollapsedModules(prev => ({ ...prev, [moduleName]: !prev[moduleName] }));
+    };
+
+    const getModuleName = (detalle) => {
+        if (!detalle) return null;
+        // Buscar el patrón D1-0, D1-1512, D2-34
+        const match = detalle.match(/D\d+-\d+/i);
+        return match ? match[0].toUpperCase() : null;
     };
 
     return (
@@ -69,6 +83,26 @@ const TablaPiezas = ({
                     if (pieceSearchAncho && !anchoStr.includes(pieceSearchAncho)) return null;
                 }
 
+                const currentModule = getModuleName(safeRow.detalle);
+                let isFirstOfModule = false;
+                
+                // Deshabilitar agrupación visual si el usuario está filtrando piezas para evitar saltos o huecos raros
+                const isSearching = (pieceSearchType === 'detalle' && pieceSearchTerm) || 
+                                    (pieceSearchType === 'medida' && (pieceSearchLargo || pieceSearchAncho));
+
+                if (!isSearching && currentModule) {
+                    const prevRow = index > 0 ? currentFilas[index - 1] : null;
+                    const prevModule = getModuleName(prevRow?.detalle);
+                    isFirstOfModule = currentModule !== prevModule;
+                }
+                
+                const isCollapsed = !isSearching && currentModule && collapsedModules[currentModule];
+
+                // Si la fila pertenece a un módulo que está colapsado y NO es la primera fila de ese módulo, se oculta
+                if (isCollapsed && !isFirstOfModule) {
+                    return null;
+                }
+
                 // Helper to render individual cells with Excel-like behavior
                 const renderCell = (field, classNameExtras = '') => {
                     const isActive = activeCell?.index === index && activeCell?.field === field;
@@ -103,6 +137,26 @@ const TablaPiezas = ({
                         }
                     }
                     
+                    let isSelected = false;
+                    if (selection) {
+                        const startIdx = Math.min(selection.start.index, selection.end.index);
+                        const endIdx = Math.max(selection.start.index, selection.end.index);
+                        const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+                        const startFldIdx = fields.indexOf(selection.start.field);
+                        const endFldIdx = fields.indexOf(selection.end.field);
+                        const minFldIdx = Math.min(startFldIdx, endFldIdx);
+                        const maxFldIdx = Math.max(startFldIdx, endFldIdx);
+                        const currFldIdx = fields.indexOf(field);
+
+                        isSelected = index >= startIdx && index <= endIdx && currFldIdx >= minFldIdx && currFldIdx <= maxFldIdx;
+                    }
+
+                    // Validación básica
+                    const value = safeRow[field] || '';
+                    const isRequired = ['cant', 'largo', 'ancho', 'detalle'].includes(field);
+                    const isNumeric = ['cant', 'largo', 'ancho'].includes(field);
+                    const isInvalid = (isRequired && value === '') || (isNumeric && value !== '' && isNaN(value));
+                    
                     const cellStyle = {
                         width: '100%',
                         height: '100%',
@@ -113,12 +167,16 @@ const TablaPiezas = ({
                     const inputStyle = {
                         width: '100%',
                         height: '100%',
-                        outline: isActive ? `2px solid #1a73e8` : 'none',
+                        outline: isActive ? `2px solid #1a73e8` : (isSelected ? `1px solid rgba(26, 115, 232, 0.5)` : 'none'),
                         outlineOffset: '-2px',
                         cursor: isEditing && isActive ? 'text' : 'cell',
+                        caretColor: (isActive && isEditing) ? 'auto' : 'transparent',
                         backgroundColor: isDragTarget ? (darkMode ? '#2c3e50' : '#d2e3fc') : 
-                                         (isActive && !isEditing ? (darkMode ? '#3a404d' : '#e8f0fe') : undefined),
-                        color: (isActive && !isEditing && darkMode) || isDragTarget ? '#fff' : undefined
+                                         (isSelected && !isActive ? (darkMode ? '#2c313a' : '#e8f0fe') : 
+                                         (isActive && !isEditing ? (darkMode ? '#3a404d' : '#e8f0fe') : 
+                                         (isInvalid ? (darkMode ? '#4d2a2a' : '#fff0f0') : undefined))),
+                        color: (isActive && !isEditing && darkMode) || isDragTarget || (isSelected && darkMode) ? '#fff' : undefined,
+                        border: isInvalid ? `1px solid ${darkMode ? '#ff6b6b' : '#dc3545'}` : undefined
                     };
 
                     return (
@@ -128,6 +186,35 @@ const TablaPiezas = ({
                                      if (dragSelection) setDragSelection(prev => ({ ...prev, endIndex: index, endField: field }));
                                  }}
                             >
+                                {field === 'cant' && isFirstOfModule && (
+                                    <button
+                                        type="button"
+                                        tabIndex="-1"
+                                        onClick={(e) => { e.stopPropagation(); toggleModule(currentModule); }}
+                                        style={{
+                                            position: 'absolute',
+                                            left: '-18px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            background: darkMode ? '#4a4a4a' : '#ddd',
+                                            color: darkMode ? '#fff' : '#000',
+                                            border: `1px solid ${darkMode ? '#666' : '#ccc'}`,
+                                            borderRadius: '4px',
+                                            width: '16px',
+                                            height: '16px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            lineHeight: '1',
+                                            zIndex: 5
+                                        }}
+                                        title={isCollapsed ? "Expandir Módulo" : "Colapsar Módulo"}
+                                    >
+                                        {isCollapsed ? '+' : '-'}
+                                    </button>
+                                )}
                                 <input
                                     type={field === 'cant' ? 'number' : 'text'}
                                     className={`${classNameExtras}`}
@@ -135,12 +222,11 @@ const TablaPiezas = ({
                                     id={`${field}-${index}`}
                                     value={safeRow[field] || ''}
                                     onChange={(e) => handleInputChange(index, field, e.target.value)}
-                                    onClick={() => handleCellClick(index, field)}
+                                    onClick={(e) => handleCellClick(index, field, e)}
                                     onDoubleClick={() => handleCellDoubleClick(index, field)}
                                     onKeyDown={(e) => handleKeyDown(e, index, field)}
-                                    readOnly={isActive && !isEditing && document.activeElement !== document.getElementById(`${field}-${index}`)} // Prevent standard text selection when not editing, but keep focusability
+                                    readOnly={!isActive || !isEditing} // Strict readOnly when not editing prevents caret showing
                                     style={inputStyle}
-                                    required={['cant', 'largo', 'ancho', 'detalle'].includes(field)}
                                 />
                                 {isActive && !isEditing && (
                                     <div
@@ -167,7 +253,7 @@ const TablaPiezas = ({
                 };
 
                 return (
-                    <div key={safeRow.id || `row_${index}`} className={estilos.filaDespiece}>
+                    <div key={safeRow.id || `row_${index}`} className={estilos.filaDespiece} style={{ position: 'relative' }}>
                         {renderCell('cant', `${estilos.inputCorto} ${estilos.flexibleWidth}`)}
                         {renderCell('largo', estilos.inputCorto)}
                         {renderCell('ancho', estilos.inputCorto)}
@@ -191,24 +277,27 @@ const TablaPiezas = ({
 
                                 return actions.map((labelAction) => {
                                     const isEnchape = labelAction === 'Enchape';
+                                    const targetField = isEnchape ? 'enchapeCobro' : 'narizCobro';
+                                    const cobroValue = safeRow[targetField];
+                                    
                                     const IconToUse = isEnchape ? FaTools : FaRulerCombined;
                                     const defaultBg = isEnchape ? '#e6a800' : '#17a2b8'; // Amarillo para enchape, azul claro para nariz
                                     const bgHover = isEnchape ? '#d39e00' : '#138496';
-                                    const txtColor = safeRow.narizCobro ? '#fff' : (isEnchape ? '#212529' : '#fff');
+                                    const txtColor = cobroValue ? '#fff' : (isEnchape ? '#212529' : '#fff');
 
                                     return (
                                         <button
                                             key={labelAction}
-                                            onClick={() => handleOpenNarizModal && handleOpenNarizModal(index, labelAction)}
+                                            onClick={() => handleOpenCobroModal && handleOpenCobroModal(index, labelAction, targetField)}
                                             className={estilos.botonSubmit}
-                                            style={{ width: 'auto', minWidth: 'unset', margin: 0, padding: '4px 6px', display: 'flex', alignItems: 'center', gap: '4px', background: safeRow.narizCobro ? '#28a745' : defaultBg, color: txtColor, border: 'none', borderRadius: '4px', cursor: 'pointer', boxSizing: 'border-box', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', transition: 'all 0.1s' }}
+                                            style={{ width: 'auto', minWidth: 'unset', margin: 0, padding: '4px 6px', display: 'flex', alignItems: 'center', gap: '4px', background: cobroValue ? '#28a745' : defaultBg, color: txtColor, border: 'none', borderRadius: '4px', cursor: 'pointer', boxSizing: 'border-box', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', transition: 'all 0.1s' }}
                                             type="button"
-                                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; if(!safeRow.narizCobro){ e.currentTarget.style.background = bgHover; } }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; if(!safeRow.narizCobro){ e.currentTarget.style.background = defaultBg; } }}
-                                            title={safeRow.narizCobro ? `Cobrar ${labelAction} (${safeRow.narizCobro})` : `Cobrar ${labelAction}`}
+                                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; if(!cobroValue){ e.currentTarget.style.background = bgHover; } }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; if(!cobroValue){ e.currentTarget.style.background = defaultBg; } }}
+                                            title={cobroValue ? `Cobrar ${labelAction} (${cobroValue})` : `Cobrar ${labelAction}`}
                                         >
                                             <IconToUse size={12} />
-                                            {safeRow.narizCobro && <span style={{ fontSize: '10px', fontWeight: 'bold' }}>{safeRow.narizCobro}</span>}
+                                            {cobroValue && <span style={{ fontSize: '10px', fontWeight: 'bold' }}>{cobroValue}</span>}
                                         </button>
                                     );
                                 });

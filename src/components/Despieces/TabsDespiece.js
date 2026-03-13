@@ -52,11 +52,20 @@ const TabsDespiece = ({
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
+                                const idToRemove = desp?.id;
                                 if (window.confirm(`¿Seguro que deseas eliminar la pestaña "${desp?.nombre}"?`)) {
-                                    const newDespieces = despieces.filter(d => d.id !== desp?.id);
-                                    setDespieces(newDespieces);
-                                    if (activeDespieceId === desp?.id) {
-                                        setActiveDespieceId(newDespieces[0]?.id);
+                                    let nextActiveId = activeDespieceId;
+                                    
+                                    if (activeDespieceId === idToRemove) {
+                                        const targetIndex = despieces.findIndex(d => d.id === idToRemove);
+                                        const newDespieces = despieces.filter(d => d.id !== idToRemove);
+                                        const newActiveIndex = Math.max(0, targetIndex - 1);
+                                        nextActiveId = newDespieces[newActiveIndex]?.id || newDespieces[0]?.id;
+                                    }
+                                    
+                                    setDespieces(prev => prev.filter(d => d.id !== idToRemove));
+                                    if (nextActiveId !== activeDespieceId) {
+                                        setActiveDespieceId(nextActiveId);
                                     }
                                 }
                             }}

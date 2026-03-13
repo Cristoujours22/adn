@@ -133,10 +133,10 @@ export const calcularTotalesDespiece = (despieces, services) => {
 
                         const detLower = detalle.toLowerCase();
                         const isEnchapeButtonActive = detLower.includes('senchamanual') || detLower.includes('enchape manual');
-                        const isNarizButtonActive = !isEnchapeButtonActive && detLower.includes('nar');
+                        const isNarizButtonActive = detLower.includes('nar');
 
                         let forceNariz = isNariz && count === 0 && row.narizCobro !== undefined && row.narizCobro !== '' && isNarizButtonActive;
-                        let forceSencha = isSenchaManual && count === 0 && row.narizCobro !== undefined && row.narizCobro !== '' && isEnchapeButtonActive;
+                        let forceSencha = isSenchaManual && count === 0 && row.enchapeCobro !== undefined && row.enchapeCobro !== '' && isEnchapeButtonActive;
 
                         if (count > 0 || forceNariz || forceSencha) {
                             if (forceNariz || forceSencha) count = 1;
@@ -150,26 +150,39 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                 const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
                                 const baseRegexStr = baseName === baseNom ? `\\b${baseName}\\b` : `\\b${baseName}\\b|\\b${baseNom}\\b`;
                                 const regexNarizOld = new RegExp(`(${baseRegexStr})(?:\\s*(\\d+)(?:L)?)?`, 'gi');
-                                
                                 let totalNarizUnits = 0;
-                                let foundExplicitAmount = false;
                                 
                                 // Prioridad 1: Sintaxis explícita inyectada por el Modal internamente (Solo si le corresponde a Nariz)
                                 if (row.narizCobro !== undefined && row.narizCobro !== '' && isNarizButtonActive) {
                                     totalNarizUnits += parseFloat(row.narizCobro) || 0;
-                                    foundExplicitAmount = true;
                                 }
 
-                                // Prioridad 2: Si no hay monto explícito en la celda oculta, sumar lo que digan las literales (Ej: nariz 3L)
-                                if (!foundExplicitAmount) {
-                                    let matchOld;
-                                    while ((matchOld = regexNarizOld.exec(detalle)) !== null) {
-                                        let localUnits = 1; // 1 unidad por defecto al mencionar "nariz"
-                                        if (matchOld[2]) {
-                                            localUnits = parseInt(matchOld[2], 10);
-                                        }
-                                        totalNarizUnits += localUnits;
+                                // Prioridad 2: Cálculo algorítmico (Cantos o Literales). Se suma al valor manual si existe.
+                                let matchOld;
+                                let explicitLiteralsFound = false;
+                                while ((matchOld = regexNarizOld.exec(detalle)) !== null) {
+                                    let localUnits = 0; // 0 unidades por defecto al mencionar "nariz" (solo activa el servicio en modal)
+                                    if (matchOld[1]) { // Captura el número después de la palabra base, ej. "nariz 3L" -> 3
+                                        localUnits = parseInt(matchOld[1], 10);
+                                        explicitLiteralsFound = true;
                                     }
+                                    totalNarizUnits += localUnits;
+                                }
+                                
+                                // Nueva regla: Sumar longitudes de cantos (3 o 4) en milímetros
+                                let cantosNarizMm = 0;
+                                const validCantosNariz = ['3', '4'];
+                                
+                                if (validCantosNariz.includes(String(row.l1))) cantosNarizMm += l;
+                                if (validCantosNariz.includes(String(row.l2))) cantosNarizMm += l;
+                                if (validCantosNariz.includes(String(row.a1))) cantosNarizMm += a;
+                                if (validCantosNariz.includes(String(row.a2))) cantosNarizMm += a;
+                                
+                                // Si se encontró "nariz" en el texto pero sin un número explícito multiplicador (ej. "nariz 3L"),
+                                // y hay cantos marcados, calculamos las unidades de Nariz basadas en Metros Lineales (ML) redondeando hacia arriba.
+                                if (cantosNarizMm > 0 && !explicitLiteralsFound) {
+                                    let unidadesPorMedida = Math.ceil(cantosNarizMm / 1000);
+                                    totalNarizUnits += unidadesPorMedida;
                                 }
                                 
                                 serviceTotalInRow += (totalNarizUnits * 1); // 1 = tipo unidad
@@ -202,8 +215,8 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                 }
 
                                 // Si el operario usó el botón de Enchape Manual oculto (Solo si le corresponde a Enchape y NO es círculo)
-                                if (row.narizCobro !== undefined && row.narizCobro !== '' && isEnchapeButtonActive && !hasCirculo) {
-                                    totalSenchaMm += parseFloat(row.narizCobro) || 0;
+                                if (row.enchapeCobro !== undefined && row.enchapeCobro !== '' && isEnchapeButtonActive && !hasCirculo) {
+                                    totalSenchaMm += parseFloat(row.enchapeCobro) || 0;
                                 }
 
                                 // Sumamos los milimetros totales convertidos a Metros Lineales.

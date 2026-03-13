@@ -15,7 +15,7 @@ import { calcularTotalesDespiece } from './utils/despieceCalculations';
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
 const createNewRow = () => ({
   id: `row_${rowIdCounter++}`,
-  cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: '', narizCobro: ''
+  cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: '', narizCobro: '', enchapeCobro: ''
 });
 
 // Generador de ID para despieces (pestañas)
@@ -79,7 +79,7 @@ const ModeloDespiece = () => {
   const [pieceSearchLargo, setPieceSearchLargo] = useState('');
   const [pieceSearchAncho, setPieceSearchAncho] = useState('');
   const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
-  const [narizModal, setNarizModal] = useState({ isOpen: false, rowIndex: null, value: '' });
+  const [cobroExtraModal, setCobroExtraModal] = useState({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
   const { darkMode } = useTheme();
 
   // Excel-like table state
@@ -88,6 +88,7 @@ const ModeloDespiece = () => {
   const [dragSelection, setDragSelection] = useState(null); // { startIndex, endIndex, startField, endField, value }
   // eslint-disable-next-line no-unused-vars
   const [history, setHistory] = useState([]);
+  const [selection, setSelection] = useState(null); // { start: { index, field }, end: { index, field } }
 
   const saveToHistory = useCallback(() => {
     setHistory(prev => {
@@ -202,12 +203,14 @@ const ModeloDespiece = () => {
     // eslint-disable-next-line
   }, [id]);
 
-  // Calcular totales (piezas y servicios) cada vez que cambien rows o services
+  // Calcular totales (piezas y servicios) sólo de la pestaña activa cada vez que cambien datos o de pestaña
   useEffect(() => {
-    const { totalPieces, serviceCounts } = calcularTotalesDespiece(despieces, services);
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    if (!activeDespiece) return;
+    const { totalPieces, serviceCounts } = calcularTotalesDespiece([activeDespiece], services);
     setTotalPieces(totalPieces);
     setServiceCounts(serviceCounts);
-  }, [despieces, services]);
+  }, [despieces, services, activeDespieceId]);
 
   const handleAddService = (e) => {
     e.preventDefault();
@@ -277,12 +280,38 @@ const ModeloDespiece = () => {
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       const newRows = [...(despiece.filas || [])];
+      
+      // Aplicar a la celda actual
       if (newRows[index]) {
         newRows[index] = { ...newRows[index], [field]: value };
       }
+
+      // Si hay seleccion múltiple y la celda actual está en ella, aplicar a todas las celdas seleccionadas del mismo campo
+      if (selection) {
+        const startIdx = Math.min(selection.start.index, selection.end.index);
+        const endIdx = Math.max(selection.start.index, selection.end.index);
+        const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+        const startFldIdx = fields.indexOf(selection.start.field);
+        const endFldIdx = fields.indexOf(selection.end.field);
+        const minFldIdx = Math.min(startFldIdx, endFldIdx);
+        const maxFldIdx = Math.max(startFldIdx, endFldIdx);
+        const currFldIdx = fields.indexOf(field);
+
+        if (index >= startIdx && index <= endIdx && currFldIdx >= minFldIdx && currFldIdx <= maxFldIdx) {
+          for (let i = startIdx; i <= endIdx; i++) {
+            for (let fIdx = minFldIdx; fIdx <= maxFldIdx; fIdx++) {
+               const f = fields[fIdx];
+               if (newRows[i]) {
+                  newRows[i] = { ...newRows[i], [f]: value };
+               }
+            }
+          }
+        }
+      }
+
       return { ...despiece, filas: newRows };
     }));
-  }, [activeDespieceId]);
+  }, [activeDespieceId, selection]);
 
   const handleRemoveRow = useCallback((indexToRemove) => {
     saveToHistory();
@@ -402,6 +431,22 @@ const ModeloDespiece = () => {
     setLastModifiedDate(new Date().toLocaleDateString());
   };
 
+  // Enfocar el elemento DOM cuando cambia la celda activa
+  useEffect(() => {
+    if (activeCell) {
+        const inputId = `${activeCell.field}-${activeCell.index}`;
+        const inputEl = document.getElementById(inputId);
+        if (inputEl && document.activeElement !== inputEl) {
+            inputEl.focus();
+            if (isEditing) {
+                // Si entra en edición, posicionar cursor al final del texto (opcional pero de buen uso)
+                const valObj = inputEl.value;
+                inputEl.setSelectionRange(valObj.length, valObj.length);
+            }
+        }
+    }
+  }, [activeCell, isEditing]);
+
   // --- EXCEL-LIKE NAVIGATION & EVENT HANDLERS ---
   const handleKeyDown = useCallback((e, index, field) => {
     const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
@@ -418,41 +463,143 @@ const ModeloDespiece = () => {
           if (currentIndex < fields.length - 1) setActiveCell({ index, field: fields[currentIndex + 1] });
           else if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field: fields[0] });
       }
+      // Al tabular, colapsamos la selección a la nueva celda activa
+      setTimeout(() => {
+          setActiveCell(curr => {
+              if (curr) setSelection({ start: { ...curr }, end: { ...curr } });
+              return curr;
+          });
+      }, 0);
       return;
+    }
+
+    // --- SHORTCUTS GLOBALES ---
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        saveToHistory();
+        setDespieces(prev => prev.map(d => {
+            if (d.id !== activeDespieceId) return d;
+            const newFilas = [...d.filas];
+            const rowToDuplicate = { ...newFilas[index] };
+            rowToDuplicate.id = `row_${rowIdCounter++}`;
+            newFilas.splice(index + 1, 0, rowToDuplicate);
+            return { ...d, filas: newFilas };
+        }));
+        return;
+    }
+
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsEditing(false);
+        // Regresar foco al contenedor principal de la tabla si se desea, por ahora mantenemos foco en celda como solo lectura
+        return;
+    }
+
+    if (e.key === ' ' && !isEditing) {
+        e.preventDefault();
+        saveToHistory();
+        const newValue = activeRows[index].rotar === 'X' ? '' : 'X';
+        handleInputChange(index, 'rotar', newValue);
+        return;
     }
 
     if (!isEditing) {
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (index > 0) setActiveCell({ index: index - 1, field });
+        if (index > 0) {
+            const newCell = { index: index - 1, field };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        }
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
-        else {
+        if (index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        } else {
           setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
-          setTimeout(() => setActiveCell({ index: activeRows.length, field }), 0);
+          setTimeout(() => {
+              const newCell = { index: activeRows.length, field };
+              setActiveCell(newCell);
+              setSelection({ start: newCell, end: newCell });
+          }, 0);
         }
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        if (currentIndex > 0) setActiveCell({ index, field: fields[currentIndex - 1] });
+        if (currentIndex > 0) {
+            const newCell = { index, field: fields[currentIndex - 1] };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        } else if (index > 0 && !e.shiftKey) {
+            // Saltar al final de la fila anterior si presiona izquierda en la primera columna
+            const newCell = { index: index - 1, field: fields[fields.length - 1] };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        if (currentIndex < fields.length - 1) setActiveCell({ index, field: fields[currentIndex + 1] });
+        if (currentIndex < fields.length - 1) {
+            const newCell = { index, field: fields[currentIndex + 1] };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        } else if (!e.shiftKey) {
+            // Saltar al inicio de la siguiente fila si presiona derecha en la ultima columna
+            if (index < activeRows.length - 1) {
+                const newCell = { index: index + 1, field: fields[0] };
+                setActiveCell(newCell);
+                setSelection({ start: newCell, end: newCell });
+            } else {
+                setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+                setTimeout(() => {
+                    const newCell = { index: activeRows.length, field: fields[0] };
+                    setActiveCell(newCell);
+                    setSelection({ start: newCell, end: newCell });
+                }, 0);
+            }
+        }
       } else if (e.key === 'F2') {
         e.preventDefault();
         saveToHistory();
         setIsEditing(true);
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
-        else {
+        if (index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        } else {
           setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
-          setTimeout(() => setActiveCell({ index: activeRows.length, field }), 0);
+          setTimeout(() => {
+              const newCell = { index: activeRows.length, field };
+              setActiveCell(newCell);
+              setSelection({ start: newCell, end: newCell });
+          }, 0);
         }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         saveToHistory();
-        handleInputChange(index, field, '');
+        
+        if ((e.ctrlKey || e.metaKey) && selection) {
+            // Borrar FILAS completas
+            const startIdx = Math.min(selection.start.index, selection.end.index);
+            const endIdx = Math.max(selection.start.index, selection.end.index);
+            
+            setDespieces(prev => prev.map(d => {
+                if (d.id !== activeDespieceId) return d;
+                const newFilas = d.filas.filter((_, i) => i < startIdx || i > endIdx);
+                return { ...d, filas: newFilas.length ? newFilas : [createNewRow()] };
+            }));
+            setSelection(null);
+            if (activeRows.length > 0) setActiveCell({ index: Math.max(0, startIdx - 1), field: selection.start.field });
+        } else {
+            // Borrar CONTENIDO de celdas seleccionadas
+            handleInputChange(index, field, '');
+        }
       } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         // Start editing implicitly on typing and overwrite the cell natively
         e.preventDefault();
@@ -465,30 +612,71 @@ const ModeloDespiece = () => {
       if (e.key === 'Enter') {
         e.preventDefault();
         setIsEditing(false);
-        if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
-        else {
+        if (index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: { ...newCell }, end: { ...newCell } });
+        } else {
           setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
-          setTimeout(() => setActiveCell({ index: activeRows.length, field }), 0);
+          setTimeout(() => {
+              const newCell = { index: activeRows.length, field };
+              setActiveCell(newCell);
+              setSelection({ start: { ...newCell }, end: { ...newCell } });
+          }, 0);
         }
       } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
         setIsEditing(false);
-        if (e.key === 'ArrowUp' && index > 0) setActiveCell({ index: index - 1, field });
-        else if (e.key === 'ArrowDown' && index < activeRows.length - 1) setActiveCell({ index: index + 1, field });
+        if (e.key === 'ArrowUp' && index > 0) {
+            const newCell = { index: index - 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+        else if (e.key === 'ArrowDown' && index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
       }
     }
-  }, [despieces, activeDespieceId, isEditing, handleInputChange, saveToHistory]);
+  }, [despieces, activeDespieceId, isEditing, handleInputChange, saveToHistory, selection]);
 
-  const handleCellClick = useCallback((index, field) => {
+  const handleCellClick = useCallback((index, field, e) => {
+     // Si ya estamos editando esta misma celda, no cerramos la edición ni interferimos
+     if (isEditing && activeCell?.index === index && activeCell?.field === field) {
+         return;
+     }
+
      setActiveCell({ index, field });
      setIsEditing(false);
-  }, []);
+     
+     if (e?.shiftKey && selection) {
+         setSelection(prev => ({ ...prev, end: { index, field } }));
+     } else {
+         setSelection({ start: { index, field }, end: { index, field } });
+     }
+  }, [selection, isEditing, activeCell]);
 
   const handleCellDoubleClick = useCallback((index, field) => {
+     // Si ya estamos en edición en esta celda, permitimos el doble clic nativo (para seleccionar la palabra)
+     if (isEditing && activeCell?.index === index && activeCell?.field === field) {
+         return;
+     }
+
      setActiveCell({ index, field });
+     setSelection({ start: { index, field }, end: { index, field } });
      saveToHistory();
      setIsEditing(true);
-  }, [saveToHistory]);
+
+     // Evitar que el *primer* doble clic (el que entra a edición) seleccione el texto
+     setTimeout(() => {
+        const inputEl = document.getElementById(`${field}-${index}`);
+        if (inputEl) {
+            const valObj = inputEl.value;
+            inputEl.setSelectionRange(valObj.length, valObj.length);
+        }
+     }, 10);
+  }, [saveToHistory, isEditing, activeCell]);
 
   const handleDragFill = useCallback((startIndex, endIndex, startField, endField, sourceValue) => {
     saveToHistory();
@@ -538,35 +726,35 @@ const ModeloDespiece = () => {
   }, [activeDespieceId, saveToHistory]);
   // ----------------------------------------------
 
-  const handleOpenNarizModal = useCallback((index, label = 'Nariz') => {
+  const handleOpenCobroModal = useCallback((index, label, targetField) => {
     const activeRows = despieces.find(d => d.id === activeDespieceId)?.filas || [];
     const row = activeRows[index];
     if (!row) return;
 
-    let prefill = row.narizCobro !== undefined ? String(row.narizCobro) : '';
-    setNarizModal({ isOpen: true, rowIndex: index, value: prefill, label: label });
+    let prefill = row[targetField] !== undefined ? String(row[targetField]) : '';
+    setCobroExtraModal({ isOpen: true, rowIndex: index, value: prefill, label: label, targetField: targetField });
   }, [despieces, activeDespieceId]);
 
-  const handleCloseNarizModal = () => {
-    setNarizModal({ isOpen: false, rowIndex: null, value: '', label: 'Nariz' });
+  const handleCloseCobroModal = () => {
+    setCobroExtraModal({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
   };
 
-  const handleSaveNarizModal = () => {
-    if (narizModal.rowIndex === null) return;
+  const handleSaveCobroModal = () => {
+    if (cobroExtraModal.rowIndex === null || !cobroExtraModal.targetField) return;
     saveToHistory();
-    const value = narizModal.value.trim();
+    const value = cobroExtraModal.value.trim();
     
     setDespieces(prevDespieces => prevDespieces.map(desp => {
         if (desp.id !== activeDespieceId) return desp;
         const newFilas = [...desp.filas];
-        const row = { ...newFilas[narizModal.rowIndex] };
+        const row = { ...newFilas[cobroExtraModal.rowIndex] };
 
-        row.narizCobro = value; // Guardar en campo interno
+        row[cobroExtraModal.targetField] = value; // Guardar en campo interno dinámico (narizCobro o enchapeCobro)
         
-        newFilas[narizModal.rowIndex] = row;
+        newFilas[cobroExtraModal.rowIndex] = row;
         return { ...desp, filas: newFilas };
     }));
-    handleCloseNarizModal();
+    handleCloseCobroModal();
   };
 
   const handleCopyDespiece = () => {
@@ -882,7 +1070,7 @@ const ModeloDespiece = () => {
               handleInputChange={handleInputChange}
               handleKeyDown={handleKeyDown}
               handleRemoveRow={handleRemoveRow}
-              handleOpenNarizModal={handleOpenNarizModal}
+              handleOpenCobroModal={handleOpenCobroModal}
               darkMode={darkMode}
               activeCell={activeCell}
               setActiveCell={setActiveCell}
@@ -893,6 +1081,7 @@ const ModeloDespiece = () => {
               handleCellClick={handleCellClick}
               handleCellDoubleClick={handleCellDoubleClick}
               handleDragFill={handleDragFill}
+              selection={selection}
             />
 
           </form>
@@ -916,7 +1105,7 @@ const ModeloDespiece = () => {
       </div>
 
       {/* MODAL DINÁMICO PARA COBROS EXACTOS (NARIZ, ENCHAPE) */}
-      {narizModal.isOpen && (
+      {cobroExtraModal.isOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000,
@@ -927,32 +1116,34 @@ const ModeloDespiece = () => {
             padding: '20px', borderRadius: '8px', minWidth: '300px',
             boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
           }}>
-            <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333' }}>Medida de {narizModal.label}</h3>
+            <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333' }}>Cantidad para {cobroExtraModal.label}</h3>
             <p style={{ fontSize: '13px', color: darkMode ? '#aaa' : '#666', marginBottom: '15px' }}>
-              Ingresa el total exacto a cobrar (ej: m² o ml). Esto se procesará como valor directo.
+              {cobroExtraModal.targetField === 'narizCobro' 
+                ? "Ingresa la cantidad exacta de unidades de Nariz a cobrar para esta pieza."
+                : "Ingresa el valor total en MILÍMETROS de enchape manual para esta pieza."}
             </p>
             <input
               type="number"
               step="any"
               autoFocus
               className={estilos.controls}
-              value={narizModal.value}
-              onChange={(e) => setNarizModal({ ...narizModal, value: e.target.value })}
+              value={cobroExtraModal.value}
+              onChange={(e) => setCobroExtraModal({ ...cobroExtraModal, value: e.target.value })}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  handleSaveNarizModal();
+                  handleSaveCobroModal();
                 } else if (e.key === 'Escape') {
-                  handleCloseNarizModal();
+                  handleCloseCobroModal();
                 }
               }}
-              placeholder="Ej: 10.5"
-              style={{ width: '100%', marginBottom: '15px', padding: '10px' }}
+              placeholder={cobroExtraModal.targetField === 'narizCobro' ? "Ej: 2" : "Ej: 1350"}
+              style={{ width: '100%', margin: '15px 0', padding: '10px' }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button 
                 type="button" 
-                onClick={handleCloseNarizModal} 
+                onClick={handleCloseCobroModal} 
                 className={estilos.botonEliminar}
                 style={{ padding: '8px 15px', margin: 0 }}
               >
@@ -960,7 +1151,7 @@ const ModeloDespiece = () => {
               </button>
               <button 
                 type="button" 
-                onClick={handleSaveNarizModal} 
+                onClick={handleSaveCobroModal} 
                 className={estilos.botonGuardar}
                 style={{ background: '#28a745', border: 'none', color: '#fff', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
               >
