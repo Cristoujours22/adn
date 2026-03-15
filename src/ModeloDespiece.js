@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
@@ -328,6 +328,12 @@ const ModeloDespiece = () => {
 
   // Al pegar filas, asegurar IDs únicos y evitar fila vacía inicial
   const handlePaste = useCallback((e) => {
+    // Si el pegado ocurre en un input de texto (cliente/proyecto), permitir comportamiento por defecto
+    const target = e.target;
+    if (target.tagName === 'INPUT' && target.type === 'text') {
+      return;
+    }
+    
     e.preventDefault();
     saveToHistory();
     const clipboardData = e.clipboardData.getData('text');
@@ -386,6 +392,40 @@ const ModeloDespiece = () => {
           });
           if (!isAutoSave) alert('Despiece actualizado exitosamente.');
         } else {
+          // Crear nuevo - verificar duplicados
+          const q = query(
+            collection(db, 'despieces'),
+            where('cliente', '==', clientName.trim()),
+            where('proyecto', '==', projectName.trim()),
+            where('userId', '==', currentUser ? currentUser.uid : null)
+          );
+          const existingDocs = await getDocs(q);
+          
+          if (!existingDocs.empty) {
+            const existingId = existingDocs.docs[0].id;
+            if (!isAutoSave) {
+              const sobrescribir = window.confirm(
+                `Ya existe un proyecto con el mismo Cliente y Nombre de Proyecto.\n\n` +
+                `Cliente: ${clientName}\n` +
+                `Proyecto: ${projectName}\n\n` +
+                `¿Deseas sobrescribir el proyecto existente?`
+              );
+              if (!sobrescribir) return;
+              
+              // Sobrescribir el proyecto existente
+              const despieceRef = doc(db, 'despieces', existingId);
+              await updateDoc(despieceRef, {
+                proyecto: projectName,
+                cliente: clientName,
+                ultimaModificacion: new Date().toLocaleDateString(),
+                despieces: despieces,
+                serviciosGuardados: services
+              });
+              if (!isAutoSave) alert('Despiece actualizado exitosamente.');
+              return;
+            }
+          }
+          
           // Crear nuevo
           const despiecesCollection = collection(db, 'despieces');
           const despieceData = {
@@ -624,7 +664,7 @@ const ModeloDespiece = () => {
               setSelection({ start: { ...newCell }, end: { ...newCell } });
           }, 0);
         }
-      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault();
         setIsEditing(false);
         if (e.key === 'ArrowUp' && index > 0) {
@@ -634,6 +674,16 @@ const ModeloDespiece = () => {
         }
         else if (e.key === 'ArrowDown' && index < activeRows.length - 1) {
             const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+        else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            const newCell = { index, field: fields[currentIndex - 1] };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+        else if (e.key === 'ArrowRight' && currentIndex < fields.length - 1) {
+            const newCell = { index, field: fields[currentIndex + 1] };
             setActiveCell(newCell);
             setSelection({ start: newCell, end: newCell });
         }
