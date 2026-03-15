@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
@@ -75,6 +75,55 @@ const ModeloDespiece = () => {
   const [serviceCounts, setServiceCounts] = useState({});
   const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Función para cargar servicios del usuario desde Firestore
+  const loadUserServices = useCallback(async () => {
+    if (!currentUser?.uid) return null;
+    try {
+      const userServicesRef = doc(db, 'userServices', currentUser.uid);
+      const userServicesSnap = await getDoc(userServicesRef);
+      if (userServicesSnap.exists() && userServicesSnap.data()?.servicios) {
+        return userServicesSnap.data().servicios;
+      }
+    } catch (error) {
+      console.error('Error al cargar servicios del usuario:', error);
+    }
+    return null;
+  }, [currentUser]);
+
+  // Función para guardar servicios como defaults del usuario
+  const saveUserServicesAsDefault = useCallback(async () => {
+    if (!currentUser?.uid) {
+      alert('Debes estar autenticado para guardar tus servicios por defecto.');
+      return;
+    }
+    try {
+      const userServicesRef = doc(db, 'userServices', currentUser.uid);
+      await setDoc(userServicesRef, {
+        userId: currentUser.uid,
+        servicios: services,
+        fechaActualizacion: new Date().toLocaleDateString()
+      });
+      alert('Servicios guardados como tus valores por defecto.');
+    } catch (error) {
+      console.error('Error al guardar servicios del usuario:', error);
+      alert('Error al guardar los servicios. Consulta la consola.');
+    }
+  }, [currentUser, services]);
+
+  // Cargar servicios del usuario al iniciar (solo si no hay id - nuevo proyecto)
+  useEffect(() => {
+    if (!id) {
+      const loadInitialServices = async () => {
+        const userServices = await loadUserServices();
+        if (userServices) {
+          setServices(userServices);
+        }
+      };
+      loadInitialServices();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, loadUserServices]);
   const [pieceSearchTerm, setPieceSearchTerm] = useState('');
   const [pieceSearchLargo, setPieceSearchLargo] = useState('');
   const [pieceSearchAncho, setPieceSearchAncho] = useState('');
@@ -128,7 +177,7 @@ const ModeloDespiece = () => {
     
     // Listen to our custom event for instant updates within the same window
     window.addEventListener("openNomenclaturesModal", handleOpenModal);
-    
+     
     return () => {
       window.removeEventListener("openNomenclaturesModal", handleOpenModal);
     };
@@ -193,6 +242,12 @@ const ModeloDespiece = () => {
               return s;
             });
             setServices(parsedServices);
+          } else {
+            // Si no hay servicios en el proyecto, cargar servicios del usuario o defaults
+            const userServices = await loadUserServices();
+            if (userServices) {
+              setServices(userServices);
+            }
           }
         }
       } catch (err) {
@@ -443,6 +498,20 @@ const ModeloDespiece = () => {
     } catch (error) {
         console.error('Error al guardar en Firestore:', error.message, error.stack);
         if (!isAutoSave) alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
+    } finally {
+        // Respaldo de servicios del usuario
+        if (currentUser?.uid && !isAutoSave) {
+            try {
+                const userServicesRef = doc(db, 'userServices', currentUser.uid);
+                await setDoc(userServicesRef, {
+                    userId: currentUser.uid,
+                    servicios: services,
+                    fechaActualizacion: new Date().toLocaleDateString()
+                });
+            } catch (err) {
+                console.error('Error al respaldar servicios del usuario:', err);
+            }
+        }
     }
   }, [despieces, projectName, clientName, services, id, currentUser, creationDate, lastModifiedDate]); // Added missing dependencies
 
@@ -913,6 +982,12 @@ const ModeloDespiece = () => {
                             style={{ background: 'transparent', color: '#28a745', border: '1px solid #28a745', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                         >
                             {services.every(s => s.activo !== false) ? 'Ocultar Todos' : 'Mostrar Todos'}
+                        </button>
+                        <button 
+                            onClick={saveUserServicesAsDefault}
+                            style={{ background: 'transparent', color: '#ffc107', border: '1px solid #ffc107', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                            ★ Guardar como Mis Defaults
                         </button>
                         <button 
                             onClick={handleRestoreDefaultServices}
