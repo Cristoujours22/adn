@@ -1393,6 +1393,45 @@ body.high-contrast .despieceItem p {
 }
 
 /* =========================================================
+   MÓDULOS EN DESPiece
+   ========================================================= */
+
+/* Fila con color de módulo */
+.moduleRow {
+  background-color: var(--module-color, transparent);
+}
+
+/* Celda de acciones con fondo blanco */
+.moduleActionsCell {
+  background-color: #fff !important;
+}
+
+/* Colores de módulos específicos */
+.moduleD1 { --module-color: #4285f4; }
+.moduleD2 { --module-color: #ea4335; }
+.moduleD3 { --module-color: #fbbc04; }
+.moduleD4 { --module-color: #a020f0; }
+.moduleD5 { --module-color: #00bcd4; }
+.moduleD6 { --module-color: #ff7043; }
+.moduleDoorPanel { --module-color: #4caf50; }
+
+.moduleHeader {
+  margin-top: 6px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moduleBadge {
+  font-weight: bold;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #fff;
+}
+
+/* =========================================================
    USER PROFILE REDESIGN - BENTO GLASSMORPHISM
    ========================================================= */
 

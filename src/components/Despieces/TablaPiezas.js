@@ -23,7 +23,8 @@ const TablaPiezas = ({
     handleCellClick,
     handleCellDoubleClick,
     handleDragFill,
-    selection
+    selection,
+    showModuleColors
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -34,6 +35,39 @@ const TablaPiezas = ({
     };
 
     const [collapsedModules, setCollapsedModules] = useState({});
+    
+    const moduleColors = [
+        { bg: '#4285f4', border: '#3367d6' },   // Azul vivo
+        { bg: '#ea4335', border: '#d33426' },   // Rojo vivo
+        { bg: '#fbbc04', border: '#e5a703' },   // Amarillo vivo
+        { bg: '#a020f0', border: '#8a1ce0' },   // Morado vivo
+        { bg: '#00bcd4', border: '#00a5bb' },   // Cyan vivo
+        { bg: '#ff7043', border: '#e55a2b' },   // Naranja vivo
+        { bg: '#795548', border: '#5d4037' },   // Marrón vivo
+        { bg: '#607d8b', border: '#4a5b63' },   // Gris azulado vivo
+        { bg: '#e91e63', border: '#c2185b' },   // Rosa vivo
+        { bg: '#9c27b0', border: '#7b1fa2' },  // Púrpura vivo
+        { bg: '#009688', border: '#00796b' },   // Verde azulado vivo
+        { bg: '#ff5722', border: '#e64a19' },  // Naranja intenso vivo
+    ];
+    
+    // Color específico para puertas y paneles
+    const doorPanelColor = { bg: '#4caf50', border: '#388e3c' }; // Verde vivo
+    
+    // Función para verificar si es puerta o panel
+    const isDoorOrPanel = (detalle) => {
+        if (!detalle) return false;
+        const d = detalle.toUpperCase();
+        return d.includes('PUERTA') || d.includes('PANEL') || d.includes('PTA');
+    };
+    
+    const getModuleColorIndex = (moduleName) => {
+        if (!moduleName) return -1;
+        // Usar hash del nombre completo para que cada módulo único tenga su propio color
+        // Ej: D1-0, D1-1512, D2-34 serán todos diferentes
+        const hash = moduleName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return hash % moduleColors.length;
+    };
     
     const toggleModule = (moduleName) => {
         setCollapsedModules(prev => ({ ...prev, [moduleName]: !prev[moduleName] }));
@@ -102,6 +136,18 @@ const TablaPiezas = ({
                 if (isCollapsed && !isFirstOfModule) {
                     return null;
                 }
+                
+                // Obtener color del módulo para esta fila (solo si showModuleColors está activado)
+                let moduleColor = null;
+                if (showModuleColors) {
+                    const moduleColorIndex = getModuleColorIndex(currentModule);
+                    moduleColor = moduleColorIndex >= 0 ? moduleColors[moduleColorIndex] : null;
+                    
+                    // Si es puerta o panel, usar color verde específico
+                    if (isDoorOrPanel(safeRow.detalle)) {
+                        moduleColor = doorPanelColor;
+                    }
+                }
 
                 // Helper to render individual cells with Excel-like behavior
                 const renderCell = (field, classNameExtras = '') => {
@@ -164,6 +210,10 @@ const TablaPiezas = ({
                         boxSizing: 'border-box',
                     };
 
+                    const dataFields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+                    const isDataCell = dataFields.includes(field);
+                    const moduleBgColor = (isDataCell && moduleColor) ? moduleColor.bg : undefined;
+
                     const inputStyle = {
                         width: '100%',
                         height: '100%',
@@ -171,10 +221,10 @@ const TablaPiezas = ({
                         outlineOffset: '-2px',
                         cursor: isEditing && isActive ? 'text' : 'cell',
                         caretColor: (isActive && isEditing) ? 'auto' : 'transparent',
-                        backgroundColor: isDragTarget ? (darkMode ? '#2c3e50' : '#d2e3fc') : 
+                        backgroundColor: moduleBgColor || (isDragTarget ? (darkMode ? '#2c3e50' : '#d2e3fc') : 
                                          (isSelected && !isActive ? (darkMode ? '#2c313a' : '#e8f0fe') : 
                                          (isActive && !isEditing ? (darkMode ? '#3a404d' : '#e8f0fe') : 
-                                         (isInvalid ? (darkMode ? '#4d2a2a' : '#fff0f0') : undefined))),
+                                         (isInvalid ? (darkMode ? '#4d2a2a' : '#fff0f0') : undefined)))),
                         color: (isActive && !isEditing && darkMode) || isDragTarget || (isSelected && darkMode) ? '#fff' : undefined,
                         border: isInvalid ? `1px solid ${darkMode ? '#ff6b6b' : '#dc3545'}` : undefined
                     };
@@ -253,7 +303,14 @@ const TablaPiezas = ({
                 };
 
                 return (
-                    <div key={safeRow.id || `row_${index}`} className={estilos.filaDespiece} style={{ position: 'relative' }}>
+                    <React.Fragment key={safeRow.id || `row_${index}`}>
+                        <div 
+                            className={`${estilos.filaDespiece} ${estilos.moduleRow}`}
+                            style={{ 
+                                position: 'relative',
+                                '--module-color': moduleColor ? moduleColor.bg : 'transparent'
+                            }}
+                        >
                         {renderCell('cant', `${estilos.inputCorto} ${estilos.flexibleWidth}`)}
                         {renderCell('largo', estilos.inputCorto)}
                         {renderCell('ancho', estilos.inputCorto)}
@@ -263,7 +320,7 @@ const TablaPiezas = ({
                         {renderCell('l2', estilos.inputCorto)}
                         {renderCell('a1', estilos.inputCorto)}
                         {renderCell('a2', estilos.inputCorto)}
-                        <div className={estilos.celdaDespiece}>
+                        <div className={`${estilos.celdaDespiece} ${estilos.moduleActionsCell}`}>
                             <div style={{ width: '100%', height: '100%', position: 'relative', boxSizing: 'border-box', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'center', alignItems: 'center', padding: '0 5px' }}>
                                 {(() => {
                                 const detLower = safeRow.detalle?.toLowerCase() || '';
@@ -318,6 +375,7 @@ const TablaPiezas = ({
                             </div>
                         </div>
                     </div>
+                    </React.Fragment>
                 );
             })}
         </div>
