@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
@@ -174,6 +174,10 @@ const ModeloDespiece = () => {
   // eslint-disable-next-line no-unused-vars
   const [history, setHistory] = useState([]);
   const [selection, setSelection] = useState(null); // { start: { index, field }, end: { index, field } }
+  const [showHistorialModal, setShowHistorialModal] = useState(false);
+  const [historialVersiones, setHistorialVersiones] = useState([]);
+  const [versionSeleccionada, setVersionSeleccionada] = useState(null);
+  const [showMenuAcciones, setShowMenuAcciones] = useState(false);
 
   const saveToHistory = useCallback(() => {
     setHistory(prev => {
@@ -458,6 +462,59 @@ const ModeloDespiece = () => {
     }));
   }, [activeDespieceId, saveToHistory]);
 
+  // ==================== HISTORIAL DE VERSIONES ====================
+  const guardarVersion = async (despieceId, datos) => {
+    if (!despieceId) return;
+    
+    const historialRef = collection(db, 'historialVersiones');
+    
+    // Obtener número de versión actual
+    const q = query(historialRef, where('despieceId', '==', despieceId));
+    const snapshot = await getDocs(q);
+    const numVersion = snapshot.size + 1;
+    
+    // Crear nueva versión
+    await addDoc(historialRef, {
+      despieceId,
+      version: numVersion,
+      fecha: new Date().toLocaleString(),
+      usuario: currentUser?.uid || 'anonimo',
+      datos: datos.despieces,
+      serviciosGuardados: datos.servicios,
+      proyecto: datos.proyecto,
+      cliente: datos.cliente
+    });
+    
+    // Mantener solo últimas 5 versiones
+    if (numVersion > 5) {
+      const docsOrdenados = snapshot.docs.sort((a, b) => a.data().version - b.data().version);
+      const docsAEliminar = docsOrdenados.slice(0, numVersion - 5);
+      for (const docItem of docsAEliminar) {
+        await deleteDoc(docItem.ref);
+      }
+    }
+  };
+
+  const cargarHistorialVersiones = async (despieceId) => {
+    if (!despieceId) return;
+    
+    const q = query(collection(db, 'historialVersiones'), where('despieceId', '==', despieceId));
+    const snapshot = await getDocs(q);
+    const historial = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    historial.sort((a, b) => b.version - a.version);
+    setHistorialVersiones(historial);
+  };
+
+  const restaurarVersion = (version) => {
+    if (window.confirm(`¿Estás seguro que deseas restaurar la versión ${version.version} del ${version.fecha}? Los cambios actuales se perderán.`)) {
+      setDespieces(version.datos);
+      setServices(version.serviciosGuardados || DEFAULT_SERVICES);
+      setShowHistorialModal(false);
+      alert('Versión restaurada exitosamente. No olvides guardar los cambios.');
+    }
+  };
+
+  // ==================== GUARDAR EN FIRESTORE ====================
   // Guardar: si es edición, actualizar, si no, crear
   const handleSaveToFirestore = useCallback(async (isAutoSave = false) => {
     const totalFilas = despieces.reduce((acc, current) => acc + (current.filas ? current.filas.length : 0), 0);
@@ -483,7 +540,10 @@ const ModeloDespiece = () => {
             despieces: despieces,
             serviciosGuardados: services
           });
-          if (!isAutoSave) alert('Despiece actualizado exitosamente.');
+          if (!isAutoSave) {
+            await guardarVersion(id, { despieces, servicios: services, proyecto: projectName, cliente: clientName });
+            alert('Despiece actualizado exitosamente.');
+          }
         } else {
           // Crear nuevo - verificar duplicados
           const q = query(
@@ -514,7 +574,10 @@ const ModeloDespiece = () => {
                 despieces: despieces,
                 serviciosGuardados: services
               });
-              if (!isAutoSave) alert('Despiece actualizado exitosamente.');
+              if (!isAutoSave) {
+                await guardarVersion(existingId, { despieces, servicios: services, proyecto: projectName, cliente: clientName });
+                alert('Despiece actualizado exitosamente.');
+              }
               return;
             }
           }
@@ -551,7 +614,7 @@ const ModeloDespiece = () => {
             }
         }
     }
-  }, [despieces, projectName, clientName, services, id, currentUser, creationDate, lastModifiedDate]); // Added missing dependencies
+  }, [despieces, projectName, clientName, services, id, currentUser, creationDate, lastModifiedDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------- SISTEMA DE AUTOGUARDADO ---------
   useEffect(() => {
@@ -593,6 +656,19 @@ const ModeloDespiece = () => {
         }
     }
   }, [activeCell, isEditing]);
+
+  // Cerrar menú de acciones al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showMenuAcciones && !e.target.closest('.menu-acciones')) {
+        setShowMenuAcciones(false);
+      }
+    };
+    if (showMenuAcciones) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showMenuAcciones]);
 
   // --- EXCEL-LIKE NAVIGATION & EVENT HANDLERS ---
   const handleKeyDown = useCallback((e, index, field) => {
@@ -1314,12 +1390,75 @@ const ModeloDespiece = () => {
 
           </form>
           <footer className={estilos.footerDespiece} style={{ marginTop: '40px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-            <button type="button" onClick={() => handleSaveToFirestore(false)} className={estilos.botonSubmit}>
-              Guardar Despiece
-            </button>
-            <button type="button" className={estilos.botonCopiar} onClick={handleCopyDespiece} style={{ margin: 0 }}>
-              Copiar a Excel
-            </button>
+            <div style={{ position: 'relative' }} className="menu-acciones">
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); setShowMenuAcciones(!showMenuAcciones); }}
+                style={{ margin: 0, padding: '10px 20px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                ▼ Mas opciones
+              </button>
+              
+              {showMenuAcciones && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  marginBottom: '4px',
+                  background: darkMode ? '#2c303a' : '#fff',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  zIndex: 1000,
+                  minWidth: '180px',
+                  overflow: 'hidden'
+                }}>
+                  <button 
+                    type="button"
+                    onClick={() => { handleSaveToFirestore(false); setShowMenuAcciones(false); }}
+                    style={{ 
+                      display: 'block', width: '100%', padding: '12px 16px', 
+                      background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                      color: darkMode ? '#fff' : '#333',
+                      borderBottom: '1px solid #eee'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                    onMouseLeave={(e) => e.target.style.background = 'none'}
+                  >
+                    💾 Guardar Despiece
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { handleCopyDespiece(); setShowMenuAcciones(false); }}
+                    style={{ 
+                      display: 'block', width: '100%', padding: '12px 16px', 
+                      background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                      color: darkMode ? '#fff' : '#333',
+                      borderBottom: '1px solid #eee'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                    onMouseLeave={(e) => e.target.style.background = 'none'}
+                  >
+                    📊 Copiar a Excel
+                  </button>
+                  {id && (
+                    <button 
+                      type="button"
+                      onClick={() => { cargarHistorialVersiones(id); setShowHistorialModal(true); setShowMenuAcciones(false); }}
+                      style={{ 
+                        display: 'block', width: '100%', padding: '12px 16px', 
+                        background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                        color: darkMode ? '#fff' : '#333'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >
+                      📜 Historial
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </footer>
         </div>
 
@@ -1332,7 +1471,67 @@ const ModeloDespiece = () => {
         />
       </div>
 
-      {/* MODAL DINÁMICO PARA COBROS EXACTOS (NARIZ, ENCHAPE) */}
+      {/* MODAL DE HISTORIAL DE VERSIONES */}
+      {showHistorialModal && (
+        <div className={estilos.modalOverlay}>
+            <div className={estilos.modalContent} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
+                <button className={estilos.closeButton} onClick={() => setShowHistorialModal(false)}>×</button>
+                <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>Historial de Versiones</h3>
+                
+                {historialVersiones.length === 0 ? (
+                  <p style={{ color: '#ccc', textAlign: 'center' }}>No hay versiones guardadas.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {historialVersiones.map((v) => (
+                      <div key={v.id} style={{ 
+                        background: darkMode ? '#3a3f47' : '#f8f9fa', 
+                        padding: '12px', 
+                        borderRadius: '6px',
+                        border: versionSeleccionada?.id === v.id ? '2px solid #1a73e8' : '1px solid #ddd'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div>
+                            <strong style={{ color: '#1a73e8' }}>Version {v.version}</strong>
+                            <span style={{ color: '#888', marginLeft: '10px' }}>{v.fecha}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            <button 
+                              onClick={() => setVersionSeleccionada(versionSeleccionada?.id === v.id ? null : v)}
+                              style={{ padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
+                            >
+                              {versionSeleccionada?.id === v.id ? 'Ocultar' : 'Ver'}
+                            </button>
+                            <button 
+                              onClick={() => restaurarVersion(v)}
+                              style={{ padding: '4px 8px', fontSize: '12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+                            >
+                              Restaurar
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {versionSeleccionada?.id === v.id && (
+                          <div style={{ marginTop: '10px', padding: '10px', background: darkMode ? '#2a2e35' : '#fff', borderRadius: '4px', fontSize: '12px' }}>
+                            <p><strong>Proyecto:</strong> {v.proyecto}</p>
+                            <p><strong>Cliente:</strong> {v.cliente}</p>
+                            <p><strong>Usuario:</strong> {v.usuario}</p>
+                            <p><strong>Servicios:</strong> {v.serviciosGuardados?.length || 0}</p>
+                            <p><strong>Despieces:</strong> {v.datos?.length || 0}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p style={{ color: '#888', fontSize: '11px', marginTop: '15px', textAlign: 'center' }}>
+                  Ultimas 5 versiones. Solo se crea version al guardar manualmente.
+                </p>
+            </div>
+        </div>
+      )}
+
+      {/* MODAL DINAMICO PARA COBROS EXACTOS (NARIZ, ENCHAPE) */}
       {cobroExtraModal.isOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
