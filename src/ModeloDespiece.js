@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { db } from './credenciales';
@@ -130,6 +130,7 @@ const ModeloDespiece = () => {
   const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
   const [cobroExtraModal, setCobroExtraModal] = useState({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
   const [showModuleColors, setShowModuleColors] = useState(false);
+  const editingValueRef = useRef({}); // Guarda el valor original cuando se entra en edición { "0_largo": "790", "1_cant": "2" }
   const { darkMode } = useTheme();
 
   // Cargar preferencia de colores de módulos
@@ -367,6 +368,8 @@ const ModeloDespiece = () => {
   };
 
   const handleInputChange = useCallback((index, field, value) => {
+    // La validación de cant/largo/ancho se hace al confirmar con Enter (en handleKeyDown)
+    
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       const newRows = [...(despiece.filas || [])];
@@ -401,7 +404,7 @@ const ModeloDespiece = () => {
 
       return { ...despiece, filas: newRows };
     }));
-  }, [activeDespieceId, selection]);
+  }, [activeDespieceId, selection, despieces]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemoveRow = useCallback((indexToRemove) => {
     saveToHistory();
@@ -709,6 +712,7 @@ const ModeloDespiece = () => {
       } else if (e.key === 'F2') {
         e.preventDefault();
         saveToHistory();
+        saveOriginalValue(index, field);
         setIsEditing(true);
       } else if (e.key === 'Enter') {
         e.preventDefault();
@@ -748,6 +752,7 @@ const ModeloDespiece = () => {
         // Start editing implicitly on typing and overwrite the cell natively
         e.preventDefault();
         saveToHistory();
+        saveOriginalValue(index, field);
         setIsEditing(true);
         handleInputChange(index, field, e.key);
       }
@@ -755,6 +760,35 @@ const ModeloDespiece = () => {
       // Edit Mode
       if (e.key === 'Enter') {
         e.preventDefault();
+        
+        // Validar cant/largo/ancho antes de confirmar
+        if (['cant', 'largo', 'ancho'].includes(field)) {
+          const inputEl = document.getElementById(`${field}-${index}`);
+          const newValue = inputEl?.value || '';
+          const originalValue = editingValueRef.current[`${index}_${field}`];
+          
+          if (originalValue !== undefined && 
+              originalValue !== '' && 
+              String(originalValue) !== String(newValue)) {
+            const confirmar = window.confirm(
+              `¿Estás seguro que deseas editar ${field}? Esto reemplazará el valor actual (${originalValue}) por "${newValue}".`
+            );
+            if (!confirmar) {
+              // Cancelar - restaurar valor original y salir del modo edición
+              setDespieces((prev) => prev.map(d => {
+                if (d.id !== activeDespieceId) return d;
+                const newFilas = [...d.filas];
+                if (newFilas[index]) {
+                  newFilas[index] = { ...newFilas[index], [field]: originalValue };
+                }
+                return { ...d, filas: newFilas };
+              }));
+              setIsEditing(false);
+              return;
+            }
+          }
+        }
+        
         setIsEditing(false);
         if (index < activeRows.length - 1) {
             const newCell = { index: index + 1, field };
@@ -793,7 +827,7 @@ const ModeloDespiece = () => {
         }
       }
     }
-  }, [despieces, activeDespieceId, isEditing, handleInputChange, saveToHistory, selection]);
+  }, [despieces, activeDespieceId, isEditing, handleInputChange, saveToHistory, selection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCellClick = useCallback((index, field, e) => {
      // Si ya estamos editando esta misma celda, no cerramos la edición ni interferimos
@@ -808,8 +842,15 @@ const ModeloDespiece = () => {
          setSelection(prev => ({ ...prev, end: { index, field } }));
      } else {
          setSelection({ start: { index, field }, end: { index, field } });
-     }
-  }, [selection, isEditing, activeCell]);
+      }
+   }, [selection, isEditing, activeCell]);
+
+  // Función helper para guardar el valor original al entrar en modo edición
+  const saveOriginalValue = useCallback((index, field) => {
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    const currentValue = activeDespiece?.filas?.[index]?.[field] || '';
+    editingValueRef.current[`${index}_${field}`] = currentValue;
+  }, [despieces, activeDespieceId]);
 
   const handleCellDoubleClick = useCallback((index, field) => {
      // Si ya estamos en edición en esta celda, permitimos el doble clic nativo (para seleccionar la palabra)
@@ -820,6 +861,10 @@ const ModeloDespiece = () => {
      setActiveCell({ index, field });
      setSelection({ start: { index, field }, end: { index, field } });
      saveToHistory();
+     
+     // Guardar valor original para validar al confirmar con Enter
+     saveOriginalValue(index, field);
+     
      setIsEditing(true);
 
      // Evitar que el *primer* doble clic (el que entra a edición) seleccione el texto
@@ -829,8 +874,8 @@ const ModeloDespiece = () => {
             const valObj = inputEl.value;
             inputEl.setSelectionRange(valObj.length, valObj.length);
         }
-     }, 10);
-  }, [saveToHistory, isEditing, activeCell]);
+      }, 10);
+  }, [saveToHistory, isEditing, activeCell, saveOriginalValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragFill = useCallback((startIndex, endIndex, startField, endField, sourceValue) => {
     saveToHistory();

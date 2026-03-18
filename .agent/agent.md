@@ -11,12 +11,15 @@ Este archivo contiene las reglas críticas y el conocimiento profundo del proyec
 
 ### 1. Detección de Servicios en Detalle
 - La detección debe ser **insensible a mayúsculas/minúsculas**.
-- Se debe detectar el nombre del servicio aunque tenga texto adicional, símbolos, números o espacios al lado.
+- **IMPORTANTE**: Las regex de detección en `despieceCalculations.js` deben usar **SIN límites de palabra (`\b`)**. Esto permite detectar servicios aunque tengan texto antes o después:
+  - Ejemplo: "PanelMANIGAVETA" debe detectar MANIGAVETA
+  - Ejemplo: "algoMANIGAVETAalgo" debe detectar MANIGAVETA
+  - Esto aplica a: calado, curva, nariz, senchamanual, perbis, sanduche, y todos los servicios con `tipoCobro: unidad`
 - Los servicios SENCHAMANUAL y NARIZ cuando son escritos en detalle empiezan su valor en 0.
 
 #### Detección de Cantidades Múltiples
 Para servicios como CURVAS, CALADOS y NARICES, el usuario puede especificar múltiples unidades en el detalle:
-- **Formatos válidos**: "Calado 2", "2 calados", "calado x2", "curva x3", "nariz x2", "3 curvas", etc.
+- **Formatos válidos**: "Calado 2L", "2 calados", "calado x2", "curva 2L ", "nariz 2L", "3 curvas", etc.
 - El sistema debe detectar el número antes del nombre del servicio para contar múltiples unidades.
 - Si no se especifica cantidad, se cuenta como 1 unidad por defecto.
 

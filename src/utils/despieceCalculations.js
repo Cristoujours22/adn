@@ -6,6 +6,41 @@
  * @param {Array} services Lista de servicios disponibles con sus reglas de tipoCobro
  * @returns {Object} { totalPieces: number, serviceCounts: Object }
  */
+
+const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const detectarCantidadUnidad = (detalle, nombreOriginal, nomenclatura) => {
+    const baseNombre = escapeRegExp(nombreOriginal.toLowerCase());
+    const baseNom = escapeRegExp(nomenclatura.toLowerCase());
+    const baseRegexStr = baseNombre === baseNom 
+        ? baseNombre 
+        : `${baseNombre}|${baseNom}`;
+    
+    let total = 0;
+    
+    const regexAntes = new RegExp(`(\\d+)\\s*${baseRegexStr}`, 'gi');
+    let match;
+    while ((match = regexAntes.exec(detalle)) !== null) {
+        total += parseInt(match[1], 10) || 1;
+    }
+    
+    const regexDespues = new RegExp(`${baseRegexStr}(?:\\s*(\\d+)(?:L)?)?`, 'gi');
+    while ((match = regexDespues.exec(detalle)) !== null) {
+        if (match[1]) {
+            total += parseInt(match[1], 10);
+        } else {
+            total += 1;
+        }
+    }
+    
+    const regexPegado = new RegExp(`${baseRegexStr}(\\d+)(?:L)?`, 'gi');
+    while ((match = regexPegado.exec(detalle)) !== null) {
+        total += parseInt(match[1], 10);
+    }
+    
+    return total;
+};
+
 export const calcularTotalesDespiece = (despieces, services) => {
     let piecesCount = 0;
     const sCounts = {};
@@ -25,7 +60,6 @@ export const calcularTotalesDespiece = (despieces, services) => {
                 // Contar servicios en el detalle usando nombre original o nomenclatura
                 const detalle = row?.detalle ? row.detalle.toLowerCase() : '';
                 services.forEach(service => {
-                    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const isCalado = service.nomenclatura.toLowerCase() === 'calado' || service.nombreOriginal.toLowerCase().includes('calado');
                     const isCurva = service.nomenclatura.toLowerCase() === 'cscurva1' || service.nombreOriginal.toLowerCase() === 'curva';
                     
@@ -34,9 +68,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                     if (isCalado) {
                         const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
                         const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
-                        const baseRegexStr = baseName === baseNom ? `\\b${baseName}\\b` : `\\b${baseName}\\b|\\b${baseNom}\\b`;
-                        
-                        // Captura la palabra base, seguida opcionalmente por " 1L...4L", seguido opcionalmente por "/medida*medida"
+                        const baseRegexStr = baseName === baseNom ? baseName : `${baseName}|${baseNom}`;
                         const regex = new RegExp(`(${baseRegexStr})(?:\\s*([1-4])L)?(?:\\/(\\d+(?:\\.\\d+)?)\\*(\\d+(?:\\.\\d+)?))?`, 'gi');
                         
                         let match;
@@ -67,7 +99,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                     } else if (isCurva) {
                         const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
                         const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
-                        const baseRegexStr = baseName === baseNom ? `\\b${baseName}\\b` : `\\b${baseName}\\b|\\b${baseNom}\\b`;
+                        const baseRegexStr = baseName === baseNom ? baseName : `${baseName}|${baseNom}`;
                         
                         const regex = new RegExp(`(${baseRegexStr})(?:\\s*([1-4])(?:L|l)?)?`, 'gi');
                         
@@ -84,9 +116,10 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         const isNariz = service.nomenclatura.toLowerCase() === 'nar' || service.nombreOriginal.toLowerCase().includes('nariz') || service.nombreOriginal.toLowerCase().includes('narices') || service.nombreOriginal.toLowerCase().includes('nar');
                         const isSenchaManual = service.nomenclatura.toUpperCase() === 'SENCHAMANUAL' || service.nombreOriginal.toLowerCase().includes('enchape a pieza especial');
                         const isPerbis = service.nomenclatura.toUpperCase() === 'PERBIS' || service.nombreOriginal.toLowerCase().includes('perbis');
+                        const isSanduche = service.nombreOriginal.toLowerCase().includes('sanduche') || service.nombreOriginal.toLowerCase().includes('clavillo') || service.nombreOriginal.toLowerCase().includes('sandu');
 
-                        const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
-                        const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
+                        const regexNombre = new RegExp(escapeRegExp(service.nombreOriginal.toLowerCase()), 'gi');
+                        const regexNom = new RegExp(escapeRegExp(service.nomenclatura.toLowerCase()), 'gi');
 
                         const matchesNombre = detalle.match(regexNombre);
                         const matchesNom = detalle.match(regexNom);
@@ -95,10 +128,10 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         // Flexibilizamos la búsqueda para que baste con "nar" o "nariz"
                         // ya que la nomenclatura "NARIZ, ENGRUESE" casi nunca se escribe textualmente.
                         if (isNariz) {
-                            const basicNarRegex = /\bnar(?:iz(?:es)?)?\b/gi;
+                            const basicNarRegex = /nar(?:iz(?:es)?)?/gi;
                             count = (detalle.match(basicNarRegex) || []).length;
                         } else if (isSenchaManual) {
-                            const basicSenchaRegex = /\b(?:senchamanual|enchape manual|manigaveta|manichaflan)\b/gi;
+                            const basicSenchaRegex = /(?:senchamanual|enchape manual|manigaveta|manichaflan)/gi;
                             count = (detalle.match(basicSenchaRegex) || []).length;
                             
                             // Revisión automática si no hay texto relevante, pero cumple la regla <= 119
@@ -121,10 +154,17 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                 foundAny = true;
                             }
                             if (!foundAny) {
-                                // Fallback a búsqueda normal de palabra
-                                const basicPerbisRegex = /\bperbis\b/gi;
+                                const basicPerbisRegex = /perbis/gi;
                                 count = (detalle.match(basicPerbisRegex) || []).length;
                             }
+                        } else if (isSanduche) {
+                            // Detección por nomenclatura exacta del servicio
+                            const nomenclLower = service.nomenclatura.toLowerCase();
+                            const regex = new RegExp(escapeRegExp(nomenclLower), 'i');
+                            const hasThisService = regex.test(detalle);
+                            count = hasThisService ? 1 : 0;
+                        } else if (service.tipoCobro === 'unidad') {
+                            count = detectarCantidadUnidad(detalle, service.nombreOriginal, service.nomenclatura);
                         } else if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
                             count = matchesNombre ? matchesNombre.length : 0;
                         } else {
@@ -148,7 +188,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                 // Regex estandarizada para Narices (independiente de nomenclatura de Admin)
                                 const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
                                 const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
-                                const baseRegexStr = baseName === baseNom ? `\\b${baseName}\\b` : `\\b${baseName}\\b|\\b${baseNom}\\b`;
+                        const baseRegexStr = baseName === baseNom ? baseName : `${baseName}|${baseNom}`;
                                 const regexNarizOld = new RegExp(`(${baseRegexStr})(?:\\s*(\\d+)(?:L)?)?`, 'gi');
                                 let totalNarizUnits = 0;
                                 
@@ -201,6 +241,17 @@ export const calcularTotalesDespiece = (despieces, services) => {
                                     if (validCantos.includes(String(row.a2))) totalSenchaMm += a;
                                 }
 
+                                // Lógica de NARIZ para SENCHAMANUAL: cantos 3 o 4 suman milímetros como ML
+                                const validCantosNariz = ['3', '4'];
+                                let cantosSenchaMm = 0;
+                                if (validCantosNariz.includes(String(row.l1))) cantosSenchaMm += l;
+                                if (validCantosNariz.includes(String(row.l2))) cantosSenchaMm += l;
+                                if (validCantosNariz.includes(String(row.a1))) cantosSenchaMm += a;
+                                if (validCantosNariz.includes(String(row.a2))) cantosSenchaMm += a;
+                                if (cantosSenchaMm > 0) {
+                                    totalSenchaMm += cantosSenchaMm;
+                                }
+
                                 // Suma adicional por Circulo (Perimetro completo en mm)
                                 const hasCirculo = detalle.toLowerCase().includes('circulo');
                                 if (hasCirculo) {
@@ -221,6 +272,20 @@ export const calcularTotalesDespiece = (despieces, services) => {
 
                                 // Sumamos los milimetros totales convertidos a Metros Lineales.
                                 serviceTotalInRow += (totalSenchaMm / 1000); 
+
+                            } else if (isSanduche) {
+                                // SANDUCHE (SRREPEGA, SERVREME): solo cobra cuando hay cantos 3 o 4 marcados
+                                const validCantosNariz = ['3', '4'];
+                                let cantosSanducheMm = 0;
+                                if (validCantosNariz.includes(String(row.l1))) cantosSanducheMm += l;
+                                if (validCantosNariz.includes(String(row.l2))) cantosSanducheMm += l;
+                                if (validCantosNariz.includes(String(row.a1))) cantosSanducheMm += a;
+                                if (validCantosNariz.includes(String(row.a2))) cantosSanducheMm += a;
+                                
+                                // Solo cobra si hay cantos 3 o 4
+                                if (cantosSanducheMm > 0) {
+                                    serviceTotalInRow += (cantosSanducheMm / 1000);
+                                }
 
                             } else {
                                 switch (service.tipoCobro) {
