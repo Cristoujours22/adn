@@ -586,8 +586,19 @@ const Menu = () => {
                   )}
                   <p>Fecha de Creación: {despiece.fechaCreacion || despiece.fecha || '-'}</p>
                   <p>Última Modificación: {
-                    despiece.ultimaModificacionStr || 
-                    (despiece.ultimaModificacion ? new Date(despiece.ultimaModificacion).toLocaleDateString() : '-')
+                    (() => {
+                      // Si tiene el campo de string, usarlo
+                      if (despiece.ultimaModificacionStr) return despiece.ultimaModificacionStr;
+                      // Si es número (timestamp), convertir a fecha
+                      if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'number') {
+                        return new Date(despiece.ultimaModificacion).toLocaleDateString();
+                      }
+                      // Si es string (formato anterior), mostrarlo directamente
+                      if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'string') {
+                        return despiece.ultimaModificacion;
+                      }
+                      return '-';
+                    })()
                   }</p>
                 </li>
               ))}
