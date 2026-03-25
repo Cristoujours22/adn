@@ -550,7 +550,7 @@ const ModeloDespiece = () => {
       return;
     }
 
-    const filasActualizadas = aplicarDespieceAutomatico(activeDespiece.filas, despieceAutoOpcion);
+    const filasActualizadas = aplicarDespieceAutomatico(activeDespiece.filas, despieceAutoModo, despieceAutoOpcion);
     
     setDespieces(prev => prev.map(d => {
       if (d.id === activeDespieceId) {

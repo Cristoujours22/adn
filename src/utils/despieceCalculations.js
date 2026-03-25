@@ -392,52 +392,163 @@ export const MODOS_DESPECIE = {
         id: 'cocina',
         nombre: 'Cocina Lineal',
         opciones: [
-            { id: 1, nombre: 'Canto en 1 lado' },
-            { id: 2, nombre: 'Canto en 2 lados' },
-            { id: 3, nombre: 'Canto en todos lados' }
+            { id: 1, nombre: 'Opción 1' },
+            { id: 2, nombre: 'Opción 2' },
+            { id: 3, nombre: 'Opción 3' }
         ]
     },
     CLOSET: {
         id: 'closet',
         nombre: 'Closet Lineal',
         opciones: [
-            { id: 1, nombre: 'Canto en 1 lado' },
-            { id: 2, nombre: 'Canto en 2 lados' },
-            { id: 3, nombre: 'Canto en todos lados' }
+            { id: 1, nombre: 'Opción 1' },
+            { id: 2, nombre: 'Opción 2' },
+            { id: 3, nombre: 'Opción 3' }
         ]
     },
     CENTRO_TV: {
         id: 'centro_tv',
         nombre: 'Centro de TV',
         opciones: [
-            { id: 1, nombre: 'Canto en 1 lado' },
-            { id: 2, nombre: 'Canto en 2 lados' },
-            { id: 3, nombre: 'Canto en todos lados' }
+            { id: 1, nombre: 'Opción 1' },
+            { id: 2, nombre: 'Opción 2' },
+            { id: 3, nombre: 'Opción 3' }
         ]
     },
     ESCRITORIO: {
         id: 'escritorio',
         nombre: 'Escritorio Lineal',
         opciones: [
-            { id: 1, nombre: 'Canto en 1 lado' },
-            { id: 2, nombre: 'Canto en 2 lados' },
-            { id: 3, nombre: 'Canto en todos lados' }
+            { id: 1, nombre: 'Opción 1' },
+            { id: 2, nombre: 'Opción 2' },
+            { id: 3, nombre: 'Opción 3' }
         ]
     }
+};
+
+// ==================== REGLAS POR MODO ====================
+// EDITAR AQUÍ LAS REGLAS PARA CADA MODO Y OPCIÓN
+// Formato: { l1: '1'/'2'/'', l2: '1'/'2'/'', a1: '1'/'2'/'', a2: '1'/'2'/'' }
+// '' = sin canto, '1' = canto fino, '2' = canto grueso
+
+const REGLAS_COCINA = {
+    1: { // Opción 1: Canto en 1 lado
+        ItemPrincipal: { l1: '', l2: '1', a1: '', a2: '' },     // Laterales/Divisores
+        Refuerzo: { l1: '', l2: '1', a1: '', a2: '' },            // Refuerzos
+        Base: { l1: '', l2: '1', a1: '1', a2: '1' },              // Base
+        Entrepaño: { l1: '', l2: '1', a1: '', a2: '' },           // Entrepaño
+        PanelPuerta: { l1: '2', l2: '2', a1: '2', a2: '2' }       // Puertas/Paneles
+    },
+    2: { // Opción 2: Canto en 2 lados
+        ItemPrincipal: { l1: '', l2: '1', a1: '1', a2: '' },    // Laterales/Divisores
+        Refuerzo: { l1: '', l2: '1', a1: '', a2: '' },            // Refuerzos
+        Base: { l1: '', l2: '1', a1: '1', a2: '1' },              // Base
+        Entrepaño: { l1: '', l2: '1', a1: '', a2: '' },           // Entrepaño
+        PanelPuerta: { l1: '2', l2: '2', a1: '2', a2: '2' }       // Puertas/Paneles
+    },
+    3: { // Opción 3: Canto en todos lados
+        ItemPrincipal: { l1: '1', l2: '1', a1: '1', a2: '1' },   // Laterales/Divisores
+        Refuerzo: { l1: '1', l2: '1', a1: '1', a2: '1' },         // Refuerzos
+        Base: { l1: '1', l2: '1', a1: '1', a2: '1' },             // Base
+        Entrepaño: { l1: '1', l2: '1', a1: '1', a2: '1' },        // Entrepaño
+        PanelPuerta: { l1: '2', l2: '2', a1: '2', a2: '2' }       // Puertas/Paneles
+    }
+};
+
+const REGLAS_CLOSET = {
+    1: { // Opción 1
+        ItemPrincipal: { l1: '1', l2: '', a1: '', a2: '' },
+        Refuerzo: { l1: '1', l2: '', a1: '', a2: '' },
+        Base: { l1: '1', l2: '', a1: '', a2: '' },
+        PanelPuerta: { l1: '1', l2: '', a1: '', a2: '' }
+    },
+    2: { // Opción 2
+        ItemPrincipal: { l1: '1', l2: '1', a1: '', a2: '' },
+        Refuerzo: { l1: '1', l2: '1', a1: '', a2: '' },
+        Base: { l1: '1', l2: '1', a1: '', a2: '' },
+        PanelPuerta: { l1: '1', l2: '1', a1: '', a2: '' }
+    },
+    3: { // Opción 3
+        ItemPrincipal: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        Refuerzo: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        Base: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        PanelPuerta: { l1: '2', l2: '2', a1: '2', a2: '2' }
+    }
+};
+
+const REGLAS_CENTRO_TV = {
+    1: { // Opción 1
+        ItemPrincipal: { l1: '1', l2: '', a1: '', a2: '' },
+        Refuerzo: { l1: '1', l2: '', a1: '', a2: '' },
+        Base: { l1: '1', l2: '', a1: '', a2: '' },
+        PanelPuerta: { l1: '1', l2: '', a1: '', a2: '' }
+    },
+    2: { // Opción 2
+        ItemPrincipal: { l1: '1', l2: '1', a1: '', a2: '' },
+        Refuerzo: { l1: '1', l2: '1', a1: '', a2: '' },
+        Base: { l1: '1', l2: '1', a1: '', a2: '' },
+        PanelPuerta: { l1: '1', l2: '1', a1: '', a2: '' }
+    },
+    3: { // Opción 3
+        ItemPrincipal: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        Refuerzo: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        Base: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        PanelPuerta: { l1: '2', l2: '2', a1: '2', a2: '2' }
+    }
+};
+
+const REGLAS_ESCRITORIO = {
+    1: { // Opción 1
+        ItemPrincipal: { l1: '1', l2: '', a1: '', a2: '' },
+        Refuerzo: { l1: '1', l2: '', a1: '', a2: '' },
+        Base: { l1: '1', l2: '', a1: '', a2: '' },
+        PanelPuerta: { l1: '1', l2: '', a1: '', a2: '' }
+    },
+    2: { // Opción 2
+        ItemPrincipal: { l1: '1', l2: '1', a1: '', a2: '' },
+        Refuerzo: { l1: '1', l2: '1', a1: '', a2: '' },
+        Base: { l1: '1', l2: '1', a1: '', a2: '' },
+        PanelPuerta: { l1: '1', l2: '1', a1: '', a2: '' }
+    },
+    3: { // Opción 3
+        ItemPrincipal: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        Refuerzo: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        Base: { l1: '1', l2: '1', a1: '1', a2: '1' },
+        PanelPuerta: { l1: '2', l2: '2', a1: '2', a2: '2' }
+    }
+};
+
+const REGLAS_POR_MODO = {
+    COCINA: REGLAS_COCINA,
+    CLOSET: REGLAS_CLOSET,
+    CENTRO_TV: REGLAS_CENTRO_TV,
+    ESCRITORIO: REGLAS_ESCRITORIO
 };
 
 const ITEMS_RECONOCER = [
     'LATERAL', 'LAT_IZQ', 'LAT_DER', 'DIVISIÓN',
     'TRAVESSA_CONNARIZ_VERTICAL', 'TRAVESSA_CONNARIZ_HORIZONTAL',
-    'ENTREPaño', 'FR_FALSO', 'TESTERO'
+    'FR_FALSO', 'TESTERO','Comp Ent', 'Comp Lat' 
 ];
 
-const ITEMS_REFUERZO = ['REFUERZO_SUPERIOR', 'REFUERZO_TRASERO'];
+const ITEMS_ENTREPANO = ['ENTREPANO', 'ENTREP;A', 'REPISA'];
+const ITEMS_REFUERZO = ['REFUERZO_SUPERIOR', 'REFUERZO_TRASERO', 'TRAVESSA_CONNARIZ_VERTICAL', 'TRAVESSA_CONNARIZ_HORIZONTAL', 'COMP REF', 'COMPREF'];
 const ITEMS_BASE = ['BASE'];
 const ITEMS_PANEL_PUERTA = ['PANELCAJON', 'PUERTA'];
 
-export const aplicarDespieceAutomatico = (filas, opcion) => {
-    if (!filas || !Array.isArray(filas) || opcion < 1 || opcion > 3) {
+export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
+    if (!filas || !Array.isArray(filas) || !modo || opcion < 1 || opcion > 3) {
+        return filas;
+    }
+
+    // Obtener las reglas para el modo seleccionado
+    const reglasModo = REGLAS_POR_MODO[modo];
+    if (!reglasModo) {
+        return filas;
+    }
+
+    const reglasOpcion = reglasModo[opcion];
+    if (!reglasOpcion) {
         return filas;
     }
 
@@ -445,48 +556,28 @@ export const aplicarDespieceAutomatico = (filas, opcion) => {
         const detalle = (fila.detalle || '').toUpperCase();
         
         const esItemPrincipal = ITEMS_RECONOCER.some(item => detalle.includes(item));
+        const esEntrepaño = ITEMS_ENTREPANO.some(item => detalle.includes(item));
         const esRefuerzo = ITEMS_REFUERZO.some(item => detalle.includes(item));
         const esBase = ITEMS_BASE.some(item => detalle.includes(item));
         const esPanelPuerta = ITEMS_PANEL_PUERTA.some(item => detalle.includes(item));
         
-        let l1 = '', l2 = '', a1 = '', a2 = '';
+        // Determinar qué tipo de regla aplicar
+        let tipo = 'ItemPrincipal';
+        if (esPanelPuerta) tipo = 'PanelPuerta';
+        else if (esRefuerzo) tipo = 'Refuerzo';
+        else if (esBase) tipo = 'Base';
+        else if (esEntrepaño) tipo = 'Entrepaño';
         
-        switch(opcion) {
-            case 1: // Canto en 1 lado
-                if (esPanelPuerta) {
-                    l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2';
-                } else if (esItemPrincipal) {
-                    l1 = '1';
-                } else if (esRefuerzo) {
-                    l1 = '1'; l2 = '1';
-                } else if (esBase) {
-                    l1 = '1'; a1 = '1'; a2 = '1';
-                }
-                break;
-                
-            case 2: // Canto en 2 lados
-                if (esPanelPuerta) {
-                    l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2';
-                } else if (esItemPrincipal || esRefuerzo) {
-                    l1 = '1'; l2 = '1';
-                } else if (esBase) {
-                    l1 = '1'; a1 = '1'; a2 = '1';
-                }
-                break;
-                
-            case 3: // Canto en todos lados
-                if (esPanelPuerta) {
-                    l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2';
-                } else {
-                    l1 = '1'; l2 = '1'; a1 = '1'; a2 = '1';
-                }
-                break;
-                
-            default:
-                break;
-        }
+        // Obtener la regla específica
+        const regla = reglasOpcion[tipo] || reglasOpcion.ItemPrincipal || { l1: '', l2: '', a1: '', a2: '' };
         
-        return { ...fila, l1, l2, a1, a2 };
+        return { 
+            ...fila, 
+            l1: regla.l1 || '', 
+            l2: regla.l2 || '', 
+            a1: regla.a1 || '', 
+            a2: regla.a2 || '' 
+        };
     });
 };
 
