@@ -580,51 +580,36 @@ export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
     });
 };
 
-export const getVistaPreviaDespieceAuto = (filas, opcion) => {
+export const getVistaPreviaDespieceAuto = (filas, modo, opcion) => {
     if (!filas || !Array.isArray(filas)) return [];
+    
+    const reglasModo = REGLAS_POR_MODO[modo];
+    if (!reglasModo) return [];
+    
+    const reglasOpcion = reglasModo[opcion];
+    if (!reglasOpcion) return [];
     
     const examples = [];
     const seenTypes = new Set();
     
-    filas.forEach(fila => {
-        const detalle = (fila.detalle || '').toUpperCase();
-        let tipo = 'Otro';
-        
-        if (ITEMS_RECONOCER.some(item => detalle.includes(item))) {
-            tipo = 'Item Principal';
-        } else if (ITEMS_PANEL_PUERTA.some(item => detalle.includes(item))) {
-            tipo = 'Panel/Puerta';
-        } else if (ITEMS_REFUERZO.some(item => detalle.includes(item))) {
-            tipo = 'Refuerzo';
-        } else if (ITEMS_BASE.some(item => detalle.includes(item))) {
-            tipo = 'Base';
-        }
-        
-        if (!seenTypes.has(tipo)) {
-            seenTypes.add(tipo);
+    // Tipos a mostrar en la vista previa
+    const tiposMostrar = ['ItemPrincipal', 'Refuerzo', 'Base', 'Entrepaño', 'PanelPuerta'];
+    
+    tiposMostrar.forEach(tipo => {
+        const regla = reglasOpcion[tipo];
+        if (regla) {
+            // Mapear nombres para mostrar
+            const nombreMostrar = tipo === 'ItemPrincipal' ? 'Item Principal' 
+                : tipo === 'PanelPuerta' ? 'Panel/Puerta' 
+                : tipo;
             
-            let l1 = '', l2 = '', a1 = '', a2 = '';
-            switch(opcion) {
-                case 1:
-                    if (tipo === 'Panel/Puerta') { l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2'; }
-                    else if (tipo === 'Item Principal') l1 = '1';
-                    else if (tipo === 'Refuerzo') { l1 = '1'; l2 = '1'; }
-                    else if (tipo === 'Base') { l1 = '1'; a1 = '1'; a2 = '1'; }
-                    break;
-                case 2:
-                    if (tipo === 'Panel/Puerta') { l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2'; }
-                    else if (tipo === 'Item Principal' || tipo === 'Refuerzo') { l1 = '1'; l2 = '1'; }
-                    else if (tipo === 'Base') { l1 = '1'; a1 = '1'; a2 = '1'; }
-                    break;
-                case 3:
-                    if (tipo === 'Panel/Puerta') { l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2'; }
-                    else { l1 = '1'; l2 = '1'; a1 = '1'; a2 = '1'; }
-                    break;
-                default:
-                    break;
-            }
-            
-            examples.push({ tipo, l1, l2, a1, a2 });
+            examples.push({ 
+                tipo: nombreMostrar, 
+                l1: regla.l1 || '', 
+                l2: regla.l2 || '', 
+                a1: regla.a1 || '', 
+                a2: regla.a2 || '' 
+            });
         }
     });
     

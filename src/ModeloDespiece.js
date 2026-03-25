@@ -568,7 +568,7 @@ const ModeloDespiece = () => {
   const vistaPreviaDespieceAuto = () => {
     const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
     if (!activeDespiece?.filas) return [];
-    return getVistaPreviaDespieceAuto(activeDespiece.filas, despieceAutoOpcion);
+    return getVistaPreviaDespieceAuto(activeDespiece.filas, despieceAutoModo, despieceAutoOpcion);
   };
 
   // ==================== GUARDAR EN FIRESTORE ====================
