@@ -20,6 +20,7 @@ const detectarCantidadUnidad = (detalle, nombreOriginal, nomenclatura) => {
     
     // Usar un Set para evitar contar el mismo match múltiples veces
     const matchedPositions = new Set();
+    const positionValues = new Map(); // Guardar el valor de cada posición
     
     // Regex para: número + servicio (ej: "2 cajas", "2caja", "2L caja")
     const regexNumeroAntes = new RegExp(`(\\d+)(?:L)?\\s*(${serviceRegexStr})`, 'gi');
@@ -27,9 +28,9 @@ const detectarCantidadUnidad = (detalle, nombreOriginal, nomenclatura) => {
     while ((match = regexNumeroAntes.exec(detalleLower)) !== null) {
         const cantidad = parseInt(match[1], 10) || 1;
         const pos = match.index;
-        // Solo contar esta posición una vez
         if (!matchedPositions.has(pos)) {
             matchedPositions.add(pos);
+            positionValues.set(pos, cantidad);
         }
     }
     
@@ -37,55 +38,18 @@ const detectarCantidadUnidad = (detalle, nombreOriginal, nomenclatura) => {
     const regexNumeroDespues = new RegExp(`(${serviceRegexStr})(?:\\s*(?:x)?(\\d+)(?:L)?)?`, 'gi');
     while ((match = regexNumeroDespues.exec(detalleLower)) !== null) {
         const pos = match.index;
-        // Solo procesar si no hemos contado esta posición antes
         if (!matchedPositions.has(pos)) {
             matchedPositions.add(pos);
-            if (match[2]) {
-                // Tiene número después: usar ese número
-                // Ya se contó en regexNumeroAntes si tenía número antes, aquí solo cuenta si no hubo número antes
-            } else {
-                // Sin número: cuenta como 1
-            }
+            const cantidad = match[2] ? parseInt(match[2], 10) : 1;
+            positionValues.set(pos, cantidad);
         }
     }
     
-    // Contar berdasarkan posiciones únicas y sus valores
+    // Calcular total basado en los valores de cada posición
     let total = 0;
-    
-    // Recrear los regex para calcular el total basado en posiciones únicas
-    const uniquePositions = Array.from(matchedPositions);
-    
-    // Para cada posición única, determinar la cantidad
-    const processedMatches = new Set();
-    
-    // Primera pasada: buscar números antes del servicio
-    const reAntes = new RegExp(`(\\d+)(?:L)?\\s*(${serviceRegexStr})`, 'gi');
-    while ((match = reAntes.exec(detalleLower)) !== null) {
-        const pos = match.index;
-        if (matchedPositions.has(pos)) {
-            const cantidad = parseInt(match[1], 10) || 1;
-            total += cantidad;
-            processedMatches.add(`${pos}-antes`);
-        }
-    }
-    
-    // Segunda pasada: buscar servicio solo o con número después (si no fue procesado con número antes)
-    const reDespues = new RegExp(`(${serviceRegexStr})(?:\\s*(?:x)?(\\d+)(?:L)?)?`, 'gi');
-    while ((match = reDespues.exec(detalleLower)) !== null) {
-        const pos = match.index;
-        const key = `${pos}-despues`;
-        if (matchedPositions.has(pos) && !processedMatches.has(key)) {
-            if (match[2]) {
-                // Tiene número después
-                const cantidad = parseInt(match[2], 10);
-                total += cantidad;
-            } else {
-                // Sin número, cuenta como 1
-                total += 1;
-            }
-            processedMatches.add(key);
-        }
-    }
+    positionValues.forEach((cantidad) => {
+        total += cantidad;
+    });
     
     // Si no se contó nada, verificar si el servicio existe sin cantidad específica
     if (total === 0) {
