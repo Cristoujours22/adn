@@ -121,16 +121,16 @@ const Menu = () => {
     }
     setLoadingDespieces(true);
     try {
-      const { getDocs, collection, query, where } = await import("firebase/firestore");
+      const { getDocs, collection, query, where, orderBy } = await import("firebase/firestore");
       const despiecesCollectionRef = collection(db, 'despieces');
       let q;
 
       if (userCargo === "Administrador") {
-        // Admin gets all despieces from the top-level collection
-        q = query(despiecesCollectionRef);
+        // Admin gets all despieces ordered by last modification (descending)
+        q = query(despiecesCollectionRef, orderBy("ultimaModificacion", "desc"));
       } else {
-        // Regular user gets only their own despieces from the top-level collection
-        q = query(despiecesCollectionRef, where("userId", "==", currentUser.uid));
+        // Regular user gets only their own despieces ordered by last modification
+        q = query(despiecesCollectionRef, where("userId", "==", currentUser.uid), orderBy("ultimaModificacion", "desc"));
       }
 
       const despiecesSnapshot = await getDocs(q);
