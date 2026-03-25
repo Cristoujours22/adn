@@ -591,7 +591,8 @@ const ModeloDespiece = () => {
             proyecto: projectName, // Keep 'proyecto' as per original, not 'nombreProyecto' from partial edit
             cliente: clientName,
             // fechaCreacion: creationDate, // Removed as per partial edit, makes sense for update
-            ultimaModificacion: new Date().toLocaleDateString(),
+            ultimaModificacion: Date.now(), // Timestamp numérico para ordenamiento correcto
+            ultimaModificacionStr: new Date().toLocaleDateString(), // Para mostrar al usuario
             despieces: despieces,
             serviciosGuardados: services
           });
@@ -625,7 +626,8 @@ const ModeloDespiece = () => {
               await updateDoc(despieceRef, {
                 proyecto: projectName,
                 cliente: clientName,
-                ultimaModificacion: new Date().toLocaleDateString(),
+                ultimaModificacion: Date.now(), // Timestamp numérico
+                ultimaModificacionStr: new Date().toLocaleDateString(),
                 despieces: despieces,
                 serviciosGuardados: services
               });

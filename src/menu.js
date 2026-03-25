@@ -121,22 +121,24 @@ const Menu = () => {
     }
     setLoadingDespieces(true);
     try {
-      const { getDocs, collection, query, where, orderBy } = await import("firebase/firestore");
+      const { getDocs, collection, query, where } = await import("firebase/firestore");
       const despiecesCollectionRef = collection(db, 'despieces');
       let q;
 
       if (userCargo === "Administrador") {
-        // Admin gets all despieces ordered by last modification (descending)
-        q = query(despiecesCollectionRef, orderBy("ultimaModificacion", "desc"));
+        // Admin gets all despieces
+        q = query(despiecesCollectionRef);
       } else {
-        // Regular user gets only their own despieces ordered by last modification
-        q = query(despiecesCollectionRef, where("userId", "==", currentUser.uid), orderBy("ultimaModificacion", "desc"));
+        // Regular user gets only their own despieces
+        q = query(despiecesCollectionRef, where("userId", "==", currentUser.uid));
       }
 
       const despiecesSnapshot = await getDocs(q);
+      // Ordenar por ultimaModificacion (timestamp numérico) - más reciente primero
       const despiecesData = despiecesSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(d => d.id);
+        .filter(d => d.id)
+        .sort((a, b) => (b.ultimaModificacion || 0) - (a.ultimaModificacion || 0));
       if (isMountedRef.current) setDespieces(despiecesData);
     } catch (error) {
       if (isMountedRef.current) console.error("Error al obtener los despieces:", error);
