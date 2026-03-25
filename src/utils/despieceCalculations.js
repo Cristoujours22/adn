@@ -559,7 +559,6 @@ export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
         const esRefuerzo = ITEMS_REFUERZO.some(item => detalle.includes(item));
         const esBase = ITEMS_BASE.some(item => detalle.includes(item));
         const esPanelPuerta = ITEMS_PANEL_PUERTA.some(item => detalle.includes(item));
-        const esItemPrincipal = !esEntrepaño && !esRefuerzo && !esBase && !esPanelPuerta;
         
         // Determinar qué tipo de regla aplicar (ItemPrincipal es el valor por defecto)
         let tipo = esPanelPuerta ? 'PanelPuerta' 
