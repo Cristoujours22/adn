@@ -452,10 +452,12 @@ const ModeloDespiece = () => {
 
   // Al pegar filas, asegurar IDs únicos y evitar fila vacía inicial
   const handlePaste = useCallback((e) => {
-    // Si el pegado ocurre en un input (cualquier tipo), permitir comportamiento por defecto
-    // Esto incluye: cliente, proyecto, y buscador de piezas
+    // Si el pegado ocurre en los campos de búsqueda, permitir comportamiento por defecto
     const target = e.target;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+    const inputId = target.id || target.name || '';
+    const isSearchInput = inputId.includes('search-') || inputId === 'proyecto' || inputId === 'cliente';
+    
+    if ((target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && isSearchInput) {
       return;
     }
     
@@ -1348,6 +1350,7 @@ const ModeloDespiece = () => {
                 {pieceSearchType === 'detalle' ? (
                   <>
                     <input 
+                      id="search-detalle"
                       className={estilos.controls}
                       style={{ width: '150px', margin: 0, padding: '4px 8px', height: '28px', fontSize: '12px' }}
                       type="text"
@@ -1369,6 +1372,7 @@ const ModeloDespiece = () => {
                 ) : (
                   <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                     <input 
+                      id="search-largo"
                       className={estilos.controls}
                       style={{ width: '70px', margin: 0, padding: '4px 6px', height: '28px', fontSize: '12px' }}
                       type="number"
@@ -1378,6 +1382,7 @@ const ModeloDespiece = () => {
                     />
                     <span style={{ color: darkMode ? '#ccc' : '#555', fontSize: '11px' }}>x</span>
                     <input 
+                      id="search-ancho"
                       className={estilos.controls}
                       style={{ width: '70px', margin: 0, padding: '4px 6px', height: '28px', fontSize: '12px' }}
                       type="number"
