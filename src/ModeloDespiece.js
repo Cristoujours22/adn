@@ -645,12 +645,13 @@ const ModeloDespiece = () => {
             proyecto: projectName,
             cliente: clientName,
             fechaCreacion: creationDate,
-            ultimaModificacion: lastModifiedDate,
+            ultimaModificacion: Date.now(), // Timestamp numérico
+            ultimaModificacionStr: lastModifiedDate, // Para mostrar al usuario
             despieces: despieces,
             serviciosGuardados: services,
             userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
           };
-          await addDoc(despiecesCollection, despieceData); // Keep original addDoc call
+          await addDoc(despiecesCollection, despieceData);
           if (!isAutoSave) alert('Despiece guardado exitosamente en Firestore.');
         }
     } catch (error) {
