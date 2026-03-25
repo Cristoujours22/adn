@@ -543,64 +543,61 @@ const Menu = () => {
           ) : uniqueDespieces.length > 0 ? (
             <ul className={estilos.despiecesList}>
               {uniqueDespieces.map((despiece) => (
-                <li key={despiece.id} className={estilos.despieceItem}>
-                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem'}}>
-                    <h3 style={{cursor:'pointer', color:'#1976d2', textDecoration:'underline', margin:0}}
-                        onClick={() => navigate(`/modelo-despiece/${despiece.id}`)}>
-                      {despiece.proyecto}
-                    </h3>
-                    {/* Mejorar contraste del botón Eliminar */}
+                <li key={despiece.id} className={estilos.despieceItem} style={{ padding: '12px' }}>
+                  {/* Primera línea: Proyecto + Cliente + Acciones */}
+                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', marginBottom:'8px'}}>
+                    <div style={{flex:1}}>
+                      <h3 style={{cursor:'pointer', color:'#1976d2', margin:0, fontSize:'16px'}}
+                          onClick={() => navigate(`/modelo-despiece/${despiece.id}`)}>
+                        {despiece.proyecto}
+                      </h3>
+                      <p style={{margin:'4px 0 0', color:'#666', fontSize:'13px'}}>Cliente: {despiece.cliente}</p>
+                    </div>
                     <button
                       style={{
-                        background:'#a31515',
+                        background:'#dc3545',
                         color:'#fff',
                         border:'none',
                         borderRadius:'4px',
-                        padding:'4px 10px',
+                        padding:'6px 12px',
                         cursor:'pointer',
+                        fontSize:'12px',
                         fontWeight: 'bold'
                       }}
                       onClick={async (e) => {
                         e.stopPropagation();
-                        if(window.confirm('¿Seguro que deseas eliminar este proyecto? Esta acción no se puede deshacer.')) {
+                        if(window.confirm('¿Eliminar este proyecto?')) {
                           try {
                             const { doc, deleteDoc } = await import('firebase/firestore');
                             await deleteDoc(doc(db, 'despieces', despiece.id));
                             await fetchDespieces();
-                            if (isMountedRef.current) {
-                              alert('Proyecto eliminado correctamente.');
-                            }
                           } catch (err) {
-                            if (isMountedRef.current) {
-                              alert('Error al eliminar el proyecto: ' + (err && err.message ? err.message : JSON.stringify(err)));
-                            }
-                            console.error('Error al eliminar el proyecto:', err);
+                            alert('Error al eliminar: ' + err.message);
                           }
                         }
                       }}
                     >Eliminar</button>
                   </div>
-                  <p>Cliente: {despiece.cliente}</p>
+                  {/* Segunda línea: Fechas */}
+                  <div style={{display:'flex', gap:'20px', fontSize:'12px', color:'#888', borderTop:'1px solid #eee', paddingTop:'8px'}}>
+                    <span>Creación: {despiece.fechaCreacion || despiece.fecha || '-'}</span>
+                    <span>Última modificación: {
+                      (() => {
+                        if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'number') {
+                          const fecha = new Date(despiece.ultimaModificacion);
+                          return fecha.toLocaleDateString('es-AR') + ' ' + fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                        }
+                        if (despiece.ultimaModificacionStr) return despiece.ultimaModificacionStr;
+                        if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'string') {
+                          return despiece.ultimaModificacion;
+                        }
+                        return '-';
+                      })()
+                    }</span>
+                  </div>
                   {userCargo === 'Administrador' && (
-                    <p>Creado por: {users.find(u => u.id === despiece.userId)?.nombre || 'Desconocido'}</p>
+                    <p style={{margin:'4px 0 0', fontSize:'11px', color:'#aaa'}}>Creado por: {users.find(u => u.id === despiece.userId)?.nombre || 'Desconocido'}</p>
                   )}
-                  <p>Fecha de Creación: {despiece.fechaCreacion || despiece.fecha || '-'}</p>
-                  <p>Última Modificación: {
-                    (() => {
-                      // Prioridad 1: Si es número (timestamp), convertir a fecha y hora
-                      if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'number') {
-                        const fecha = new Date(despiece.ultimaModificacion);
-                        return fecha.toLocaleDateString('es-AR') + ' ' + fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-                      }
-                      // Prioridad 2: Si tiene el campo de string, verificar si tiene hora
-                      if (despiece.ultimaModificacionStr) return despiece.ultimaModificacionStr;
-                      // Prioridad 3: Si es string (formato anterior), mostrarlo directamente
-                      if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'string') {
-                        return despiece.ultimaModificacion;
-                      }
-                      return '-';
-                    })()
-                  }</p>
                 </li>
               ))}
             </ul>
