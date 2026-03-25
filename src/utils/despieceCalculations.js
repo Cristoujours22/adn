@@ -555,18 +555,18 @@ export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
     return filas.map(fila => {
         const detalle = (fila.detalle || '').toUpperCase();
         
-        const esItemPrincipal = ITEMS_RECONOCER.some(item => detalle.includes(item));
         const esEntrepaño = ITEMS_ENTREPANO.some(item => detalle.includes(item));
         const esRefuerzo = ITEMS_REFUERZO.some(item => detalle.includes(item));
         const esBase = ITEMS_BASE.some(item => detalle.includes(item));
         const esPanelPuerta = ITEMS_PANEL_PUERTA.some(item => detalle.includes(item));
+        const esItemPrincipal = !esEntrepaño && !esRefuerzo && !esBase && !esPanelPuerta;
         
-        // Determinar qué tipo de regla aplicar
-        let tipo = 'ItemPrincipal';
-        if (esPanelPuerta) tipo = 'PanelPuerta';
-        else if (esRefuerzo) tipo = 'Refuerzo';
-        else if (esBase) tipo = 'Base';
-        else if (esEntrepaño) tipo = 'Entrepaño';
+        // Determinar qué tipo de regla aplicar (ItemPrincipal es el valor por defecto)
+        let tipo = esPanelPuerta ? 'PanelPuerta' 
+            : esRefuerzo ? 'Refuerzo' 
+            : esBase ? 'Base' 
+            : esEntrepaño ? 'Entrepaño' 
+            : 'ItemPrincipal';
         
         // Obtener la regla específica
         const regla = reglasOpcion[tipo] || reglasOpcion.ItemPrincipal || { l1: '', l2: '', a1: '', a2: '' };
