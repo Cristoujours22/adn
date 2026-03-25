@@ -587,11 +587,12 @@ const Menu = () => {
                   <p>Fecha de Creación: {despiece.fechaCreacion || despiece.fecha || '-'}</p>
                   <p>Última Modificación: {
                     (() => {
-                      // Si tiene el campo de string, usarlo
+                      // Si tiene el campo de string con hora, usarlo
                       if (despiece.ultimaModificacionStr) return despiece.ultimaModificacionStr;
-                      // Si es número (timestamp), convertir a fecha
+                      // Si es número (timestamp), convertir a fecha y hora
                       if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'number') {
-                        return new Date(despiece.ultimaModificacion).toLocaleDateString();
+                        const fecha = new Date(despiece.ultimaModificacion);
+                        return fecha.toLocaleDateString() + ' ' + fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                       }
                       // Si es string (formato anterior), mostrarlo directamente
                       if (despiece.ultimaModificacion && typeof despiece.ultimaModificacion === 'string') {

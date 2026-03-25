@@ -592,7 +592,7 @@ const ModeloDespiece = () => {
             cliente: clientName,
             // fechaCreacion: creationDate, // Removed as per partial edit, makes sense for update
             ultimaModificacion: Date.now(), // Timestamp numérico para ordenamiento correcto
-            ultimaModificacionStr: new Date().toLocaleDateString(), // Para mostrar al usuario
+            ultimaModificacionStr: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }), // Para mostrar al usuario
             despieces: despieces,
             serviciosGuardados: services
           });
@@ -627,7 +627,7 @@ const ModeloDespiece = () => {
                 proyecto: projectName,
                 cliente: clientName,
                 ultimaModificacion: Date.now(), // Timestamp numérico
-                ultimaModificacionStr: new Date().toLocaleDateString(),
+                ultimaModificacionStr: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
                 despieces: despieces,
                 serviciosGuardados: services
               });
@@ -646,7 +646,7 @@ const ModeloDespiece = () => {
             cliente: clientName,
             fechaCreacion: creationDate,
             ultimaModificacion: Date.now(), // Timestamp numérico
-            ultimaModificacionStr: lastModifiedDate, // Para mostrar al usuario
+            ultimaModificacionStr: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }), // Para mostrar al usuario
             despieces: despieces,
             serviciosGuardados: services,
             userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
