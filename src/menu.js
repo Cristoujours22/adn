@@ -542,7 +542,12 @@ const Menu = () => {
             <p style={{textAlign:'center', color:'#888', marginTop:'2rem'}}>Cargando proyectos...</p>
           ) : uniqueDespieces.length > 0 ? (
             <ul className={estilos.despiecesList}>
-              {uniqueDespieces.map((despiece) => (
+              {uniqueDespieces.map((despiece) => {
+                // Calcular cantidad de piezas total
+                const cantidadPiezas = (despiece.despieces || []).reduce((total, tab) => {
+                  return total + (tab.filas?.length || 0);
+                }, 0);
+                return (
                 <li key={despiece.id} className={estilos.despieceItem} style={{ padding: '12px' }}>
                   {/* Primera línea: Proyecto + Cliente + Acciones */}
                   <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', marginBottom:'8px'}}>
@@ -551,7 +556,7 @@ const Menu = () => {
                           onClick={() => navigate(`/modelo-despiece/${despiece.id}`)}>
                         {despiece.proyecto}
                       </h3>
-                      <p style={{margin:'4px 0 0', color:'#666', fontSize:'13px'}}>Cliente: {despiece.cliente}</p>
+                      <p style={{margin:'4px 0 0', color:'#666', fontSize:'13px'}}>Cliente: {despiece.cliente} • {cantidadPiezas} piezas</p>
                     </div>
                     <button
                       style={{
@@ -599,7 +604,7 @@ const Menu = () => {
                     <p style={{margin:'4px 0 0', fontSize:'11px', color:'#aaa'}}>Creado por: {users.find(u => u.id === despiece.userId)?.nombre || 'Desconocido'}</p>
                   )}
                 </li>
-              ))}
+              );})}
             </ul>
           ) : (
             <p style={{textAlign:'center', color:'#888', marginTop:'2rem'}}>No hay proyectos guardados.</p>
