@@ -10,32 +10,89 @@
 const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const detectarCantidadUnidad = (detalle, nombreOriginal, nomenclatura) => {
+    const detalleLower = detalle.toLowerCase();
     const baseNombre = escapeRegExp(nombreOriginal.toLowerCase());
     const baseNom = escapeRegExp(nomenclatura.toLowerCase());
-    const baseRegexStr = baseNombre === baseNom 
-        ? baseNombre 
-        : `${baseNombre}|${baseNom}`;
     
-    let total = 0;
+    // Crear un regex unificado que busque el servicio con posibles cantidades
+    // Formatos válidos: "caja", "caja 2", "2 cajas", "caja x2", "caja 2L", "caja 4L", "caja x4", "4L caja", "caja4L"
+    const serviceRegexStr = baseNombre === baseNom ? baseNombre : `${baseNombre}|${baseNom}`;
     
-    const regexAntes = new RegExp(`(\\d+)\\s*${baseRegexStr}`, 'gi');
+    // Usar un Set para evitar contar el mismo match múltiples veces
+    const matchedPositions = new Set();
+    
+    // Regex para: número + servicio (ej: "2 cajas", "2caja", "2L caja")
+    const regexNumeroAntes = new RegExp(`(\\d+)(?:L)?\\s*(${serviceRegexStr})`, 'gi');
     let match;
-    while ((match = regexAntes.exec(detalle)) !== null) {
-        total += parseInt(match[1], 10) || 1;
-    }
-    
-    const regexDespues = new RegExp(`${baseRegexStr}(?:\\s*(\\d+)(?:L)?)?`, 'gi');
-    while ((match = regexDespues.exec(detalle)) !== null) {
-        if (match[1]) {
-            total += parseInt(match[1], 10);
-        } else {
-            total += 1;
+    while ((match = regexNumeroAntes.exec(detalleLower)) !== null) {
+        const cantidad = parseInt(match[1], 10) || 1;
+        const pos = match.index;
+        // Solo contar esta posición una vez
+        if (!matchedPositions.has(pos)) {
+            matchedPositions.add(pos);
         }
     }
     
-    const regexPegado = new RegExp(`${baseRegexStr}(\\d+)(?:L)?`, 'gi');
-    while ((match = regexPegado.exec(detalle)) !== null) {
-        total += parseInt(match[1], 10);
+    // Regex para: servicio + número (ej: "caja 2", "caja x2", "caja 2L", "caja4L")
+    const regexNumeroDespues = new RegExp(`(${serviceRegexStr})(?:\\s*(?:x)?(\\d+)(?:L)?)?`, 'gi');
+    while ((match = regexNumeroDespues.exec(detalleLower)) !== null) {
+        const pos = match.index;
+        // Solo procesar si no hemos contado esta posición antes
+        if (!matchedPositions.has(pos)) {
+            matchedPositions.add(pos);
+            if (match[2]) {
+                // Tiene número después: usar ese número
+                // Ya se contó en regexNumeroAntes si tenía número antes, aquí solo cuenta si no hubo número antes
+            } else {
+                // Sin número: cuenta como 1
+            }
+        }
+    }
+    
+    // Contar berdasarkan posiciones únicas y sus valores
+    let total = 0;
+    
+    // Recrear los regex para calcular el total basado en posiciones únicas
+    const uniquePositions = Array.from(matchedPositions);
+    
+    // Para cada posición única, determinar la cantidad
+    const processedMatches = new Set();
+    
+    // Primera pasada: buscar números antes del servicio
+    const reAntes = new RegExp(`(\\d+)(?:L)?\\s*(${serviceRegexStr})`, 'gi');
+    while ((match = reAntes.exec(detalleLower)) !== null) {
+        const pos = match.index;
+        if (matchedPositions.has(pos)) {
+            const cantidad = parseInt(match[1], 10) || 1;
+            total += cantidad;
+            processedMatches.add(`${pos}-antes`);
+        }
+    }
+    
+    // Segunda pasada: buscar servicio solo o con número después (si no fue procesado con número antes)
+    const reDespues = new RegExp(`(${serviceRegexStr})(?:\\s*(?:x)?(\\d+)(?:L)?)?`, 'gi');
+    while ((match = reDespues.exec(detalleLower)) !== null) {
+        const pos = match.index;
+        const key = `${pos}-despues`;
+        if (matchedPositions.has(pos) && !processedMatches.has(key)) {
+            if (match[2]) {
+                // Tiene número después
+                const cantidad = parseInt(match[2], 10);
+                total += cantidad;
+            } else {
+                // Sin número, cuenta como 1
+                total += 1;
+            }
+            processedMatches.add(key);
+        }
+    }
+    
+    // Si no se contó nada, verificar si el servicio existe sin cantidad específica
+    if (total === 0) {
+        const simpleRegex = new RegExp(`(${serviceRegexStr})`, 'i');
+        if (simpleRegex.test(detalleLower)) {
+            total = 1;
+        }
     }
     
     return total;
@@ -69,47 +126,90 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
                         const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
                         const baseRegexStr = baseName === baseNom ? baseName : `${baseName}|${baseNom}`;
-                        const regex = new RegExp(`(${baseRegexStr})(?:\\s*([1-4])L)?(?:\\/(\\d+(?:\\.\\d+)?)\\*(\\d+(?:\\.\\d+)?))?`, 'gi');
                         
+                        // Usar Set para evitar contar el mismo match múltiples veces
+                        const processedMatches = new Set();
+                        
+                        // Regex 1: buscar "calado" con número antes (ej: "2 calado", "2L calado")
+                        const regexNumAntes = new RegExp(`(\\d+)(?:L)?\\s*(${baseRegexStr})`, 'gi');
                         let match;
-                        while ((match = regex.exec(detalle)) !== null) {
-                            let localMultiplier = 1;
-                            if (match[2]) {
-                                localMultiplier = parseInt(match[2], 10);
+                        while ((match = regexNumAntes.exec(detalle)) !== null) {
+                            const pos = match.index;
+                            if (!processedMatches.has(pos)) {
+                                processedMatches.add(pos);
+                                const cantidad = parseInt(match[1], 10) || 1;
+                                serviceTotalInRow += cantidad;
                             }
-                            
-                            let customL = null;
-                            let customA = null;
-                            if (match[3] && match[4]) {
-                                customL = parseFloat(match[3]);
-                                customA = parseFloat(match[4]);
+                        }
+                        
+                        // Regex 2: buscar "calado" solo o con número después (ej: "calado", "calado 2", "calado x2", "calado 2L")
+                        const regexDespues = new RegExp(`(${baseRegexStr})(?:\\s*(?:x)?(\\d+)(?:L)?)?`, 'gi');
+                        while ((match = regexDespues.exec(detalle)) !== null) {
+                            const pos = match.index;
+                            if (!processedMatches.has(pos)) {
+                                processedMatches.add(pos);
+                                if (match[2]) {
+                                    const cantidad = parseInt(match[2], 10);
+                                    serviceTotalInRow += cantidad;
+                                } else {
+                                    serviceTotalInRow += 1;
+                                }
                             }
-                            
-                            let m = 1;
-                            if (customL !== null && customA !== null) {
-                                // Regla especial exclusiva para calado sobreescrito: se suman las dimensiones
-                                // y se aplica la regla de 1 unidad cada 600mm.
-                                m = Math.ceil((customL + customA) / 600) || 1;
+                        }
+                        
+                        // Si no se contó nada, verificar si existe "calado" sin cantidad
+                        if (serviceTotalInRow === 0) {
+                            const simpleRegex = new RegExp(`(${baseRegexStr})`, 'i');
+                            if (simpleRegex.test(detalle)) {
+                                serviceTotalInRow = 1;
                             }
-                            // Si el operario solo escribió "calado", customL/A son nulos y m se mantiene en 1.
-                            // Si el operario escribió "calado 2L", localMultiplier es 2 y m es 1.
-                            
-                            serviceTotalInRow += (localMultiplier * m);
                         }
                     } else if (isCurva) {
                         const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
                         const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
                         const baseRegexStr = baseName === baseNom ? baseName : `${baseName}|${baseNom}`;
                         
-                        const regex = new RegExp(`(${baseRegexStr})(?:\\s*([1-4])(?:L|l)?)?`, 'gi');
+                        // Usar Set para evitar contar el mismo match múltiples veces
+                        const processedMatches = new Set();
                         
+                        // Regex 1: buscar "curva" con número antes (ej: "2 curva", "2curva")
+                        const regexNumAntes = new RegExp(`(\\d+)(?:L)?\\s*(${baseRegexStr})`, 'gi');
                         let match;
-                        while ((match = regex.exec(detalle)) !== null) {
-                            let localMultiplier = 1;
-                            if (match[2]) {
-                                localMultiplier = parseInt(match[2], 10);
+                        while ((match = regexNumAntes.exec(detalle)) !== null) {
+                            const pos = match.index;
+                            if (!processedMatches.has(pos)) {
+                                processedMatches.add(pos);
+                                const cantidad = parseInt(match[1], 10) || 1;
+                                serviceTotalInRow += cantidad;
                             }
-                            serviceTotalInRow += localMultiplier;
+                        }
+                        
+                        // Regex 2: buscar "curva" solo o con número después (ej: "curva", "curva 2", "curva x2", "curva 2L")
+                        const regexDespues = new RegExp(`(${baseRegexStr})(?:\\s*(?:x)?(\\d+)(?:L)?)?`, 'gi');
+                        while ((match = regexDespues.exec(detalle)) !== null) {
+                            const pos = match.index;
+                            if (!processedMatches.has(pos)) {
+                                processedMatches.add(pos);
+                                if (match[2]) {
+                                    const cantidad = parseInt(match[2], 10);
+                                    serviceTotalInRow += cantidad;
+                                } else {
+                                    serviceTotalInRow += 1;
+                                }
+                            }
+                        }
+                        
+                        // Si no se contó nada, verificar si existe "curva" sin cantidad
+                        if (serviceTotalInRow === 0) {
+                            const simpleRegex = new RegExp(`(${baseRegexStr})`, 'i');
+                            if (simpleRegex.test(detalle)) {
+                                serviceTotalInRow = 1;
+                            }
+                        }
+                        
+                        // Limitar a máximo 4 curvas por fila (solo hay 4 lados)
+                        if (serviceTotalInRow > 4) {
+                            serviceTotalInRow = 4;
                         }
                     } else {
                         // Lógica estándar para el resto de los servicios
@@ -319,4 +419,160 @@ export const calcularTotalesDespiece = (despieces, services) => {
     });
 
     return { totalPieces: piecesCount, serviceCounts: sCounts };
+};
+
+// ==================== DESPiece AUTOMÁTICO ====================
+
+export const MODOS_DESPECIE = {
+    COCINA: {
+        id: 'cocina',
+        nombre: 'Cocina Lineal',
+        opciones: [
+            { id: 1, nombre: 'Canto en 1 lado' },
+            { id: 2, nombre: 'Canto en 2 lados' },
+            { id: 3, nombre: 'Canto en todos lados' }
+        ]
+    },
+    CLOSET: {
+        id: 'closet',
+        nombre: 'Closet Lineal',
+        opciones: [
+            { id: 1, nombre: 'Canto en 1 lado' },
+            { id: 2, nombre: 'Canto en 2 lados' },
+            { id: 3, nombre: 'Canto en todos lados' }
+        ]
+    },
+    CENTRO_TV: {
+        id: 'centro_tv',
+        nombre: 'Centro de TV',
+        opciones: [
+            { id: 1, nombre: 'Canto en 1 lado' },
+            { id: 2, nombre: 'Canto en 2 lados' },
+            { id: 3, nombre: 'Canto en todos lados' }
+        ]
+    },
+    ESCRITORIO: {
+        id: 'escritorio',
+        nombre: 'Escritorio Lineal',
+        opciones: [
+            { id: 1, nombre: 'Canto en 1 lado' },
+            { id: 2, nombre: 'Canto en 2 lados' },
+            { id: 3, nombre: 'Canto en todos lados' }
+        ]
+    }
+};
+
+const ITEMS_RECONOCER = [
+    'LATERAL', 'LAT_IZQ', 'LAT_DER', 'DIVISIÓN',
+    'TRAVESSA_CONNARIZ_VERTICAL', 'TRAVESSA_CONNARIZ_HORIZONTAL',
+    'ENTREPaño', 'FR_FALSO', 'TESTERO'
+];
+
+const ITEMS_REFUERZO = ['REFUERZO_SUPERIOR', 'REFUERZO_TRASERO'];
+const ITEMS_BASE = ['BASE'];
+const ITEMS_PANEL_PUERTA = ['PANELCAJON', 'PUERTA'];
+
+export const aplicarDespieceAutomatico = (filas, opcion) => {
+    if (!filas || !Array.isArray(filas) || opcion < 1 || opcion > 3) {
+        return filas;
+    }
+
+    return filas.map(fila => {
+        const detalle = (fila.detalle || '').toUpperCase();
+        
+        const esItemPrincipal = ITEMS_RECONOCER.some(item => detalle.includes(item));
+        const esRefuerzo = ITEMS_REFUERZO.some(item => detalle.includes(item));
+        const esBase = ITEMS_BASE.some(item => detalle.includes(item));
+        const esPanelPuerta = ITEMS_PANEL_PUERTA.some(item => detalle.includes(item));
+        
+        let l1 = '', l2 = '', a1 = '', a2 = '';
+        
+        switch(opcion) {
+            case 1: // Canto en 1 lado
+                if (esPanelPuerta) {
+                    l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2';
+                } else if (esItemPrincipal) {
+                    l1 = '1';
+                } else if (esRefuerzo) {
+                    l1 = '1'; l2 = '1';
+                } else if (esBase) {
+                    l1 = '1'; a1 = '1'; a2 = '1';
+                }
+                break;
+                
+            case 2: // Canto en 2 lados
+                if (esPanelPuerta) {
+                    l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2';
+                } else if (esItemPrincipal || esRefuerzo) {
+                    l1 = '1'; l2 = '1';
+                } else if (esBase) {
+                    l1 = '1'; a1 = '1'; a2 = '1';
+                }
+                break;
+                
+            case 3: // Canto en todos lados
+                if (esPanelPuerta) {
+                    l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2';
+                } else {
+                    l1 = '1'; l2 = '1'; a1 = '1'; a2 = '1';
+                }
+                break;
+                
+            default:
+                break;
+        }
+        
+        return { ...fila, l1, l2, a1, a2 };
+    });
+};
+
+export const getVistaPreviaDespieceAuto = (filas, opcion) => {
+    if (!filas || !Array.isArray(filas)) return [];
+    
+    const examples = [];
+    const seenTypes = new Set();
+    
+    filas.forEach(fila => {
+        const detalle = (fila.detalle || '').toUpperCase();
+        let tipo = 'Otro';
+        
+        if (ITEMS_RECONOCER.some(item => detalle.includes(item))) {
+            tipo = 'Item Principal';
+        } else if (ITEMS_PANEL_PUERTA.some(item => detalle.includes(item))) {
+            tipo = 'Panel/Puerta';
+        } else if (ITEMS_REFUERZO.some(item => detalle.includes(item))) {
+            tipo = 'Refuerzo';
+        } else if (ITEMS_BASE.some(item => detalle.includes(item))) {
+            tipo = 'Base';
+        }
+        
+        if (!seenTypes.has(tipo)) {
+            seenTypes.add(tipo);
+            
+            let l1 = '', l2 = '', a1 = '', a2 = '';
+            switch(opcion) {
+                case 1:
+                    if (tipo === 'Panel/Puerta') { l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2'; }
+                    else if (tipo === 'Item Principal') l1 = '1';
+                    else if (tipo === 'Refuerzo') { l1 = '1'; l2 = '1'; }
+                    else if (tipo === 'Base') { l1 = '1'; a1 = '1'; a2 = '1'; }
+                    break;
+                case 2:
+                    if (tipo === 'Panel/Puerta') { l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2'; }
+                    else if (tipo === 'Item Principal' || tipo === 'Refuerzo') { l1 = '1'; l2 = '1'; }
+                    else if (tipo === 'Base') { l1 = '1'; a1 = '1'; a2 = '1'; }
+                    break;
+                case 3:
+                    if (tipo === 'Panel/Puerta') { l1 = '2'; l2 = '2'; a1 = '2'; a2 = '2'; }
+                    else { l1 = '1'; l2 = '1'; a1 = '1'; a2 = '1'; }
+                    break;
+                default:
+                    break;
+            }
+            
+            examples.push({ tipo, l1, l2, a1, a2 });
+        }
+    });
+    
+    return examples;
 };

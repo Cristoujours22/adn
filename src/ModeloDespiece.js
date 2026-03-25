@@ -9,7 +9,7 @@ import TabsDespiece from './components/Despieces/TabsDespiece';
 import PanelResumen from './components/Despieces/PanelResumen';
 import TablaPiezas from './components/Despieces/TablaPiezas';
 import { useTheme } from './ThemeContext';
-import { calcularTotalesDespiece } from './utils/despieceCalculations';
+import { calcularTotalesDespiece, aplicarDespieceAutomatico, getVistaPreviaDespieceAuto, MODOS_DESPECIE } from './utils/despieceCalculations';
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
@@ -74,7 +74,31 @@ const ModeloDespiece = () => {
   const [totalPieces, setTotalPieces] = useState(0);
   const [serviceCounts, setServiceCounts] = useState({});
   const { currentUser } = useAuth();
+  const [userCargo, setUserCargo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Cargar cargo del usuario
+  useEffect(() => {
+    const fetchUserCargo = async () => {
+      if (!currentUser?.uid) {
+        setUserCargo('');
+        return;
+      }
+      try {
+        const userDocRef = doc(db, 'usuarios', currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setUserCargo(userDocSnap.data().Cargo || '');
+        } else {
+          setUserCargo('');
+        }
+      } catch (error) {
+        console.error('Error al cargar cargo:', error);
+        setUserCargo('');
+      }
+    };
+    fetchUserCargo();
+  }, [currentUser]);
 
   // Función para cargar servicios del usuario desde Firestore
   const loadUserServices = useCallback(async () => {
@@ -178,6 +202,9 @@ const ModeloDespiece = () => {
   const [historialVersiones, setHistorialVersiones] = useState([]);
   const [versionSeleccionada, setVersionSeleccionada] = useState(null);
   const [showMenuAcciones, setShowMenuAcciones] = useState(false);
+  const [showDespieceAutoModal, setShowDespieceAutoModal] = useState(false);
+  const [despieceAutoModo, setDespieceAutoModo] = useState('cocina');
+  const [despieceAutoOpcion, setDespieceAutoOpcion] = useState(1);
 
   const saveToHistory = useCallback(() => {
     setHistory(prev => {
@@ -425,9 +452,10 @@ const ModeloDespiece = () => {
 
   // Al pegar filas, asegurar IDs únicos y evitar fila vacía inicial
   const handlePaste = useCallback((e) => {
-    // Si el pegado ocurre en un input de texto (cliente/proyecto), permitir comportamiento por defecto
+    // Si el pegado ocurre en un input (cualquier tipo), permitir comportamiento por defecto
+    // Esto incluye: cliente, proyecto, y buscador de piezas
     const target = e.target;
-    if (target.tagName === 'INPUT' && target.type === 'text') {
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
       return;
     }
     
@@ -512,6 +540,33 @@ const ModeloDespiece = () => {
       setShowHistorialModal(false);
       alert('Versión restaurada exitosamente. No olvides guardar los cambios.');
     }
+  };
+
+  // ==================== DESPiece AUTOMÁTICO ====================
+  const aplicarDespieceAuto = () => {
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    if (!activeDespiece?.filas || activeDespiece.filas.length === 0) {
+      alert('No hay piezas para aplicar despiece automático.');
+      return;
+    }
+
+    const filasActualizadas = aplicarDespieceAutomatico(activeDespiece.filas, despieceAutoOpcion);
+    
+    setDespieces(prev => prev.map(d => {
+      if (d.id === activeDespieceId) {
+        return { ...d, filas: filasActualizadas };
+      }
+      return d;
+    }));
+    
+    setShowDespieceAutoModal(false);
+    alert('Despiece automático aplicado exitosamente. No olvides guardar los cambios.');
+  };
+
+  const vistaPreviaDespieceAuto = () => {
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    if (!activeDespiece?.filas) return [];
+    return getVistaPreviaDespieceAuto(activeDespiece.filas, despieceAutoOpcion);
   };
 
   // ==================== GUARDAR EN FIRESTORE ====================
@@ -1394,7 +1449,7 @@ const ModeloDespiece = () => {
               <button 
                 type="button" 
                 onClick={(e) => { e.stopPropagation(); setShowMenuAcciones(!showMenuAcciones); }}
-                style={{ margin: 0, padding: '10px 20px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                style={{ margin: 0, padding: '8px 16px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
               >
                 ▼ Mas opciones
               </button>
@@ -1410,17 +1465,18 @@ const ModeloDespiece = () => {
                   borderRadius: '4px',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                   zIndex: 1000,
-                  minWidth: '180px',
+                  minWidth: '150px',
                   overflow: 'hidden'
                 }}>
                   <button 
                     type="button"
                     onClick={() => { handleSaveToFirestore(false); setShowMenuAcciones(false); }}
                     style={{ 
-                      display: 'block', width: '100%', padding: '12px 16px', 
+                      display: 'block', width: '100%', padding: '10px 14px', 
                       background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
                       color: darkMode ? '#fff' : '#333',
-                      borderBottom: '1px solid #eee'
+                      borderBottom: '1px solid #eee',
+                      fontSize: '13px'
                     }}
                     onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
                     onMouseLeave={(e) => e.target.style.background = 'none'}
@@ -1431,10 +1487,11 @@ const ModeloDespiece = () => {
                     type="button"
                     onClick={() => { handleCopyDespiece(); setShowMenuAcciones(false); }}
                     style={{ 
-                      display: 'block', width: '100%', padding: '12px 16px', 
+                      display: 'block', width: '100%', padding: '10px 14px', 
                       background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
                       color: darkMode ? '#fff' : '#333',
-                      borderBottom: '1px solid #eee'
+                      borderBottom: '1px solid #eee',
+                      fontSize: '13px'
                     }}
                     onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
                     onMouseLeave={(e) => e.target.style.background = 'none'}
@@ -1446,14 +1503,31 @@ const ModeloDespiece = () => {
                       type="button"
                       onClick={() => { cargarHistorialVersiones(id); setShowHistorialModal(true); setShowMenuAcciones(false); }}
                       style={{ 
-                        display: 'block', width: '100%', padding: '12px 16px', 
+                        display: 'block', width: '100%', padding: '10px 14px', 
                         background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
-                        color: darkMode ? '#fff' : '#333'
+                        color: darkMode ? '#fff' : '#333',
+                        fontSize: '13px'
                       }}
                       onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
                       onMouseLeave={(e) => e.target.style.background = 'none'}
                     >
                       📜 Historial
+                    </button>
+                  )}
+                  {userCargo.toLowerCase().includes('admin') && (
+                    <button 
+                      type="button"
+                      onClick={() => { setShowDespieceAutoModal(true); setShowMenuAcciones(false); }}
+                      style={{ 
+                        display: 'block', width: '100%', padding: '10px 14px', 
+                        background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                        color: darkMode ? '#fff' : '#333',
+                        fontSize: '13px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >
+                      ⚡ Despiece Auto
                     </button>
                   )}
                 </div>
@@ -1527,6 +1601,119 @@ const ModeloDespiece = () => {
                 <p style={{ color: '#888', fontSize: '11px', marginTop: '15px', textAlign: 'center' }}>
                   Ultimas 5 versiones. Solo se crea version al guardar manualmente.
                 </p>
+            </div>
+        </div>
+      )}
+
+      {/* MODAL DE DESPiece AUTOMÁTICO */}
+      {showDespieceAutoModal && (
+        <div className={estilos.modalOverlay}>
+            <div className={estilos.modalContent} style={{ maxWidth: '500px' }}>
+                <button className={estilos.closeButton} onClick={() => setShowDespieceAutoModal(false)}>×</button>
+                <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>⚡ Despiece Automático</h3>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', color: darkMode ? '#ccc' : '#555' }}>
+                    Seleccionar modo:
+                  </label>
+                  <select 
+                    value={despieceAutoModo}
+                    onChange={(e) => setDespieceAutoModo(e.target.value)}
+                    className={estilos.controls}
+                    style={{ width: '100%', height: '40px' }}
+                  >
+                    {Object.values(MODOS_DESPECIE).map(modo => (
+                      <option key={modo.id} value={modo.id}>{modo.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', color: darkMode ? '#ccc' : '#555' }}>
+                    Seleccionar canto:
+                  </label>
+                  <select 
+                    value={despieceAutoOpcion}
+                    onChange={(e) => setDespieceAutoOpcion(parseInt(e.target.value))}
+                    className={estilos.controls}
+                    style={{ width: '100%', height: '40px' }}
+                  >
+                    {MODOS_DESPECIE.COCINA.opciones.map(opcion => (
+                      <option key={opcion.id} value={opcion.id}>{opcion.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', color: darkMode ? '#ccc' : '#555' }}>
+                    Vista previa:
+                  </label>
+                  <div style={{ 
+                    background: darkMode ? '#2a2e35' : '#f8f9fa', 
+                    borderRadius: '4px', 
+                    padding: '10px',
+                    fontSize: '12px'
+                  }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #ddd' }}>
+                          <th style={{ textAlign: 'left', padding: '4px' }}>Tipo</th>
+                          <th style={{ textAlign: 'center', padding: '4px' }}>L1</th>
+                          <th style={{ textAlign: 'center', padding: '4px' }}>L2</th>
+                          <th style={{ textAlign: 'center', padding: '4px' }}>A1</th>
+                          <th style={{ textAlign: 'center', padding: '4px' }}>A2</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vistaPreviaDespieceAuto().map((item, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '4px' }}>{item.tipo}</td>
+                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.l1 || '-'}</td>
+                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.l2 || '-'}</td>
+                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.a1 || '-'}</td>
+                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.a2 || '-'}</td>
+                          </tr>
+                        ))}
+                        {vistaPreviaDespieceAuto().length === 0 && (
+                          <tr>
+                            <td colSpan="5" style={{ textAlign: 'center', padding: '10px', color: '#888' }}>
+                              No hay piezas para previsualizar
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={() => setShowDespieceAutoModal(false)}
+                    style={{ 
+                      padding: '10px 20px', 
+                      background: '#6c757d', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={aplicarDespieceAuto}
+                    style={{ 
+                      padding: '10px 20px', 
+                      background: '#28a745', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Aplicar
+                  </button>
+                </div>
             </div>
         </div>
       )}

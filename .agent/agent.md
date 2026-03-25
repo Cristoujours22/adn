@@ -143,6 +143,29 @@ El `ModeloDespiece.js` emula Excel con las siguientes interacciones:
 ### Despliegue
 - Usa el workflow `/deploy` para subir cambios a Firebase Hosting de forma automática (usando `// turbo`).
 
+### Despiece Automático (Función Admin)
+- **Ubicación**: `src/utils/despieceCalculations.js`
+- **Función principal**: `aplicarDespieceAutomatico(filas, opcion)`
+- **Estados en**: `ModeloDespiece.js`
+- **Acceso**: Solo usuarios con cargo que contenga "admin"
+
+#### Modos disponibles:
+- Cocina Lineal
+- Closet Lineal
+- Centro de TV
+- Escritorio Lineal
+
+#### Opciones de canto:
+- Canto en 1 lado (opción 1)
+- Canto en 2 lados (opción 2)
+- Canto en todos lados (opción 3)
+
+#### Items reconocidos:
+- **Items principales**: Lateral, Lat_Izq, Lat_Der, División, Travessa_Connariz_Vertical, Travessa_Connariz_Horizontal, Entrepaño, Fr_Falso, Testero
+- **Refuerzos**: Refuerzo_Superior, Refuerzo_Trasero
+- **Base**: Base
+- **Paneles/Puertas**: PanelCajon, Puerta
+
 ## ⚠️ Errores Conocidos / "Gotchas"
 - **removeChild**: Ten cuidado al manipular el DOM directamente o con extensiones que inyecten código, ya que React puede lanzar errores de "node not found".
 - **Z-Index**: El menú superior tiene prioridad visual; asegúrate de que los modales usen el `modalOverlay` definido en `App.module.css`.
