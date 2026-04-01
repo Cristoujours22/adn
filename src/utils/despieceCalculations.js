@@ -615,7 +615,7 @@ const ITEMS_BASE = ['BASE'];
 const ITEMS_PANEL_PUERTA = ['PANELCAJON', 'PUERTA'];
 const ITEMS_LATERAL_DIVISION = ['LATERAL', 'LAT_IZQ', 'LAT_DER', 'DIVISIÓN', 'DIVISION', 'DIV'];
 
-export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
+export const aplicarDespieceAutomatico = (filas, modo, opcion, reglasPersonalizadas = null) => {
     if (!filas || !Array.isArray(filas) || !modo || opcion < 1 || opcion > 3) {
         return filas;
     }
@@ -623,7 +623,31 @@ export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
     // Normalizar modo a mayúsculas para acceder a las reglas correctamente
     const modoMayus = modo.toUpperCase();
     
-    // Obtener las reglas para el modo seleccionado
+    // Si hay reglas personalizadas del usuario, usarlas en lugar de las predefinidas
+    if (reglasPersonalizadas && Array.isArray(reglasPersonalizadas) && reglasPersonalizadas.length > 0) {
+        return filas.map(fila => {
+            const detalle = (fila.detalle || '').toUpperCase();
+            
+            // Buscar si la pieza coincide con algún tipo definido por el usuario
+            const reglaEncontrada = reglasPersonalizadas.find(regla => 
+                detalle.includes(regla.tipo.toUpperCase())
+            );
+            
+            if (reglaEncontrada) {
+                return {
+                    ...fila,
+                    l1: reglaEncontrada.l1 ? '1' : '',
+                    l2: reglaEncontrada.l2 ? '1' : '',
+                    a1: reglaEncontrada.a1 ? '1' : '',
+                    a2: reglaEncontrada.a2 ? '1' : '',
+                };
+            }
+            
+            return fila;
+        });
+    }
+    
+    // Obtener las reglas para el modo seleccionado (lógica original)
     const reglasModo = REGLAS_POR_MODO[modoMayus];
     if (!reglasModo) {
         return filas;

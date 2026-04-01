@@ -9,7 +9,7 @@ import TabsDespiece from './components/Despieces/TabsDespiece';
 import PanelResumen from './components/Despieces/PanelResumen';
 import TablaPiezas from './components/Despieces/TablaPiezas';
 import { useTheme } from './ThemeContext';
-import { calcularTotalesDespiece, aplicarDespieceAutomatico, getVistaPreviaDespieceAuto, MODOS_DESPECIE } from './utils/despieceCalculations';
+import { calcularTotalesDespiece, aplicarDespieceAutomatico, MODOS_DESPECIE } from './utils/despieceCalculations';
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
@@ -207,6 +207,78 @@ const ModeloDespiece = () => {
   const [showDespieceAutoModal, setShowDespieceAutoModal] = useState(false);
   const [despieceAutoModo, setDespieceAutoModo] = useState('cocina');
   const [despieceAutoOpcion, setDespieceAutoOpcion] = useState(1);
+  
+  // Estado para reglas personalizadas de canto automático (por modo y opción)
+  const [reglasCantoPorModo, setReglasCantoPorModo] = useState({
+    COCINA: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: false, l2: false, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: false, a2: false },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: true },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: true, a2: true },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+    },
+    CLOSET: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: false, l2: false, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: false, a1: true, a2: false },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: true },
+        { id: 2, tipo: 'ENTREPANO', l1: false, l2: false, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: false, a2: false },
+      ],
+    },
+    CENTRO_TV: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: true, l2: false, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: false, l2: true, a1: false, a2: true },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: true },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: true, a2: true },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+    },
+    ESCRITORIO: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: false, l2: false, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: false, a2: true },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: false, a1: true, a2: true },
+      ],
+    },
+  });
 
   const saveToHistory = useCallback(() => {
     setHistory(prev => {
@@ -628,7 +700,12 @@ const ModeloDespiece = () => {
       return;
     }
 
-    const filasActualizadas = aplicarDespieceAutomatico(activeDespiece.filas, despieceAutoModo, despieceAutoOpcion);
+    const filasActualizadas = aplicarDespieceAutomatico(
+      activeDespiece.filas, 
+      despieceAutoModo, 
+      despieceAutoOpcion,
+      reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]
+    );
     
     setDespieces(prev => prev.map(d => {
       if (d.id === activeDespieceId) {
@@ -639,12 +716,6 @@ const ModeloDespiece = () => {
     
     setShowDespieceAutoModal(false);
     alert('Despiece automático aplicado exitosamente. No olvides guardar los cambios.');
-  };
-
-  const vistaPreviaDespieceAuto = () => {
-    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
-    if (!activeDespiece?.filas) return [];
-    return getVistaPreviaDespieceAuto(activeDespiece.filas, despieceAutoModo, despieceAutoOpcion);
   };
 
   // ==================== GUARDAR EN FIRESTORE ====================
@@ -1733,44 +1804,179 @@ const ModeloDespiece = () => {
                 
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px', color: darkMode ? '#ccc' : '#555' }}>
-                    Vista previa:
+                    Configurar cantos por tipo de pieza:
                   </label>
                   <div style={{ 
                     background: darkMode ? '#2a2e35' : '#f8f9fa', 
                     borderRadius: '4px', 
                     padding: '10px',
                     fontSize: '12px',
-                    color: darkMode ? '#fff' : '#333'
+                    color: darkMode ? '#fff' : '#333',
+                    maxHeight: '250px',
+                    overflowY: 'auto'
                   }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #ddd' }}>
-                          <th style={{ textAlign: 'left', padding: '4px', color: darkMode ? '#fff' : '#333' }}>Tipo</th>
-                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>L1</th>
-                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>L2</th>
-                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>A1</th>
-                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>A2</th>
+                          <th style={{ textAlign: 'left', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>Tipo de Pieza</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>L1</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>L2</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>A1</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>A2</th>
+                          <th style={{ textAlign: 'center', padding: '4px' }}></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {vistaPreviaDespieceAuto().map((item, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                            <td style={{ padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.tipo}</td>
-                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.l1 || '-'}</td>
-                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.l2 || '-'}</td>
-                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.a1 || '-'}</td>
-                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.a2 || '-'}</td>
-                          </tr>
-                        ))}
-                        {vistaPreviaDespieceAuto().length === 0 && (
-                          <tr>
-                            <td colSpan="5" style={{ textAlign: 'center', padding: '10px', color: '#888' }}>
-                              No hay piezas para previsualizar
+                        {reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion].map((regla, idx) => (
+                          <tr key={regla.id} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '4px' }}>
+                              <input 
+                                type="text" 
+                                value={regla.tipo}
+                                onChange={(e) => {
+                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+                                  nuevas[idx].tipo = e.target.value.toUpperCase();
+                                  setReglasCantoPorModo({
+                                      ...reglasCantoPorModo,
+                                      [despieceAutoModo.toUpperCase()]: {
+                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                        [despieceAutoOpcion]: nuevas
+                                      }
+                                    });
+                                }}
+                                style={{ 
+                                  width: '100%', 
+                                  padding: '4px', 
+                                  background: darkMode ? '#3a3f47' : '#fff',
+                                  border: '1px solid #ddd',
+                                  borderRadius: '3px',
+                                  color: darkMode ? '#fff' : '#333',
+                                  fontSize: '12px'
+                                }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={regla.l1}
+                                onChange={(e) => {
+                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+                                  nuevas[idx].l1 = e.target.checked;
+                                  setReglasCantoPorModo({
+                                      ...reglasCantoPorModo,
+                                      [despieceAutoModo.toUpperCase()]: {
+                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                        [despieceAutoOpcion]: nuevas
+                                      }
+                                    });
+                                }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={regla.l2}
+                                onChange={(e) => {
+                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+                                  nuevas[idx].l2 = e.target.checked;
+                                  setReglasCantoPorModo({
+                                      ...reglasCantoPorModo,
+                                      [despieceAutoModo.toUpperCase()]: {
+                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                        [despieceAutoOpcion]: nuevas
+                                      }
+                                    });
+                                }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={regla.a1}
+                                onChange={(e) => {
+                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+                                  nuevas[idx].a1 = e.target.checked;
+                                  setReglasCantoPorModo({
+                                      ...reglasCantoPorModo,
+                                      [despieceAutoModo.toUpperCase()]: {
+                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                        [despieceAutoOpcion]: nuevas
+                                      }
+                                    });
+                                }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={regla.a2}
+                                onChange={(e) => {
+                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+                                  nuevas[idx].a2 = e.target.checked;
+                                  setReglasCantoPorModo({
+                                      ...reglasCantoPorModo,
+                                      [despieceAutoModo.toUpperCase()]: {
+                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                        [despieceAutoOpcion]: nuevas
+                                      }
+                                    });
+                                }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <button 
+                                onClick={() => setReglasCantoPorModo({
+                                  ...reglasCantoPorModo,
+                                  [despieceAutoModo.toUpperCase()]: {
+                                    ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                    [despieceAutoOpcion]: reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion].filter((_, i) => i !== idx)
+                                  }
+                                })}
+                                style={{ 
+                                  background: '#dc3545', 
+                                  color: 'white', 
+                                  border: 'none', 
+                                  borderRadius: '3px', 
+                                  padding: '2px 6px', 
+                                  cursor: 'pointer',
+                                  fontSize: '12px'
+                                }}
+                              >
+                                ×
+                              </button>
                             </td>
                           </tr>
-                        )}
+                        ))}
                       </tbody>
                     </table>
+                    <button 
+                      onClick={() => setReglasCantoPorModo({
+                        ...reglasCantoPorModo,
+                        [despieceAutoModo.toUpperCase()]: {
+                          ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                          [despieceAutoOpcion]: [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion], { 
+                            id: Date.now(), 
+                            tipo: 'NUEVO', 
+                            l1: false, 
+                            l2: false, 
+                            a1: false, 
+                            a2: false 
+                          }]
+                        }
+                      })}
+                      style={{ 
+                        marginTop: '10px', 
+                        padding: '5px 10px', 
+                        background: '#007bff', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '3px', 
+                        cursor: 'pointer',
+                        fontSize: '11px'
+                      }}
+                    >
+                      + Agregar tipo de pieza
+                    </button>
                   </div>
                 </div>
                 
