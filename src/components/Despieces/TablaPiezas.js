@@ -24,7 +24,8 @@ const TablaPiezas = ({
     handleCellDoubleClick,
     handleDragFill,
     selection,
-    showModuleColors
+    showModuleColors,
+    services
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -325,11 +326,40 @@ const TablaPiezas = ({
                                 {(() => {
                                 const detLower = safeRow.detalle?.toLowerCase() || '';
                                 const actions = [];
-                                if ((detLower.includes('senchamanual') || detLower.includes('enchape manual')) && !detLower.includes('circulo')) {
-                                    actions.push('Enchape');
+                                
+                                // Detección dinámica de servicios desde la configuración
+                                const enchapeService = services?.find(s => 
+                                    s.nomenclatura.toUpperCase().includes('SENCHA') || 
+                                    s.nombreOriginal.toLowerCase().includes('enchape manual') ||
+                                    s.nombreOriginal.toLowerCase().includes('enchape a pieza especial')
+                                );
+                                const narizService = services?.find(s => 
+                                    s.nomenclatura.toUpperCase().includes('NAR') || 
+                                    s.nombreOriginal.toLowerCase().includes('nariz')
+                                );
+                                
+                                // Detectar Enchape (SENCHAMANUAL) dinámicamente
+                                if (enchapeService) {
+                                    const enchapeKeys = [
+                                        enchapeService.nomenclatura.toLowerCase(),
+                                        enchapeService.nombreOriginal.toLowerCase()
+                                    ].filter(k => k);
+                                    const hasEnchape = enchapeKeys.some(key => key && detLower.includes(key));
+                                    if (hasEnchape && !detLower.includes('circulo')) {
+                                        actions.push('Enchape');
+                                    }
                                 }
-                                if (detLower.includes('nar')) {
-                                    actions.push('Nariz');
+                                
+                                // Detectar Nariz dinámicamente
+                                if (narizService) {
+                                    const narizKeys = [
+                                        narizService.nomenclatura.toLowerCase(),
+                                        narizService.nombreOriginal.toLowerCase()
+                                    ].filter(k => k);
+                                    const hasNariz = narizKeys.some(key => key && detLower.includes(key));
+                                    if (hasNariz) {
+                                        actions.push('Nariz');
+                                    }
                                 }
 
                                 return actions.map((labelAction) => {

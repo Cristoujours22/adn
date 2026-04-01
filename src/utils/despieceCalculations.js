@@ -45,6 +45,19 @@ const detectarCantidadUnidad = (detalle, nombreOriginal, nomenclatura) => {
         }
     }
     
+    // Regex especial para servicios como CAJA que pueden tener variantes 2L, 3L, 4L con texto entre medio
+    // Ejemplo: "Ref_ CAJA CEF 3L/15*100/490" → detectar "CAJA 3L"
+    // Este regex SOBRESCRIBE la cantidad anterior (para evitar duplicar cuenta)
+    if (baseNombre.includes('caja') || baseNom.includes('caja')) {
+        const variantRegex = new RegExp(`(${serviceRegexStr})[^\\d]*(\\d+)L`, 'gi');
+        while ((match = variantRegex.exec(detalleLower)) !== null) {
+            const cantidad = parseInt(match[2], 10) || 1;
+            const pos = match.index;
+            // Sobrescribir en lugar de sumar (prioridad al regex variant con número)
+            positionValues.set(pos, cantidad);
+        }
+    }
+    
     // Calcular total basado en los valores de cada posición
     let total = 0;
     positionValues.forEach((cantidad) => {

@@ -1369,6 +1369,7 @@ const ModeloDespiece = () => {
                 Nombre del Cliente:
                 <input
                   type="text"
+                  id="cliente"
                   value={clientName}
                   onChange={handleClientNameChange}
                   className={estilos.inputLargo}
@@ -1379,6 +1380,7 @@ const ModeloDespiece = () => {
                 Nombre del Proyecto:
                 <input
                   type="text"
+                  id="proyecto"
                   value={projectName}
                   onChange={handleProjectNameChange}
                   className={estilos.inputLargo}
@@ -1523,6 +1525,7 @@ const ModeloDespiece = () => {
               handleCellDoubleClick={handleCellDoubleClick}
               handleDragFill={handleDragFill}
               selection={selection}
+              services={services}
             />
 
           </form>
