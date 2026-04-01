@@ -195,6 +195,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         const isPerbis = service.nomenclatura.toUpperCase() === 'PERBIS' || service.nombreOriginal.toLowerCase().includes('perbis');
                         const isSanduche = service.nombreOriginal.toLowerCase().includes('sanduche') || service.nombreOriginal.toLowerCase().includes('clavillo') || service.nombreOriginal.toLowerCase().includes('sandu');
                         const isRanuraFo = service.nomenclatura.toUpperCase() === 'CSRANUFO' || service.nombreOriginal.toLowerCase().includes('ranurafo');
+                        const isEngna = service.nomenclatura.toUpperCase() === 'ENGNA' || service.nombreOriginal.toLowerCase().includes('engorde');
 
                         const regexNombre = new RegExp(escapeRegExp(service.nombreOriginal.toLowerCase()), 'gi');
                         const regexNom = new RegExp(escapeRegExp(service.nomenclatura.toLowerCase()), 'gi');
@@ -255,11 +256,18 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         const detLower = detalle.toLowerCase();
                         const isEnchapeButtonActive = detLower.includes('senchamanual') || detLower.includes('enchape manual');
                         const isNarizButtonActive = detLower.includes('nar');
+                        // EngNA button detection
+                        const isEngnaButtonActive = isEngna && (
+                            detLower.includes('engna') || 
+                            detLower.includes('engorde') ||
+                            (service.aliases && service.aliases.some(a => detLower.includes(a.toLowerCase())))
+                        );
 
                         let forceNariz = isNariz && count === 0 && row.narizCobro !== undefined && row.narizCobro !== '' && isNarizButtonActive;
                         let forceSencha = isSenchaManual && count === 0 && row.enchapeCobro !== undefined && row.enchapeCobro !== '' && isEnchapeButtonActive;
+                        let forceEngna = isEngna && count === 0 && row.engnaCobro !== undefined && row.engnaCobro !== '' && isEngnaButtonActive;
 
-                        if (count > 0 || forceNariz || forceSencha) {
+                        if (count > 0 || forceNariz || forceSencha || forceEngna) {
                             if (forceNariz || forceSencha) count = 1;
                             const l = parseFloat(row.largo) || 0;
                             const a = parseFloat(row.ancho) || 0;
@@ -353,6 +361,62 @@ export const calcularTotalesDespiece = (despieces, services) => {
 
                                 // Sumamos los milimetros totales convertidos a Metros Lineales.
                                 serviceTotalInRow += (totalSenchaMm / 1000); 
+
+                            } else if (isEngna) {
+                                // ENGNA (Engorde Nariz): misma lógica que Nariz
+                                const baseName = escapeRegExp(service.nombreOriginal.toLowerCase());
+                                const baseNom = escapeRegExp(service.nomenclatura.toLowerCase());
+                                // Incluir aliases en la detección
+                                const aliases = service.aliases || [];
+                                const aliasesStr = aliases.map(a => escapeRegExp(a.toLowerCase())).join('|');
+                                const baseRegexStr = aliasesStr ? `${baseName}|${baseNom}|${aliasesStr}` : (baseName === baseNom ? baseName : `${baseName}|${baseNom}`);
+                                
+                                const regexEngnaOld = new RegExp(`(${baseRegexStr})(?:\\s*(\\d+)(?:L)?)?`, 'gi');
+                                let totalEngnaUnits = 0;
+                                
+                                // Alias detection helper
+                                const hasEngnaKeyword = (text) => {
+                                    const textLower = text.toLowerCase();
+                                    if (textLower.includes('engna')) return true;
+                                    if (textLower.includes('engorde')) return true;
+                                    if (service.nomenclatura.toLowerCase().includes(textLower)) return true;
+                                    if (service.nombreOriginal.toLowerCase().includes(textLower)) return true;
+                                    if (aliases.some(a => textLower.includes(a.toLowerCase()))) return true;
+                                    return false;
+                                };
+                                const isEngnaButtonActive = hasEngnaKeyword(detalle);
+                                
+                                // Prioridad 1: Valor manual del modal
+                                if (row.engnaCobro !== undefined && row.engnaCobro !== '' && isEngnaButtonActive) {
+                                    totalEngnaUnits += parseFloat(row.engnaCobro) || 0;
+                                }
+                                
+                                // Prioridad 2: Cálculo algorítmico (Cantos o Literales)
+                                let matchEngna;
+                                let explicitLiteralsEngnaFound = false;
+                                while ((matchEngna = regexEngnaOld.exec(detalle)) !== null) {
+                                    let localUnits = 0;
+                                    if (matchEngna[1]) {
+                                        localUnits = parseInt(matchEngna[1], 10);
+                                        explicitLiteralsEngnaFound = true;
+                                    }
+                                    totalEngnaUnits += localUnits;
+                                }
+                                
+                                // Calcular por cantos 3 o 4
+                                let cantosEngnaMm = 0;
+                                const validCantosEngna = ['3', '4'];
+                                if (validCantosEngna.includes(String(row.l1))) cantosEngnaMm += l;
+                                if (validCantosEngna.includes(String(row.l2))) cantosEngnaMm += l;
+                                if (validCantosEngna.includes(String(row.a1))) cantosEngnaMm += a;
+                                if (validCantosEngna.includes(String(row.a2))) cantosEngnaMm += a;
+                                
+                                if (cantosEngnaMm > 0 && !explicitLiteralsEngnaFound) {
+                                    let unidadesPorMedida = Math.ceil(cantosEngnaMm / 1000);
+                                    totalEngnaUnits += unidadesPorMedida;
+                                }
+                                
+                                serviceTotalInRow += (totalEngnaUnits * 1);
 
                             } else if (isSanduche) {
                                 // SANDUCHE (SRREPEGA, SERVREME): solo cobra cuando hay cantos 3 o 4 marcados

@@ -327,6 +327,18 @@ const TablaPiezas = ({
                                 const detLower = safeRow.detalle?.toLowerCase() || '';
                                 const actions = [];
                                 
+                                // Función helper para obtener todas las keywords de un servicio (nomenclatura + nombreOriginal + aliases)
+                                const getServiceKeys = (service) => {
+                                    const keys = [
+                                        service.nomenclatura?.toLowerCase(),
+                                        service.nombreOriginal?.toLowerCase()
+                                    ];
+                                    if (service.aliases && Array.isArray(service.aliases)) {
+                                        service.aliases.forEach(alias => keys.push(alias.toLowerCase()));
+                                    }
+                                    return keys.filter(k => k);
+                                };
+                                
                                 // Detección dinámica de servicios desde la configuración
                                 const enchapeService = services?.find(s => 
                                     s.nomenclatura.toUpperCase().includes('SENCHA') || 
@@ -337,39 +349,48 @@ const TablaPiezas = ({
                                     s.nomenclatura.toUpperCase().includes('NAR') || 
                                     s.nombreOriginal.toLowerCase().includes('nariz')
                                 );
+                                const engnaService = services?.find(s => 
+                                    s.nomenclatura.toUpperCase().includes('ENGNA') || 
+                                    s.nombreOriginal.toLowerCase().includes('engorde')
+                                );
                                 
-                                // Detectar Enchape (SENCHAMANUAL) dinámicamente
+                                // Detectar Enchape (SENCHAMANUAL) dinámicamente usando nomenclatura + nombreOriginal + aliases
                                 if (enchapeService) {
-                                    const enchapeKeys = [
-                                        enchapeService.nomenclatura.toLowerCase(),
-                                        enchapeService.nombreOriginal.toLowerCase()
-                                    ].filter(k => k);
+                                    const enchapeKeys = getServiceKeys(enchapeService);
                                     const hasEnchape = enchapeKeys.some(key => key && detLower.includes(key));
                                     if (hasEnchape && !detLower.includes('circulo')) {
                                         actions.push('Enchape');
                                     }
                                 }
                                 
-                                // Detectar Nariz dinámicamente
+                                // Detectar Nariz dinámicamente usando nomenclatura + nombreOriginal + aliases
                                 if (narizService) {
-                                    const narizKeys = [
-                                        narizService.nomenclatura.toLowerCase(),
-                                        narizService.nombreOriginal.toLowerCase()
-                                    ].filter(k => k);
+                                    const narizKeys = getServiceKeys(narizService);
                                     const hasNariz = narizKeys.some(key => key && detLower.includes(key));
                                     if (hasNariz) {
                                         actions.push('Nariz');
                                     }
                                 }
+                                
+                                // Detectar Engorde Nariz (ENGNA) dinámicamente
+                                if (engnaService) {
+                                    const engnaKeys = getServiceKeys(engnaService);
+                                    const hasEngna = engnaKeys.some(key => key && detLower.includes(key));
+                                    if (hasEngna) {
+                                        actions.push('EngNA');
+                                    }
+                                }
 
                                 return actions.map((labelAction) => {
                                     const isEnchape = labelAction === 'Enchape';
-                                    const targetField = isEnchape ? 'enchapeCobro' : 'narizCobro';
+                                    const isEngna = labelAction === 'EngNA';
+                                    const targetField = isEnchape ? 'enchapeCobro' : (isEngna ? 'engnaCobro' : 'narizCobro');
                                     const cobroValue = safeRow[targetField];
                                     
                                     const IconToUse = isEnchape ? FaTools : FaRulerCombined;
-                                    const defaultBg = isEnchape ? '#e6a800' : '#17a2b8'; // Amarillo para enchape, azul claro para nariz
-                                    const bgHover = isEnchape ? '#d39e00' : '#138496';
+                                    // EngNA usa color turquesa distintivo
+                                    const defaultBg = isEnchape ? '#e6a800' : (isEngna ? '#20c997' : '#17a2b8');
+                                    const bgHover = isEnchape ? '#d39e00' : (isEngna ? '#1baa80' : '#138496');
                                     const txtColor = cobroValue ? '#fff' : (isEnchape ? '#212529' : '#fff');
 
                                     return (

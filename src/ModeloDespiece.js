@@ -27,6 +27,7 @@ const createNewDespiece = (name = "Despiece 1") => ({
 });
 
 // Lista de servicios por defecto basados en Excel del cliente
+// Estructura: nomenclatura (principal), aliases (array de nombres alternativos), nombreOriginal, tipoCobro
 const DEFAULT_SERVICES = [
   { nomenclatura: 'CSPERALM', nombreOriginal: 'PEGADO MANIJA ALUMINIO', tipoCobro: 'ml_largo_ancho' }, // Usualmente L o A, asumo unidad o ML
   { nomenclatura: 'CSCANTOA', nombreOriginal: 'PEGADO CANTO ALUMINIO', tipoCobro: 'ml_largo_ancho' },
@@ -35,26 +36,27 @@ const DEFAULT_SERVICES = [
   { nomenclatura: 'CSRANUFO', nombreOriginal: 'RANURAFO', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'RANULED', nombreOriginal: 'RANULED', tipoCobro: 'unidad' },
   { nomenclatura: 'CSCURVA1', nombreOriginal: 'CURVA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SRNAR000', nombreOriginal: 'NARIZ', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SRNAR000', nombreOriginal: 'NARIZ', aliases: ['nariz', 'nar'], tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SRREPEGA', nombreOriginal: 'SANDUCHE CLAVILLO', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERVREME', nombreOriginal: 'SANDUCHE PEGA', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERVIMARCO', nombreOriginal: 'MARCO, ENGRUESE EN MELAMINA', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'CIRCULOS', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'CIRCULOS', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERANGUL', nombreOriginal: 'ANGULO', tipoCobro: 'escala_60' },
   { nomenclatura: 'CSCALADO', nombreOriginal: 'CALADO', tipoCobro: 'escala_60' },
   { nomenclatura: 'SRCALAEI', nombreOriginal: 'CALADO  INTERNO', tipoCobro: 'escala_60' },
   { nomenclatura: 'SERVIENL', nombreOriginal: 'EN L', tipoCobro: 'unidad' },
   { nomenclatura: 'CSCHAFLA', nombreOriginal: 'CHAFLAN', tipoCobro: 'unidad' },
-  { nomenclatura: 'SENCHAMANUAL', nombreOriginal: 'ENCHAPE MANUAL', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SENCHAMANUAL', nombreOriginal: 'ENCHAPE MANUAL', aliases: ['senchamanual', 'enchape manual', 'enchape a pieza especial'], tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SENCHACURVA', nombreOriginal: 'ENCHAPE CURVO', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'CSCANTOC2', nombreOriginal: 'Enchape Canto Curvo 2mm. (Rígido)', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'CSINGLES', nombreOriginal: 'CAJA INGLESA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERVICENEFA', nombreOriginal: 'CAJA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERVICENEFA', nombreOriginal: 'CAJA', aliases: ['caja'], tipoCobro: 'unidad' },
   { nomenclatura: 'SERPASACABLE', nombreOriginal: 'PASACABLE', tipoCobro: 'unidad' },
   { nomenclatura: 'MANICHAFLAN', nombreOriginal: 'MANICHAFLAN', tipoCobro: 'unidad' },
   { nomenclatura: 'MANICRUS', nombreOriginal: 'MANIJA DE INCRUSTAR', tipoCobro: 'unidad' },
   { nomenclatura: 'MANIGAVETA', nombreOriginal: 'MANIGAVETA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERCURML', nombreOriginal: 'CURVA MEDIA LUNA', tipoCobro: 'unidad' }
+  { nomenclatura: 'SERCURML', nombreOriginal: 'CURVA MEDIA LUNA', tipoCobro: 'unidad' },
+  { nomenclatura: 'ENGNA', nombreOriginal: 'Engorde Nariz', aliases: ['engna', 'engorde', 'engordenariz'], tipoCobro: 'ml_largo_ancho' }
 ];
 
 const ModeloDespiece = () => {
