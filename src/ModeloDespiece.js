@@ -450,21 +450,89 @@ const ModeloDespiece = () => {
     handleSaveToFirestore();
   };
 
-  // Al pegar filas, asegurar IDs únicos y evitar fila vacía inicial
+  // Pegado inteligente: si se pega sobre una celda, respeta posición/selección; si no, agrega filas al final
   const handlePaste = useCallback((e) => {
-    // Si el pegado ocurre en los campos de búsqueda, permitir comportamiento por defecto
     const target = e.target;
     const inputId = target.id || target.name || '';
+    const isTextInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
     const isSearchInput = inputId.includes('search-') || inputId === 'proyecto' || inputId === 'cliente';
-    
-    if ((target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && isSearchInput) {
+
+    // Permitir comportamiento nativo en campos fuera de la grilla
+    if (isTextInput && isSearchInput) {
       return;
     }
-    
+
+    const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+    const cellIdRegex = /^(cant|largo|ancho|detalle|rotar|l1|l2|a1|a2)-(\d+)$/;
+    const cellIdMatch = inputId.match(cellIdRegex);
+
+    // Modo edición inmersiva (doble click/F2): permitir pegado nativo dentro del texto
+    const isImmersiveEditPaste = Boolean(
+      cellIdMatch &&
+      isEditing &&
+      activeCell?.field === cellIdMatch[1] &&
+      activeCell?.index === parseInt(cellIdMatch[2], 10) &&
+      document.activeElement?.id === inputId
+    );
+
+    if (isImmersiveEditPaste) {
+      return;
+    }
+
+    // Detectar si el pegado viene desde una celda activa de la tabla
+    const isGridCellPaste = Boolean(cellIdMatch || activeCell);
+
     e.preventDefault();
     saveToHistory();
-    const clipboardData = e.clipboardData.getData('text');
-    const rowsFromClipboard = clipboardData.split('\n').filter(row => row.trim() !== '');
+
+    const clipboardData = e.clipboardData.getData('text') || '';
+    const rowsFromClipboard = clipboardData
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .filter(row => row !== '');
+
+    if (rowsFromClipboard.length === 0) return;
+
+    // --- Caso 1: Pegado dentro de celda(s) ---
+    if (isGridCellPaste) {
+      const startIndex = cellIdMatch ? parseInt(cellIdMatch[2], 10) : (activeCell?.index ?? 0);
+      const startField = cellIdMatch ? cellIdMatch[1] : (activeCell?.field ?? 'cant');
+      const startFieldIdx = Math.max(0, fields.indexOf(startField));
+
+      const gridValues = rowsFromClipboard.map((row) => row.split('\t'));
+
+      setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+        if (despiece.id !== activeDespieceId) return despiece;
+
+        const nextRows = [...(despiece.filas || [])];
+        const requiredRows = startIndex + gridValues.length;
+        while (nextRows.length < requiredRows) {
+          nextRows.push(createNewRow());
+        }
+
+        gridValues.forEach((cols, rOffset) => {
+          const rowIdx = startIndex + rOffset;
+          const baseRow = nextRows[rowIdx] || createNewRow();
+          const updatedRow = { ...baseRow };
+
+          cols.forEach((rawValue, cOffset) => {
+            const fieldIdx = startFieldIdx + cOffset;
+            if (fieldIdx >= fields.length) return;
+            const field = fields[fieldIdx];
+            updatedRow[field] = (rawValue ?? '').trim();
+          });
+
+          nextRows[rowIdx] = updatedRow;
+        });
+
+        return { ...despiece, filas: nextRows };
+      }));
+
+      return;
+    }
+
+    // --- Caso 2: Pegado en contenedor (comportamiento histórico: agregar filas) ---
     const newRows = rowsFromClipboard.map((row) => {
       const columns = row.split('\t').map(col => col.trim());
       return {
@@ -480,17 +548,23 @@ const ModeloDespiece = () => {
         a2: columns[8] || '',
       };
     }).filter(row => Object.values(row).some(val => val !== ''));
+
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       const prevRows = despiece.filas || [];
+
       // Si la primera fila está vacía, reemplazarla
-      if (prevRows.length === 1 && Object.values(prevRows[0] || {}).every((v, i) => v === '' || (i === 0 && (typeof v === 'string' && /^row_/.test(v))))) {
+      if (
+        prevRows.length === 1 &&
+        Object.values(prevRows[0] || {}).every((v, i) => v === '' || (i === 0 && (typeof v === 'string' && /^row_/.test(v))))
+      ) {
         return { ...despiece, filas: newRows.length ? newRows : [createNewRow()] };
       }
+
       // Si no, agregar normalmente
       return { ...despiece, filas: [...prevRows, ...newRows] };
     }));
-  }, [activeDespieceId, saveToHistory]);
+  }, [activeCell, activeDespieceId, isEditing, saveToHistory]);
 
   // ==================== HISTORIAL DE VERSIONES ====================
   const guardarVersion = async (despieceId, datos) => {
@@ -1660,26 +1734,27 @@ const ModeloDespiece = () => {
                     background: darkMode ? '#2a2e35' : '#f8f9fa', 
                     borderRadius: '4px', 
                     padding: '10px',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    color: darkMode ? '#fff' : '#333'
                   }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #ddd' }}>
-                          <th style={{ textAlign: 'left', padding: '4px' }}>Tipo</th>
-                          <th style={{ textAlign: 'center', padding: '4px' }}>L1</th>
-                          <th style={{ textAlign: 'center', padding: '4px' }}>L2</th>
-                          <th style={{ textAlign: 'center', padding: '4px' }}>A1</th>
-                          <th style={{ textAlign: 'center', padding: '4px' }}>A2</th>
+                          <th style={{ textAlign: 'left', padding: '4px', color: darkMode ? '#fff' : '#333' }}>Tipo</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>L1</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>L2</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>A1</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>A2</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vistaPreviaDespieceAuto().map((item, idx) => (
                           <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                            <td style={{ padding: '4px' }}>{item.tipo}</td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.l1 || '-'}</td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.l2 || '-'}</td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.a1 || '-'}</td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>{item.a2 || '-'}</td>
+                            <td style={{ padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.tipo}</td>
+                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.l1 || '-'}</td>
+                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.l2 || '-'}</td>
+                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.a1 || '-'}</td>
+                            <td style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333' }}>{item.a2 || '-'}</td>
                           </tr>
                         ))}
                         {vistaPreviaDespieceAuto().length === 0 && (

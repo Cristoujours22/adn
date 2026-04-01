@@ -40,6 +40,59 @@ const Menu = () => {
   const [sugerenciasSinLeer, setSugerenciasSinLeer] = useState(0);
   const [mostrarInbox, setMostrarInbox] = useState(false);
 
+  const parseFechaFlexible = useCallback((value) => {
+    if (!value) return 0;
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (value && typeof value.toDate === "function") {
+      const d = value.toDate();
+      return d instanceof Date && !Number.isNaN(d.getTime()) ? d.getTime() : 0;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return 0;
+
+      const asNumber = Number(trimmed);
+      if (!Number.isNaN(asNumber) && Number.isFinite(asNumber)) {
+        return asNumber;
+      }
+
+      const normalized = trimmed.replace(",", "").replace(/\s+/g, " ");
+      const m = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+      if (m) {
+        const dd = parseInt(m[1], 10);
+        const mm = parseInt(m[2], 10) - 1;
+        const yyyy = parseInt(m[3], 10);
+        const hh = parseInt(m[4] || "0", 10);
+        const min = parseInt(m[5] || "0", 10);
+        const ss = parseInt(m[6] || "0", 10);
+        const d = new Date(yyyy, mm, dd, hh, min, ss);
+        if (!Number.isNaN(d.getTime())) return d.getTime();
+      }
+
+      const parsed = Date.parse(trimmed);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+
+    return 0;
+  }, []);
+
+  const getDespieceSortTimestamp = useCallback((despiece) => {
+    if (!despiece) return 0;
+
+    const lastModified =
+      parseFechaFlexible(despiece.ultimaModificacion) ||
+      parseFechaFlexible(despiece.ultimaModificacionStr);
+
+    if (lastModified > 0) return lastModified;
+
+    return parseFechaFlexible(despiece.fechaCreacion) || parseFechaFlexible(despiece.fecha);
+  }, [parseFechaFlexible]);
+
   const toggleMenu = () => {
     setMostrarMenu(!mostrarMenu);
     setMostrarUserMenu(false);
@@ -134,18 +187,18 @@ const Menu = () => {
       }
 
       const despiecesSnapshot = await getDocs(q);
-      // Ordenar por ultimaModificacion (timestamp numérico) - más reciente primero
+      // Ordenar por última modificación real - más reciente primero
       const despiecesData = despiecesSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(d => d.id)
-        .sort((a, b) => (b.ultimaModificacion || 0) - (a.ultimaModificacion || 0));
+        .sort((a, b) => getDespieceSortTimestamp(b) - getDespieceSortTimestamp(a));
       if (isMountedRef.current) setDespieces(despiecesData);
     } catch (error) {
       if (isMountedRef.current) console.error("Error al obtener los despieces:", error);
     } finally {
       if (isMountedRef.current) setLoadingDespieces(false);
     }
-  }, [currentUser, userCargo]);
+  }, [currentUser, userCargo, getDespieceSortTimestamp]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {

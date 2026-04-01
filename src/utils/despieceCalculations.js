@@ -181,6 +181,7 @@ export const calcularTotalesDespiece = (despieces, services) => {
                         const isSenchaManual = service.nomenclatura.toUpperCase() === 'SENCHAMANUAL' || service.nombreOriginal.toLowerCase().includes('enchape a pieza especial');
                         const isPerbis = service.nomenclatura.toUpperCase() === 'PERBIS' || service.nombreOriginal.toLowerCase().includes('perbis');
                         const isSanduche = service.nombreOriginal.toLowerCase().includes('sanduche') || service.nombreOriginal.toLowerCase().includes('clavillo') || service.nombreOriginal.toLowerCase().includes('sandu');
+                        const isRanuraFo = service.nomenclatura.toUpperCase() === 'CSRANUFO' || service.nombreOriginal.toLowerCase().includes('ranurafo');
 
                         const regexNombre = new RegExp(escapeRegExp(service.nombreOriginal.toLowerCase()), 'gi');
                         const regexNom = new RegExp(escapeRegExp(service.nomenclatura.toLowerCase()), 'gi');
@@ -227,6 +228,9 @@ export const calcularTotalesDespiece = (despieces, services) => {
                             const regex = new RegExp(escapeRegExp(nomenclLower), 'i');
                             const hasThisService = regex.test(detalle);
                             count = hasThisService ? 1 : 0;
+                        } else if (isRanuraFo) {
+                            const ranuraFoRegex = /(?:csranufo|ranurafo|ranurafos|ranufo|ranufos)/gi;
+                            count = (detalle.match(ranuraFoRegex) || []).length;
                         } else if (service.tipoCobro === 'unidad') {
                             count = detectarCantidadUnidad(detalle, service.nombreOriginal, service.nomenclatura);
                         } else if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
@@ -432,15 +436,18 @@ export const MODOS_DESPECIE = {
 // '' = sin canto, '1' = canto fino, '2' = canto grueso
 
 const REGLAS_COCINA = {
-    1: { // Opción 1: Canto en 1 lado
-        ItemPrincipal: { l1: '', l2: '1', a1: '', a2: '' },     // Laterales/Divisores
+    1: { // Opción 1: Canto en 1 lado (para muebles altos ancho <= 370)
+        Lateral: { l1: '', l2: '1', a1: '', a2: '' },       // Laterales/Divisiones <= 370mm
+        ItemPrincipal: { l1: '', l2: '1', a1: '', a2: '' },     // Laterales/Divisiones
         Refuerzo: { l1: '', l2: '1', a1: '', a2: '' },            // Refuerzos
         Base: { l1: '', l2: '1', a1: '1', a2: '1' },              // Base
         Entrepaño: { l1: '', l2: '1', a1: '', a2: '' },           // Entrepaño
         PanelPuerta: { l1: '2', l2: '2', a1: '2', a2: '2' }       // Puertas/Paneles
     },
-    2: { // Opción 2: Canto en 2 lados
-        ItemPrincipal: { l1: '', l2: '1', a1: '1', a2: '' },    // Laterales/Divisores
+    2: { // Opción 2: Canto en 1 lado para muebles altos, 2 lados para muebles bajos
+        Lateral: { l1: '', l2: '1', a1: '', a2: '' },            // Laterales/Divisiones ancho <= 370mm
+        LateralAncho: { l1: '', l2: '1', a1: '1', a2: '' },      // Laterales/Divisiones ancho >= 400mm
+        ItemPrincipal: { l1: '', l2: '1', a1: '', a2: '' },     // Laterales/Divisiones
         Refuerzo: { l1: '', l2: '1', a1: '', a2: '' },            // Refuerzos
         Base: { l1: '', l2: '1', a1: '1', a2: '1' },              // Base
         Entrepaño: { l1: '', l2: '1', a1: '', a2: '' },           // Entrepaño
@@ -525,24 +532,22 @@ const REGLAS_POR_MODO = {
     ESCRITORIO: REGLAS_ESCRITORIO
 };
 
-const ITEMS_RECONOCER = [
-    'LATERAL', 'LAT_IZQ', 'LAT_DER', 'DIVISIÓN',
-    'TRAVESSA_CONNARIZ_VERTICAL', 'TRAVESSA_CONNARIZ_HORIZONTAL',
-    'FR_FALSO', 'TESTERO','Comp Ent', 'Comp Lat' 
-];
-
 const ITEMS_ENTREPANO = ['ENTREPANO', 'ENTREP;A', 'REPISA'];
 const ITEMS_REFUERZO = ['REFUERZO_SUPERIOR', 'REFUERZO_TRASERO', 'TRAVESSA_CONNARIZ_VERTICAL', 'TRAVESSA_CONNARIZ_HORIZONTAL', 'COMP REF', 'COMPREF'];
 const ITEMS_BASE = ['BASE'];
 const ITEMS_PANEL_PUERTA = ['PANELCAJON', 'PUERTA'];
+const ITEMS_LATERAL_DIVISION = ['LATERAL', 'LAT_IZQ', 'LAT_DER', 'DIVISIÓN', 'DIVISION', 'DIV'];
 
 export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
     if (!filas || !Array.isArray(filas) || !modo || opcion < 1 || opcion > 3) {
         return filas;
     }
 
+    // Normalizar modo a mayúsculas para acceder a las reglas correctamente
+    const modoMayus = modo.toUpperCase();
+    
     // Obtener las reglas para el modo seleccionado
-    const reglasModo = REGLAS_POR_MODO[modo];
+    const reglasModo = REGLAS_POR_MODO[modoMayus];
     if (!reglasModo) {
         return filas;
     }
@@ -554,18 +559,36 @@ export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
 
     return filas.map(fila => {
         const detalle = (fila.detalle || '').toUpperCase();
+        const ancho = parseInt(fila.ancho, 10) || 0;
         
         const esEntrepaño = ITEMS_ENTREPANO.some(item => detalle.includes(item));
         const esRefuerzo = ITEMS_REFUERZO.some(item => detalle.includes(item));
         const esBase = ITEMS_BASE.some(item => detalle.includes(item));
         const esPanelPuerta = ITEMS_PANEL_PUERTA.some(item => detalle.includes(item));
+        const esLateralDivision = ITEMS_LATERAL_DIVISION.some(item => detalle.includes(item));
         
-        // Determinar qué tipo de regla aplicar (ItemPrincipal es el valor por defecto)
-        let tipo = esPanelPuerta ? 'PanelPuerta' 
-            : esRefuerzo ? 'Refuerzo' 
-            : esBase ? 'Base' 
-            : esEntrepaño ? 'Entrepaño' 
-            : 'ItemPrincipal';
+        // Determinar qué tipo de regla aplicar
+        // Laterales/Divisiones tienen lógica especial según ancho y opción
+        let tipo = 'ItemPrincipal';
+        
+        if (esPanelPuerta) {
+            tipo = 'PanelPuerta';
+        } else if (esRefuerzo) {
+            tipo = 'Refuerzo';
+        } else if (esBase) {
+            tipo = 'Base';
+        } else if (esEntrepaño) {
+            tipo = 'Entrepaño';
+        } else if (esLateralDivision) {
+            // Laterales/Divisiones: lógica especial según ancho
+            // Si ancho >= 400mm, aplica regla de 2 lados (para opción 1, 2 y 3)
+            // Si ancho < 400mm, aplica regla de 1 lado
+            if (ancho >= 400) {
+                tipo = 'LateralAncho';
+            } else {
+                tipo = 'Lateral';
+            }
+        }
         
         // Obtener la regla específica
         const regla = reglasOpcion[tipo] || reglasOpcion.ItemPrincipal || { l1: '', l2: '', a1: '', a2: '' };
@@ -583,23 +606,26 @@ export const aplicarDespieceAutomatico = (filas, modo, opcion) => {
 export const getVistaPreviaDespieceAuto = (filas, modo, opcion) => {
     if (!filas || !Array.isArray(filas)) return [];
     
-    const reglasModo = REGLAS_POR_MODO[modo];
+    // Normalizar modo a mayúsculas para acceder a las reglas correctamente
+    const modoMayus = modo ? modo.toUpperCase() : '';
+    
+    const reglasModo = REGLAS_POR_MODO[modoMayus];
     if (!reglasModo) return [];
     
     const reglasOpcion = reglasModo[opcion];
     if (!reglasOpcion) return [];
     
     const examples = [];
-    const seenTypes = new Set();
     
     // Tipos a mostrar en la vista previa
-    const tiposMostrar = ['ItemPrincipal', 'Refuerzo', 'Base', 'Entrepaño', 'PanelPuerta'];
+    const tiposMostrar = ['Lateral', 'LateralAncho', 'Refuerzo', 'Base', 'Entrepaño', 'PanelPuerta'];
     
     tiposMostrar.forEach(tipo => {
         const regla = reglasOpcion[tipo];
         if (regla) {
             // Mapear nombres para mostrar
-            const nombreMostrar = tipo === 'ItemPrincipal' ? 'Item Principal' 
+            const nombreMostrar = tipo === 'Lateral' ? 'Lateral/División' 
+                : tipo === 'LateralAncho' ? 'Lateral/División'
                 : tipo === 'PanelPuerta' ? 'Panel/Puerta' 
                 : tipo;
             
