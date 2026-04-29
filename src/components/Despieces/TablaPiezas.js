@@ -305,6 +305,52 @@ const TablaPiezas = ({
 
                 return (
                     <React.Fragment key={safeRow.id || `row_${index}`}>
+                        {showModuleColors && currentModule && isFirstOfModule && (
+                            <div className={estilos.filaDespiece}>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: '6px 0 8px 0' }}>
+                                    <div
+                                        style={{
+                                            width: '100%',
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                minWidth: '120px',
+                                                maxWidth: '220px',
+                                                padding: '8px 18px',
+                                                borderRadius: '999px',
+                                                background: moduleColor ? moduleColor.bg : (darkMode ? '#2c3e50' : '#e9ecef'),
+                                                border: `1px solid ${moduleColor ? moduleColor.border : (darkMode ? '#4a5568' : '#ced4da')}`,
+                                                color: darkMode ? '#fff' : '#212529',
+                                                fontSize: '13px',
+                                                fontWeight: '700',
+                                                letterSpacing: '0.8px',
+                                                textTransform: 'uppercase',
+                                                textAlign: 'center',
+                                                boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }}
+                                        >
+                                            {currentModule}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                            </div>
+                        )}
                         <div 
                             className={`${estilos.filaDespiece} ${estilos.moduleRow}`}
                             style={{ 

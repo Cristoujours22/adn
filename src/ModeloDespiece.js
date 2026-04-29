@@ -26,6 +26,37 @@ const createNewDespiece = (name = "Despiece 1") => ({
   filas: [createNewRow()]
 });
 
+const normalizeStoredCantoValue = (value) => {
+  if (value === true) return '1';
+  if (value === false || value == null || value === '') return '';
+  const stringValue = String(value);
+  return /^[1-8]$/.test(stringValue) ? stringValue : '';
+};
+
+const normalizeReglasCantoConfig = (config) => {
+  if (!config || typeof config !== 'object') return config;
+
+  return Object.fromEntries(
+    Object.entries(config).map(([modo, opciones]) => [
+      modo,
+      Object.fromEntries(
+        Object.entries(opciones || {}).map(([opcion, reglas]) => [
+          opcion,
+          Array.isArray(reglas)
+            ? reglas.map((regla) => ({
+                ...regla,
+                l1: normalizeStoredCantoValue(regla.l1),
+                l2: normalizeStoredCantoValue(regla.l2),
+                a1: normalizeStoredCantoValue(regla.a1),
+                a2: normalizeStoredCantoValue(regla.a2)
+              }))
+            : []
+        ])
+      )
+    ])
+  );
+};
+
 // Lista de servicios por defecto basados en Excel del cliente
 // Estructura: nomenclatura (principal), aliases (array de nombres alternativos), nombreOriginal, tipoCobro
 const DEFAULT_SERVICES = [
@@ -169,6 +200,9 @@ const ModeloDespiece = () => {
         if (userSettingsSnap.exists() && userSettingsSnap.data()?.showModuleColors !== undefined) {
           setShowModuleColors(userSettingsSnap.data().showModuleColors);
         }
+        if (userSettingsSnap.exists() && userSettingsSnap.data()?.despieceAutoRules) {
+          setReglasCantoPorModo(normalizeReglasCantoConfig(userSettingsSnap.data().despieceAutoRules));
+        }
       } catch (error) {
         console.error('Error al cargar preferencia de colores:', error);
       }
@@ -177,8 +211,56 @@ const ModeloDespiece = () => {
   }, [currentUser]);
 
   // Guardar preferencia de colores de módulos
+  const getModuleNameFromDetalle = (detalle) => {
+    if (!detalle) return null;
+    const match = String(detalle).match(/D\d+-\d+/i);
+    return match ? match[0].toUpperCase() : null;
+  };
+
+  const groupRowsByModule = (filas = []) => {
+    const groupedRows = [];
+    const moduleBuckets = new Map();
+    const moduleOrder = [];
+    const rowsWithoutModule = [];
+
+    filas.forEach((fila) => {
+      const moduleName = getModuleNameFromDetalle(fila?.detalle);
+
+      if (!moduleName) {
+        rowsWithoutModule.push(fila);
+        return;
+      }
+
+      if (!moduleBuckets.has(moduleName)) {
+        moduleBuckets.set(moduleName, []);
+        moduleOrder.push(moduleName);
+      }
+
+      moduleBuckets.get(moduleName).push(fila);
+    });
+
+    moduleOrder.forEach((moduleName) => {
+      groupedRows.push(...moduleBuckets.get(moduleName));
+    });
+
+    groupedRows.push(...rowsWithoutModule);
+    return groupedRows;
+  };
+
   const toggleModuleColors = async () => {
     const newValue = !showModuleColors;
+
+    if (newValue) {
+      saveToHistory();
+      setDespieces((prevDespieces) => prevDespieces.map((despiece) => {
+        if (despiece.id !== activeDespieceId) return despiece;
+        return {
+          ...despiece,
+          filas: groupRowsByModule(despiece.filas || [])
+        };
+      }));
+    }
+
     setShowModuleColors(newValue);
     if (currentUser?.uid) {
       try {
@@ -689,6 +771,66 @@ const ModeloDespiece = () => {
       setServices(version.serviciosGuardados || DEFAULT_SERVICES);
       setShowHistorialModal(false);
       alert('Versión restaurada exitosamente. No olvides guardar los cambios.');
+    }
+  };
+
+  const normalizeCantoInputValue = (value) => {
+    if (value === true) return '1';
+    if (value === false || value == null) return '';
+    return String(value);
+  };
+
+  const sanitizeCantoInputValue = (value) => {
+    if (value === '') return '';
+    return /^[1-8]$/.test(value) ? value : null;
+  };
+
+  const updateReglaCantoField = (idx, field, rawValue) => {
+    const sanitizedValue = sanitizeCantoInputValue(rawValue);
+    if (sanitizedValue === null) return;
+
+    const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+    nuevas[idx] = {
+      ...nuevas[idx],
+      [field]: sanitizedValue
+    };
+
+    setReglasCantoPorModo({
+      ...reglasCantoPorModo,
+      [despieceAutoModo.toUpperCase()]: {
+        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+        [despieceAutoOpcion]: nuevas
+      }
+    });
+  };
+
+  const saveUserDespieceRules = async () => {
+    if (!currentUser?.uid) {
+      alert('Debes estar autenticado para guardar tu configuración de despiece automático.');
+      return;
+    }
+
+    try {
+      const normalizedRules = normalizeReglasCantoConfig(reglasCantoPorModo);
+      const userSettingsRef = doc(db, 'userSettings', currentUser.uid);
+
+      await setDoc(userSettingsRef, {
+        userId: currentUser.uid,
+        despieceAutoRules: normalizedRules,
+        fechaActualizacionDespieceAuto: new Date().toLocaleString('es-AR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }, { merge: true });
+
+      setReglasCantoPorModo(normalizedRules);
+      alert('Configuración de despiece automático guardada.');
+    } catch (error) {
+      console.error('Error al guardar configuración de despiece automático:', error);
+      alert('No se pudo guardar la configuración de despiece automático.');
     }
   };
 
@@ -1857,70 +1999,46 @@ const ModeloDespiece = () => {
                             </td>
                             <td style={{ textAlign: 'center', padding: '2px' }}>
                               <input 
-                                type="checkbox" 
-                                checked={regla.l1}
-                                onChange={(e) => {
-                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
-                                  nuevas[idx].l1 = e.target.checked;
-                                  setReglasCantoPorModo({
-                                      ...reglasCantoPorModo,
-                                      [despieceAutoModo.toUpperCase()]: {
-                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
-                                        [despieceAutoOpcion]: nuevas
-                                      }
-                                    });
-                                }}
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.l1)}
+                                onChange={(e) => updateReglaCantoField(idx, 'l1', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
                               />
                             </td>
                             <td style={{ textAlign: 'center', padding: '2px' }}>
                               <input 
-                                type="checkbox" 
-                                checked={regla.l2}
-                                onChange={(e) => {
-                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
-                                  nuevas[idx].l2 = e.target.checked;
-                                  setReglasCantoPorModo({
-                                      ...reglasCantoPorModo,
-                                      [despieceAutoModo.toUpperCase()]: {
-                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
-                                        [despieceAutoOpcion]: nuevas
-                                      }
-                                    });
-                                }}
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.l2)}
+                                onChange={(e) => updateReglaCantoField(idx, 'l2', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
                               />
                             </td>
                             <td style={{ textAlign: 'center', padding: '2px' }}>
                               <input 
-                                type="checkbox" 
-                                checked={regla.a1}
-                                onChange={(e) => {
-                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
-                                  nuevas[idx].a1 = e.target.checked;
-                                  setReglasCantoPorModo({
-                                      ...reglasCantoPorModo,
-                                      [despieceAutoModo.toUpperCase()]: {
-                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
-                                        [despieceAutoOpcion]: nuevas
-                                      }
-                                    });
-                                }}
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.a1)}
+                                onChange={(e) => updateReglaCantoField(idx, 'a1', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
                               />
                             </td>
                             <td style={{ textAlign: 'center', padding: '2px' }}>
                               <input 
-                                type="checkbox" 
-                                checked={regla.a2}
-                                onChange={(e) => {
-                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
-                                  nuevas[idx].a2 = e.target.checked;
-                                  setReglasCantoPorModo({
-                                      ...reglasCantoPorModo,
-                                      [despieceAutoModo.toUpperCase()]: {
-                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
-                                        [despieceAutoOpcion]: nuevas
-                                      }
-                                    });
-                                }}
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.a2)}
+                                onChange={(e) => updateReglaCantoField(idx, 'a2', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
                               />
                             </td>
                             <td style={{ textAlign: 'center', padding: '2px' }}>
@@ -1957,10 +2075,10 @@ const ModeloDespiece = () => {
                           [despieceAutoOpcion]: [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion], { 
                             id: Date.now(), 
                             tipo: 'NUEVO', 
-                            l1: false, 
-                            l2: false, 
-                            a1: false, 
-                            a2: false 
+                            l1: '', 
+                            l2: '', 
+                            a1: '', 
+                            a2: '' 
                           }]
                         }
                       })}
@@ -1981,6 +2099,19 @@ const ModeloDespiece = () => {
                 </div>
                 
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={saveUserDespieceRules}
+                    style={{ 
+                      padding: '10px 20px', 
+                      background: '#17a2b8', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Guardar configuración
+                  </button>
                   <button 
                     onClick={() => setShowDespieceAutoModal(false)}
                     style={{ 

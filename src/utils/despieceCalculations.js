@@ -9,6 +9,34 @@
 
 const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const normalizeCantoValue = (value) => {
+    if (value === true) return '1';
+    if (value === false || value == null || value === '') return '';
+    const stringValue = String(value);
+    return /^[1-8]$/.test(stringValue) ? stringValue : '';
+};
+
+const findBestMatchingRule = (detalle, reglasPersonalizadas) => {
+    const detalleNormalizado = (detalle || '').trim().toUpperCase();
+    if (!detalleNormalizado) return null;
+
+    const reglasNormalizadas = reglasPersonalizadas
+        .map((regla) => ({
+            ...regla,
+            tipoNormalizado: (regla.tipo || '').trim().toUpperCase()
+        }))
+        .filter((regla) => regla.tipoNormalizado);
+
+    const exactMatch = reglasNormalizadas.find((regla) => detalleNormalizado === regla.tipoNormalizado);
+    if (exactMatch) return exactMatch;
+
+    const partialMatches = reglasNormalizadas
+        .filter((regla) => detalleNormalizado.includes(regla.tipoNormalizado))
+        .sort((a, b) => b.tipoNormalizado.length - a.tipoNormalizado.length);
+
+    return partialMatches[0] || null;
+};
+
 const detectarCantidadUnidad = (detalle, nombreOriginal, nomenclatura) => {
     const detalleLower = detalle.toLowerCase();
     const baseNombre = escapeRegExp(nombreOriginal.toLowerCase());
@@ -627,19 +655,15 @@ export const aplicarDespieceAutomatico = (filas, modo, opcion, reglasPersonaliza
     if (reglasPersonalizadas && Array.isArray(reglasPersonalizadas) && reglasPersonalizadas.length > 0) {
         return filas.map(fila => {
             const detalle = (fila.detalle || '').toUpperCase();
-            
-            // Buscar si la pieza coincide con algún tipo definido por el usuario
-            const reglaEncontrada = reglasPersonalizadas.find(regla => 
-                detalle.includes(regla.tipo.toUpperCase())
-            );
+            const reglaEncontrada = findBestMatchingRule(detalle, reglasPersonalizadas);
             
             if (reglaEncontrada) {
                 return {
                     ...fila,
-                    l1: reglaEncontrada.l1 ? '1' : '',
-                    l2: reglaEncontrada.l2 ? '1' : '',
-                    a1: reglaEncontrada.a1 ? '1' : '',
-                    a2: reglaEncontrada.a2 ? '1' : '',
+                    l1: normalizeCantoValue(reglaEncontrada.l1),
+                    l2: normalizeCantoValue(reglaEncontrada.l2),
+                    a1: normalizeCantoValue(reglaEncontrada.a1),
+                    a2: normalizeCantoValue(reglaEncontrada.a2),
                 };
             }
             
