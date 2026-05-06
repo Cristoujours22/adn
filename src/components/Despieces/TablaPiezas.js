@@ -12,6 +12,8 @@ const TablaPiezas = ({
     handleInputChange,
     handleKeyDown,
     handleRemoveRow,
+    handleRowClick,
+    rowSelection,
     handleOpenCobroModal,
     darkMode,
     activeCell,
@@ -91,6 +93,7 @@ const TablaPiezas = ({
                 boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 paddingBottom: '5px'
             }}>
+                <div className={estilos.celdaTitulo} style={{ width: '28px', minWidth: '28px', padding: '0 4px', fontSize: '10px' }}>#</div>
                 <div className={estilos.celdaTitulo}>CANT</div>
                 <div className={estilos.celdaTitulo}>LARGO</div>
                 <div className={estilos.celdaTitulo}>ANCHO</div>
@@ -305,8 +308,10 @@ const TablaPiezas = ({
 
                 return (
                     <React.Fragment key={safeRow.id || `row_${index}`}>
-                        {showModuleColors && currentModule && isFirstOfModule && (
+{showModuleColors && currentModule && isFirstOfModule && (
                             <div className={estilos.filaDespiece}>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
+                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
@@ -351,13 +356,37 @@ const TablaPiezas = ({
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                             </div>
                         )}
-                        <div 
+<div 
                             className={`${estilos.filaDespiece} ${estilos.moduleRow}`}
                             style={{ 
                                 position: 'relative',
                                 '--module-color': moduleColor ? moduleColor.bg : 'transparent'
                             }}
                         >
+                        {/* Row number column - clickable for Excel-style row selection */}
+                        <div 
+                            className={estilos.celdaDespiece}
+                            onClick={(e) => handleRowClick?.(index, e)}
+                            style={{ 
+                                width: '28px', 
+                                minWidth: '28px', 
+                                padding: '0 4px',
+                                cursor: 'pointer',
+                                backgroundColor: rowSelection?.has(index) ? (darkMode ? '#1a73e8' : '#1a73e8') : undefined,
+                                color: rowSelection?.has(index) ? '#fff' : (darkMode ? '#888' : '#666'),
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                userSelect: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRight: `1px solid ${darkMode ? '#444' : '#ddd'}`
+                            }}
+                            title="Click para seleccionar fila"
+                        >
+                            {index + 1}
+                        </div>
                         {renderCell('cant', `${estilos.inputCorto} ${estilos.flexibleWidth}`)}
                         {renderCell('largo', estilos.inputCorto)}
                         {renderCell('ancho', estilos.inputCorto)}

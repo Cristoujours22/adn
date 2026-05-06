@@ -282,6 +282,9 @@ const ModeloDespiece = () => {
   // eslint-disable-next-line no-unused-vars
   const [history, setHistory] = useState([]);
   const [selection, setSelection] = useState(null); // { start: { index, field }, end: { index, field } }
+  const [rowSelection, setRowSelection] = useState(new Set()); // Selection of row indices (Excel-style)
+  const [rowClipboard, setRowClipboard] = useState([]); // Internal clipboard for row copy/cut/paste
+
   const [showHistorialModal, setShowHistorialModal] = useState(false);
   const [historialVersiones, setHistorialVersiones] = useState([]);
   const [versionSeleccionada, setVersionSeleccionada] = useState(null);
@@ -386,14 +389,30 @@ const ModeloDespiece = () => {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
+        // Undo: Ctrl+Z
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
             e.preventDefault();
             undo();
         }
+        // Copy rows: Ctrl+C (when rows are selected)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && rowSelection.size > 0) {
+            e.preventDefault();
+            handleCopyRows();
+        }
+        // Cut rows: Ctrl+X (when rows are selected)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'x' && rowSelection.size > 0) {
+            e.preventDefault();
+            handleCutRows();
+        }
+        // Paste rows: Ctrl+V (when clipboard has data)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && rowClipboard.length > 0) {
+            e.preventDefault();
+            handlePasteRows();
+        }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [undo]);
+  }, [undo, rowSelection, rowClipboard, handleCopyRows, handleCutRows, handlePasteRows]);
 
   useEffect(() => {
     const handleOpenModal = () => setShowNomenclaturesModal(true);
@@ -600,6 +619,81 @@ const ModeloDespiece = () => {
       return { ...despiece, filas: (despiece.filas || []).filter((_, index) => index !== indexToRemove) };
     }));
   }, [activeDespieceId, saveToHistory]);
+
+  // Excel-style row selection: click on row number to select entire row
+  const handleRowClick = useCallback((index, e) => {
+    setRowSelection(prev => {
+      if (e?.ctrlKey || e?.metaKey) {
+        // Toggle row in selection (Ctrl+click)
+        const next = new Set(prev);
+        if (next.has(index)) {
+          next.delete(index);
+        } else {
+          next.add(index);
+        }
+        return next;
+      } else if (e?.shiftKey && prev.size > 0) {
+        // Range selection (Shift+click)
+        const lastIndex = Math.max(...prev);
+        const start = Math.min(lastIndex, index);
+        const end = Math.max(lastIndex, index);
+        const range = new Set();
+        for (let i = start; i <= end; i++) range.add(i);
+        return range;
+      } else {
+        // Single row selection
+        return new Set([index]);
+      }
+    });
+  }, []);
+
+  // Copy selected rows to internal clipboard
+  const handleCopyRows = useCallback(() => {
+    if (rowSelection.size === 0) return;
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    const rows = (activeDespiece?.filas || []).filter((_, i) => rowSelection.has(i));
+    setRowClipboard(rows);
+  }, [rowSelection, despieces, activeDespieceId]);
+
+  // Cut selected rows (copy + remove)
+  const handleCutRows = useCallback(() => {
+    if (rowSelection.size === 0) return;
+    saveToHistory();
+    handleCopyRows();
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const filas = (despiece.filas || []).filter((_, i) => !rowSelection.has(i));
+      return { ...despiece, filas };
+    }));
+    setRowSelection(new Set());
+  }, [rowSelection, despieces, activeDespieceId, saveToHistory, handleCopyRows]);
+
+  // Paste rows from internal clipboard (insert after current position or at end)
+  const handlePasteRows = useCallback(() => {
+    if (rowClipboard.length === 0) return;
+    saveToHistory();
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const insertIndex = activeCell?.index ?? despiece.filas?.length ?? 0;
+      const filas = [...(despiece.filas || [])];
+      // Generate new IDs for pasted rows
+      const newRows = rowClipboard.map(row => ({
+        ...row,
+        id: Date.now() + Math.random(),
+        cant: row.cant || '',
+        largo: row.largo || '',
+        ancho: row.ancho || '',
+        detalle: row.detalle || '',
+        rotar: row.rotar || '',
+        l1: row.l1 || '',
+        l2: row.l2 || '',
+        a1: row.a1 || '',
+        a2: row.a2 || '',
+      }));
+      filas.splice(insertIndex + 1, 0, ...newRows);
+      return { ...despiece, filas };
+    }));
+  }, [rowClipboard, activeDespieceId, activeCell, saveToHistory]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1728,6 +1822,8 @@ const ModeloDespiece = () => {
               handleInputChange={handleInputChange}
               handleKeyDown={handleKeyDown}
               handleRemoveRow={handleRemoveRow}
+              handleRowClick={handleRowClick}
+              rowSelection={rowSelection}
               handleOpenCobroModal={handleOpenCobroModal}
               darkMode={darkMode}
               activeCell={activeCell}
