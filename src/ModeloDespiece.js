@@ -388,33 +388,6 @@ const ModeloDespiece = () => {
   }, []);
 
   useEffect(() => {
-    const handleGlobalKeyDown = (e) => {
-        // Undo: Ctrl+Z
-        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-            e.preventDefault();
-            undo();
-        }
-        // Copy rows: Ctrl+C (when rows are selected)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && rowSelection.size > 0) {
-            e.preventDefault();
-            handleCopyRows();
-        }
-        // Cut rows: Ctrl+X (when rows are selected)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'x' && rowSelection.size > 0) {
-            e.preventDefault();
-            handleCutRows();
-        }
-        // Paste rows: Ctrl+V (when clipboard has data)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && rowClipboard.length > 0) {
-            e.preventDefault();
-            handlePasteRows();
-        }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [undo, rowSelection, rowClipboard, handleCopyRows, handleCutRows, handlePasteRows]);
-
-  useEffect(() => {
     const handleOpenModal = () => setShowNomenclaturesModal(true);
     
     // Listen to our custom event for instant updates within the same window
@@ -694,6 +667,33 @@ const ModeloDespiece = () => {
       return { ...despiece, filas };
     }));
   }, [rowClipboard, activeDespieceId, activeCell, saveToHistory]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+        // Undo: Ctrl+Z
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            undo();
+        }
+        // Copy rows: Ctrl+C (when rows are selected)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && rowSelection.size > 0) {
+            e.preventDefault();
+            handleCopyRows();
+        }
+        // Cut rows: Ctrl+X (when rows are selected)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'x' && rowSelection.size > 0) {
+            e.preventDefault();
+            handleCutRows();
+        }
+        // Paste rows: Ctrl+V (when clipboard has data)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && rowClipboard.length > 0) {
+            e.preventDefault();
+            handlePasteRows();
+        }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [undo, rowSelection, rowClipboard, handleCopyRows, handleCutRows, handlePasteRows]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
