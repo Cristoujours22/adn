@@ -1,0 +1,31 @@
+Slice: 1 / Phase 1 (tasks 1.1-1.4)
+Correction authorization: slice1-correction-20260809-1634
+Delivery: feature-branch-chain; Slice 1 only
+Mode: Strict TDD
+
+Original RED command/result:
+  npx react-scripts test --watchAll=false --runInBand src/utils/moduleIdentity.test.js src/services/despiecePersistence.test.js
+  RED observed after dependencies were available: 3 assertion failures against the unimplemented/initial contracts; tests were written before production implementation.
+  Initial runner attempt was blocked by missing node_modules/@testing-library/jest-dom; resolved with npm ci --ignore-scripts.
+
+GREEN command/result:
+  npx react-scripts test --watchAll=false --runInBand src/utils/moduleIdentity.test.js src/services/despiecePersistence.test.js
+  PASS: 2 suites, 7 tests.
+
+Correction RED command/result:
+  npx react-scripts test --watchAll=false --runInBand src/utils/moduleIdentity.test.js src/services/despiecePersistence.test.js
+  RED: 2 failing correction assertions, 9 passing tests. Failures covered stale moduleId token fallback and generated-create reference behavior; tests were written before the correction implementation.
+
+Correction GREEN command/result:
+  npx react-scripts test --watchAll=false --runInBand src/utils/moduleIdentity.test.js src/services/despiecePersistence.test.js
+  PASS: 2 suites, 11 tests.
+
+Focused regression:
+  npx react-scripts test --watchAll=false --runInBand src/App.test.js
+  FAIL: pre-existing `renders learn react link` assertion (1 failed); app rendered `Cargando...`.
+
+Work unit evidence:
+  Runtime harness: N/A — no E2E/runtime harness exists; Jest Firestore doubles cover the adapter boundary.
+  Rollback boundary: remove moduleIdentity.js, despiecePersistence.js, their two test files, and the four ModeloDespiece hydration changes.
+  Additional correction changed-line count: 71 authored additions/deletions.
+  Cumulative authored changed-line count: 329 (258 prior + 71 correction; under 400).

@@ -10,6 +10,7 @@ import PanelResumen from './components/Despieces/PanelResumen';
 import TablaPiezas from './components/Despieces/TablaPiezas';
 import { useTheme } from './ThemeContext';
 import { calcularTotalesDespiece, aplicarDespieceAutomatico, MODOS_DESPECIE } from './utils/despieceCalculations';
+import { hydrateDespieceSchema } from './utils/moduleIdentity';
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
@@ -423,7 +424,9 @@ const ModeloDespiece = () => {
                   return { ...row, id: `row_${rowId}` };
               });
               const newTab = createNewDespiece("Mueble Principal");
-              newTab.filas = loadedRows.length ? loadedRows : [createNewRow()];
+              const hydrated = hydrateDespieceSchema({ ...newTab, filas: loadedRows }, data.serviciosGuardados || []);
+              newTab.filas = hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()];
+              newTab.modules = hydrated.despiece.modules;
               setDespieces([newTab]);
               setActiveDespieceId(newTab.id);
           } else if (data.despieces && Array.isArray(data.despieces)) {
@@ -435,10 +438,12 @@ const ModeloDespiece = () => {
                       usedIds.add(`row_${rowId}`);
                       return { ...row, id: `row_${rowId}` };
                   });
+                  const hydrated = hydrateDespieceSchema({ ...desp, filas: safeRows }, data.serviciosGuardados || []);
                   return {
                       ...desp,
                       id: desp.id || `tab_${despieceIdCounter++}`,
-                      filas: safeRows.length ? safeRows : [createNewRow()]
+                      filas: hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()],
+                      modules: hydrated.despiece.modules
                   };
               });
               setDespieces(loadedDespieces.length ? loadedDespieces : [createNewDespiece()]);
@@ -451,11 +456,7 @@ const ModeloDespiece = () => {
           rowIdCounter = maxRowId;
           // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
           if (data.serviciosGuardados) {
-            const parsedServices = data.serviciosGuardados.map(s => {
-              if (typeof s === 'string') return { nombreOriginal: s, nomenclatura: s, tipoCobro: 'unidad' };
-              if (!s.tipoCobro) return { ...s, tipoCobro: 'unidad' };
-              return s;
-            });
+            const parsedServices = hydrateDespieceSchema({ filas: [] }, data.serviciosGuardados).services;
             setServices(parsedServices);
           } else {
             // Si no hay servicios en el proyecto, cargar servicios del usuario o defaults

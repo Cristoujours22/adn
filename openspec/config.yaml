@@ -1,0 +1,32 @@
+project: adn
+artifact_store:
+  mode: both
+strict_tdd: true
+context: |
+  ADN is a Create React App single-page application for melamine cut-list management.
+  It uses React 18, Firebase 9, React Router 6, and Firebase Hosting rewrites.
+  The stable worktree is feature/despiece-base-estable.
+  SDD artifacts are persisted in both OpenSpec and Engram.
+  The next continuation target is buzon-sugerencias-2026.
+execution_mode: auto
+chained_pr_strategy: ask-always
+review_budget_lines: 400
+testing:
+  runner: react-scripts test (Jest)
+  framework: Jest
+  unit: true
+  integration: false
+  e2e: false
+  coverage: true
+  coverage_command: npm test -- --coverage --watchAll=false
+  linter: react-app ESLint via react-scripts
+  type_checker: none (JavaScript project)
+  formatter: none detected
+phase_rules:
+  proposal: required
+  spec: proposal required
+  design: proposal required
+  tasks: spec and design required
+  apply: tasks, spec, and design required
+  verify: spec and tasks required
+  archive: all prior artifacts required
