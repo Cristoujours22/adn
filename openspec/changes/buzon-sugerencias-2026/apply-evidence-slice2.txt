@@ -1,0 +1,28 @@
+Slice: 2 / Phase 2 (tasks 2.1-2.4)
+Authorization: maintainer-approved one exceptional native attempt reset, limited to evidence synchronization.
+Scope: Slice 2 only; Phase 3 and Phase 4 remain pending.
+Process evidence exception: current-state behavior evidence is accepted; perfect historical RED→GREEN chronology is not claimed.
+Process evidence exception: no independent pre-compression assertion/mock inventory exists; compression preservation is not claimed.
+
+Work unit evidence:
+- Focused: npx react-scripts test --json --outputFile=<external>/focused-slice2.json --watchAll=false --runInBand src/utils/despieceCalculations.test.js src/ModeloDespiece.test.js src/components/Despieces/ServicesCarousel.test.js src/components/Despieces/ServicesCarousel.slick.test.js; exit 0; 4 suites, 12/12 tests passed, repeated three times.
+- Regression: npx react-scripts test --json --outputFile=<external>/slice1-2-regression.json --watchAll=false --runInBand src/utils src/components/Despieces src/ModeloDespiece.test.js; exit 0; 5 suites, 16/16 tests passed.
+- Full classification: npx react-scripts test --json --outputFile=<external>/full-jest.json --watchAll=false --runInBand; exit 1; 7 suites, 23/24 tests passed. Sole failure is pre-existing src/App.test.js `renders learn react link`, tolerated and not fixed in Slice 2.
+- Build: npm run build; exit 0; proven pre-existing warnings tolerated under the maintainer exception.
+- Diff: git diff --check; exit 0.
+- Runtime harness: N/A — no E2E runner; RTL and real unmocked Slick cover the available boundary.
+- Rollback boundary: Slice 2 files listed below; tests remain with the behavior they verify.
+
+Independent count: 272 authored changed lines (<=400), recomputed from baseline commit `5de51821d0182f10d4d0612729df3c6de68b411f` to current HEAD/worktree using `git diff --numstat` for six tracked Slice 2 paths plus full line counts for six untracked Slice 2 paths. The external manifest's 269 count is historical and non-authoritative; its SHA-256 is `d044b5321c4e3dcb438bb7c47cd843420f23690bec209aa4e4c303dcd60efaae`.
+The previously recorded 307 value is retained only as maintainer-accepted metadata, not independently verified by the current artifact chain.
+PanelResumen shared-path exception: retained only for canonical serviceId totals lookup; no Phase 3 transformation/dialog behavior.
+Immutability: source behavior was not changed during this evidence-only continuation; implementation, tests, package files, and modes remain byte/mode-identical to the pre-continuation state. No independent pre-compression assertion/mock inventory exists, so compression preservation is not claimed.
+Cleanup: no test-runner orphan was left; existing CodeGraph/model-advisor Node services were not terminated.
+
+Result Contract
+- status: success
+- executive_summary: Slice 2 current-state behavior passed focused and Slice 1+2 regression evidence; full Jest has only the documented pre-existing App.test.js failure; independently recomputed authored count is 272, while 307 remains maintainer-accepted metadata only.
+- artifacts: OpenSpec evidence plus native Jest JSON/console files and historical manifest under C:\Users\Cristian\AppData\Local\Temp\opencode\adn-slice2-process-exception-20260812-rerun; manifest is not authoritative for the current count.
+- next_recommended: sdd-verify (scoped Slice 2 only); full change remains apply with 8/16 tasks complete.
+- risks: pre-existing App.test.js failure and proven pre-existing build warnings remain tolerated; perfect historical RED→GREEN chronology and independent compression-preservation proof are not claimed.
+- skill_resolution: sdd-apply, strict-tdd, chained-pr, work-unit-commits, vercel-react-best-practices loaded.

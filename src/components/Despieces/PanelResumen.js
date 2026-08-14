@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PanelResumen = ({ 
+const PanelResumen = ({
     darkMode, 
     totalPieces, 
     services, 
@@ -34,14 +34,14 @@ const PanelResumen = ({
             </div>
 
             <h4 style={{ color: darkMode ? '#ccc' : '#666', marginBottom: '15px' }}>Conteo de Servicios</h4>
-            {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).length === 0 ? (
+            {services.filter(s => s.activo !== false && serviceCounts[s.serviceId || s.nomenclatura] > 0).length === 0 ? (
                 <p style={{ color: darkMode ? '#888' : '#888', fontSize: '14px', fontStyle: 'italic' }}>
                     {services.length === 0 ? "No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas." : "No hay servicios asociados detectados en el detalle de las piezas."}
                 </p>
             ) : (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).map(s => {
-                        const count = serviceCounts[s.nomenclatura] || 0;
+                    {services.filter(s => s.activo !== false && serviceCounts[s.serviceId || s.nomenclatura] > 0).map(s => {
+                        const count = serviceCounts[s.serviceId || s.nomenclatura] || 0;
                         
                         // Formatear display del contador dependiendo del tipo de cobro
                         let countDisplay = count;

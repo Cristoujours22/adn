@@ -1908,3 +1908,22 @@ body.high-contrast .despieceItem p {
 .btnMarcarLeida:hover {
   background: rgba(79, 195, 247, 0.1);
 }
+
+.despiece-dialog {
+  box-sizing: border-box;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1rem;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.despiece-dialog input,
+.despiece-dialog select,
+.despiece-dialog button {
+  max-width: 100%;
+}

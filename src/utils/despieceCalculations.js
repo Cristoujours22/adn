@@ -9,6 +9,63 @@
 
 const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const servicePattern = (service) => [service?.nombreOriginal, service?.nomenclatura, ...(service?.aliases || [])]
+    .filter(Boolean)
+    .map((value) => escapeRegExp(String(value).trim()))
+    .sort((a, b) => b.length - a.length)
+    .join('|');
+
+const countServiceMatches = (detail, service) => {
+    const pattern = servicePattern(service);
+    if (!pattern) return 0;
+    const matches = String(detail || '').match(new RegExp(`(?<![a-z0-9])(?:${pattern})(?![a-z0-9])`, 'gi')) || [];
+    const quantities = String(detail || '').match(new RegExp(`(?:\\d+)\\s*(?:L)?\\s*(?:${pattern})`, 'gi')) || [];
+    if (!quantities.length) return matches.length;
+    return quantities.reduce((total, value) => total + (parseInt(value, 10) || 1), 0);
+};
+
+export const detectServiceOccurrences = (filas = [], services = [], selectedServiceId) => {
+    if (!filas.length) return { status: 'empty', rowIds: [], count: 0 };
+    if (!services.length) return { status: 'empty', rowIds: [], count: 0 };
+    const matches = services.flatMap((service) => filas.flatMap((row) => {
+        const count = countServiceMatches(row?.detalle, service);
+        return count ? [{ service, rowId: row.id, count }] : [];
+    }));
+    if (!matches.length) {
+        const hasRejectedSubstring = filas.some((row) => services.some((service) => {
+            const terms = [service?.nombreOriginal, service?.nomenclatura, ...(service?.aliases || [])].filter(Boolean);
+            return terms.some((term) => String(row?.detalle || '').toLowerCase().includes(String(term).toLowerCase()));
+        }));
+        return { status: hasRejectedSubstring ? 'empty' : 'unresolved', rowIds: [], count: 0 };
+    }
+    const serviceKey = (match) => match.service.serviceId || match.service.nomenclatura;
+    const selectedMatches = selectedServiceId
+        ? matches.filter((match) => serviceKey(match) === selectedServiceId && !matches.some((other) => other.rowId === match.rowId && serviceKey(other) !== selectedServiceId))
+        : matches;
+    const byService = new Map();
+    selectedMatches.forEach((match) => byService.set(serviceKey(match), match));
+    if (byService.size !== 1) return { status: 'unresolved', rowIds: [], count: 0 };
+    const match = [...byService.values()][0];
+    return {
+        status: 'valid',
+        serviceId: match.service.serviceId,
+        rowIds: selectedMatches.filter((item) => serviceKey(item) === serviceKey(match)).map((item) => item.rowId),
+        count: selectedMatches.filter((item) => serviceKey(item) === serviceKey(match)).reduce((total, item) => total + item.count, 0)
+    };
+};
+
+export const applyValidatedService = (filas = [], result = {}) => result.status !== 'valid'
+    ? filas
+    : filas.map((row) => result.rowIds.includes(row.id) ? { ...row, serviceId: result.serviceId } : row);
+
+export const getServiceSelectionAlert = ({ label = 'selected service' } = {}) => `Service "${label}" could not be resolved. Review the wording or select a canonical service before accepting.`;
+
+export const calculateCanonicalServiceTotals = (despieces = [], services = []) => {
+    const legacyTotals = calcularTotalesDespiece(despieces, services);
+    const serviceCounts = Object.fromEntries(services.map((service) => [service.serviceId || service.nomenclatura, legacyTotals.serviceCounts[service.nomenclatura] || 0]));
+    return { totalPieces: legacyTotals.totalPieces, serviceCounts };
+};
+
 const normalizeCantoValue = (value) => {
     if (value === true) return '1';
     if (value === false || value == null || value === '') return '';
