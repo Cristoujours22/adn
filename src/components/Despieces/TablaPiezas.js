@@ -27,7 +27,9 @@ const TablaPiezas = ({
     handleDragFill,
     selection,
     showModuleColors,
-    services
+    services,
+    modules = [],
+    onRenameModule
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -82,6 +84,8 @@ const TablaPiezas = ({
         const match = detalle.match(/D\d+-\d+/i);
         return match ? match[0].toUpperCase() : null;
     };
+
+    const getModule = (name) => modules.find((module) => String(module.legacyToken || '').toUpperCase() === String(name || '').toUpperCase());
 
     return (
         <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
@@ -324,7 +328,10 @@ const TablaPiezas = ({
                                             alignItems: 'center'
                                         }}
                                     >
-                                        <div
+                                        <button
+                                            type="button"
+                                            onDoubleClick={(event) => onRenameModule?.(getModule(currentModule), event)}
+                                            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onRenameModule?.(getModule(currentModule), event); }}
                                             style={{
                                                 minWidth: '120px',
                                                 maxWidth: '220px',
@@ -343,9 +350,11 @@ const TablaPiezas = ({
                                                 overflow: 'hidden',
                                                 textOverflow: 'ellipsis'
                                             }}
+                                            aria-label={`Rename module ${getModule(currentModule)?.displayName || currentModule}`}
+                                            title="Double-click to rename module"
                                         >
-                                            {currentModule}
-                                        </div>
+                                            {getModule(currentModule)?.displayName || currentModule}
+                                        </button>
                                     </div>
                                 </div>
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>

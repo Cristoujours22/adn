@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, query, where, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
@@ -9,8 +9,36 @@ import TabsDespiece from './components/Despieces/TabsDespiece';
 import PanelResumen from './components/Despieces/PanelResumen';
 import TablaPiezas from './components/Despieces/TablaPiezas';
 import { useTheme } from './ThemeContext';
-import { calcularTotalesDespiece, aplicarDespieceAutomatico, MODOS_DESPECIE } from './utils/despieceCalculations';
-import { hydrateDespieceSchema } from './utils/moduleIdentity';
+import { calculateCanonicalServiceTotals, aplicarDespieceAutomatico, MODOS_DESPECIE, detectServiceOccurrences, applyValidatedService, getServiceSelectionAlert } from './utils/despieceCalculations';
+import { deterministicServiceId, hydrateDespieceSchema } from './utils/moduleIdentity';
+import ServicesCarousel from './components/Despieces/ServicesCarousel';
+import FindReplaceModal from './components/Despieces/FindReplaceModal';
+import ModuleRenameModal from './components/Despieces/ModuleRenameModal';
+import { persistDespieceSnapshot } from './services/despiecePersistence';
+
+export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
+  const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
+  if (result.status !== 'valid' || result.serviceId !== selection?.serviceId || !selection?.accepted) {
+    return { type: 'alert', role: 'alert', message: getServiceSelectionAlert(selection) };
+  }
+  return { type: 'accepted', rows: dependencies.applyValidatedService(filas, result), result };
+};
+
+export const updateServiceDefinition = (service, changes) => ({
+  ...(service || {}),
+  ...changes,
+  serviceId: service?.serviceId || deterministicServiceId(changes.nomenclatura)
+});
+
+export const coordinateSnapshotPersistence = async (snapshot, persist, { onCommit, history, defaults } = {}) => {
+  const result = await persist(snapshot, { history, defaults, onPrimaryCommit: ({ documentId }) => onCommit?.(snapshot, documentId) }) || { retry: null };
+  return { ...result, warning: result.retry ? 'Project saved, but a secondary backup failed. Retry is available.' : '' };
+};
+
+export const resolveDuplicateDocumentId = (existingDocs, isAutoSave, confirmOverwrite) => {
+  if (existingDocs.empty || isAutoSave) return undefined;
+  return confirmOverwrite() ? existingDocs.docs[0].id : null;
+};
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
@@ -99,7 +127,7 @@ const ModeloDespiece = () => {
   const [clientName, setClientName] = useState('');
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
-  const [services, setServices] = useState(DEFAULT_SERVICES); // Inicializar con lista excel
+  const [services, setServices] = useState(() => DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) }))); // Initialize with canonical ids
   const [newServiceNombre, setNewServiceNombre] = useState('');
   const [newServiceNomenclatura, setNewServiceNomenclatura] = useState('');
   const [newServiceTipoCobro, setNewServiceTipoCobro] = useState('unidad');
@@ -107,9 +135,17 @@ const ModeloDespiece = () => {
   const [showNomenclaturesModal, setShowNomenclaturesModal] = useState(false);
   const [totalPieces, setTotalPieces] = useState(0);
   const [serviceCounts, setServiceCounts] = useState({});
+  const [serviceSelectionAlert, setServiceSelectionAlert] = useState('');
   const { currentUser } = useAuth();
   const [userCargo, setUserCargo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const findReplaceOpenerRef = useRef(null);
+  const [renameModule, setRenameModule] = useState(null);
+  const renameOpenerRef = useRef(null);
+  const persistedDocumentId = useRef(id);
+  const [persistenceWarning, setPersistenceWarning] = useState('');
+  const [secondaryRetry, setSecondaryRetry] = useState(null);
 
   // Cargar cargo del usuario
   useEffect(() => {
@@ -478,7 +514,7 @@ const ModeloDespiece = () => {
   useEffect(() => {
     const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
     if (!activeDespiece) return;
-    const { totalPieces, serviceCounts } = calcularTotalesDespiece([activeDespiece], services);
+    const { totalPieces, serviceCounts } = calculateCanonicalServiceTotals([activeDespiece], services);
     setTotalPieces(totalPieces);
     setServiceCounts(serviceCounts);
   }, [despieces, services, activeDespieceId]);
@@ -493,21 +529,21 @@ const ModeloDespiece = () => {
             alert('Ya existe otro servicio con ese nombre o nomenclatura.');
             return;
          }
-         setServices(services.map(s => s.nomenclatura === editingService ? {
+         setServices(services.map(s => s.nomenclatura === editingService ? updateServiceDefinition(s, {
              nombreOriginal: newServiceNombre.trim(),
              nomenclatura: newServiceNomenclatura.trim(),
              tipoCobro: newServiceTipoCobro
-         } : s));
+          }) : s));
          setEditingService(null);
       } else {
          // Add new
          const exists = services.find(s => s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase());
          if (!exists) {
-            setServices([...services, { 
-                nombreOriginal: newServiceNombre.trim(), 
-                nomenclatura: newServiceNomenclatura.trim(),
-                tipoCobro: newServiceTipoCobro
-            }]);
+             setServices([...services, updateServiceDefinition(null, {
+                  nombreOriginal: newServiceNombre.trim(),
+                 nomenclatura: newServiceNomenclatura.trim(),
+                 tipoCobro: newServiceTipoCobro
+             })]);
          } else {
             alert('Ya existe un servicio con ese nombre o nomenclatura.');
             return;
@@ -543,9 +579,72 @@ const ModeloDespiece = () => {
 
   const handleRestoreDefaultServices = () => {
     if (window.confirm("¿Seguro que deseas restaurar los servicios predeterminados? Se perderán los que hayas agregado manualmente.")) {
-      setServices(DEFAULT_SERVICES);
+       setServices(DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) })));
     }
   };
+
+  const snapshotFor = (candidateDespieces, documentId = persistedDocumentId.current) => ({
+    documentId,
+    proyecto: projectName,
+    cliente: clientName,
+    fechaCreacion: creationDate,
+    ultimaModificacion: Date.now(),
+    ultimaModificacionStr: new Date().toLocaleString('es-AR'),
+    despieces: candidateDespieces,
+    serviciosGuardados: services,
+    userId: currentUser?.uid || null
+  });
+
+  const persistCandidate = async (candidateDespieces, includeSecondary = true, documentId = persistedDocumentId.current) => {
+    const snapshot = snapshotFor(candidateDespieces, documentId);
+    const history = includeSecondary && documentId ? () => guardarVersion(documentId, { despieces: candidateDespieces, servicios: services, proyecto: projectName, cliente: clientName }) : null;
+    const defaults = includeSecondary && currentUser?.uid ? () => setDoc(doc(db, 'userServices', currentUser.uid), { userId: currentUser.uid, servicios: services, fechaActualizacion: new Date().toLocaleDateString() }) : null;
+    const result = await coordinateSnapshotPersistence(snapshot, (value, options) => persistDespieceSnapshot(value, { db, collection, doc, writeBatch }, options), {
+      history,
+      defaults,
+      onCommit: (_value, documentId) => { persistedDocumentId.current = documentId; setDespieces(candidateDespieces); }
+    });
+    setPersistenceWarning(result.warning);
+    setSecondaryRetry(result.retry ? { failed: result.retry.failed, history, defaults } : null);
+    return result;
+  };
+
+  const retrySecondaryWrites = async () => {
+    const failures = [];
+    for (const name of secondaryRetry?.failed || []) {
+      try { await secondaryRetry[name]?.(); } catch (error) { failures.push(name); }
+    }
+    setSecondaryRetry(failures.length ? { ...secondaryRetry, failed: failures } : null);
+    setPersistenceWarning(failures.length ? 'Secondary backup still failed. Try again.' : 'Secondary backup completed.');
+  };
+
+  const handleServiceSelection = async (service) => {
+    const active = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+    const outcome = coordinateServiceSelection(active?.filas || [], services, { label: service.nomenclatura, serviceId: service.serviceId, accepted: true });
+    if (outcome.type === 'accepted') {
+      const candidate = despieces.map((despiece) => despiece.id === active?.id ? { ...despiece, filas: outcome.rows } : despiece);
+      try {
+        await persistCandidate(candidate);
+        setServiceSelectionAlert('');
+      } catch (error) {
+        console.error('Could not persist service selection:', error);
+        setServiceSelectionAlert('Could not save the service selection. Try again.');
+      }
+    } else {
+      setServiceSelectionAlert(outcome.message);
+    }
+  };
+
+  const activeDespiece = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+  const commitTransformation = async (result) => {
+    const candidate = despieces.map((despiece) => despiece.id === activeDespiece?.id ? result.despiece : despiece);
+    try {
+      await persistCandidate(candidate);
+    } catch (error) {
+      throw new Error('Could not save changes. Review your connection and try again.');
+    }
+  };
+  const handleRenameModule = (module, opener) => { if (module) { renameOpenerRef.current = opener; setRenameModule(module); } };
 
   const handleInputChange = useCallback((index, field, value) => {
     // La validación de cant/largo/ancho se hace al confirmar con Enter (en handleKeyDown)
@@ -640,7 +739,7 @@ const ModeloDespiece = () => {
       return { ...despiece, filas };
     }));
     setRowSelection(new Set());
-  }, [rowSelection, despieces, activeDespieceId, saveToHistory, handleCopyRows]);
+  }, [rowSelection, activeDespieceId, saveToHistory, handleCopyRows]);
 
   // Paste rows from internal clipboard (insert after current position or at end)
   const handlePasteRows = useCallback(() => {
@@ -956,7 +1055,6 @@ const ModeloDespiece = () => {
   };
 
   // ==================== GUARDAR EN FIRESTORE ====================
-  // Guardar: si es edición, actualizar, si no, crear
   const handleSaveToFirestore = useCallback(async (isAutoSave = false) => {
     const totalFilas = despieces.reduce((acc, current) => acc + (current.filas ? current.filas.length : 0), 0);
     if (totalFilas === 0) {
@@ -970,95 +1068,20 @@ const ModeloDespiece = () => {
         return; // No permitimos guardar si faltan estos datos
     }
     try {
-        if (id) {
-          // Actualizar existente
-          const despieceRef = doc(db, 'despieces', id);
-          await updateDoc(despieceRef, {
-            proyecto: projectName, // Keep 'proyecto' as per original, not 'nombreProyecto' from partial edit
-            cliente: clientName,
-            // fechaCreacion: creationDate, // Removed as per partial edit, makes sense for update
-            ultimaModificacion: Date.now(), // Timestamp numérico para ordenamiento correcto
-            ultimaModificacionStr: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }), // Para mostrar al usuario
-            despieces: despieces,
-            serviciosGuardados: services
-          });
-          if (!isAutoSave) {
-            await guardarVersion(id, { despieces, servicios: services, proyecto: projectName, cliente: clientName });
-            alert('Despiece actualizado exitosamente.');
-          }
-        } else {
-          // Crear nuevo - verificar duplicados
-          const q = query(
-            collection(db, 'despieces'),
-            where('cliente', '==', clientName.trim()),
-            where('proyecto', '==', projectName.trim()),
-            where('userId', '==', currentUser ? currentUser.uid : null)
-          );
-          const existingDocs = await getDocs(q);
-          
-          if (!existingDocs.empty) {
-            const existingId = existingDocs.docs[0].id;
-            if (!isAutoSave) {
-              const sobrescribir = window.confirm(
-                `Ya existe un proyecto con el mismo Cliente y Nombre de Proyecto.\n\n` +
-                `Cliente: ${clientName}\n` +
-                `Proyecto: ${projectName}\n\n` +
-                `¿Deseas sobrescribir el proyecto existente?`
-              );
-              if (!sobrescribir) return;
-              
-              // Sobrescribir el proyecto existente
-              const despieceRef = doc(db, 'despieces', existingId);
-              await updateDoc(despieceRef, {
-                proyecto: projectName,
-                cliente: clientName,
-                ultimaModificacion: Date.now(), // Timestamp numérico
-                ultimaModificacionStr: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                despieces: despieces,
-                serviciosGuardados: services
-              });
-              if (!isAutoSave) {
-                await guardarVersion(existingId, { despieces, servicios: services, proyecto: projectName, cliente: clientName });
-                alert('Despiece actualizado exitosamente.');
-              }
-              return;
-            }
-          }
-          
-          // Crear nuevo
-          const despiecesCollection = collection(db, 'despieces');
-          const despieceData = {
-            proyecto: projectName,
-            cliente: clientName,
-            fechaCreacion: creationDate,
-            ultimaModificacion: Date.now(), // Timestamp numérico
-            ultimaModificacionStr: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }), // Para mostrar al usuario
-            despieces: despieces,
-            serviciosGuardados: services,
-            userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
-          };
-          await addDoc(despiecesCollection, despieceData);
-          if (!isAutoSave) alert('Despiece guardado exitosamente en Firestore.');
+        let documentId = persistedDocumentId.current;
+        if (!documentId) {
+          const existingDocs = await getDocs(query(collection(db, 'despieces'), where('cliente', '==', clientName.trim()), where('proyecto', '==', projectName.trim()), where('userId', '==', currentUser?.uid || null)));
+          const duplicateId = resolveDuplicateDocumentId(existingDocs, isAutoSave, () => window.confirm(`Ya existe un proyecto con el mismo cliente y nombre.\n\n¿Deseas sobrescribirlo?`));
+          if (duplicateId === null) return;
+          documentId = duplicateId;
         }
+        await persistCandidate(despieces, !isAutoSave, documentId);
+        if (!isAutoSave) alert(documentId ? 'Despiece actualizado exitosamente.' : 'Despiece guardado exitosamente en Firestore.');
     } catch (error) {
         console.error('Error al guardar en Firestore:', error.message, error.stack);
         if (!isAutoSave) alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
-    } finally {
-        // Respaldo de servicios del usuario
-        if (currentUser?.uid && !isAutoSave) {
-            try {
-                const userServicesRef = doc(db, 'userServices', currentUser.uid);
-                await setDoc(userServicesRef, {
-                    userId: currentUser.uid,
-                    servicios: services,
-                    fechaActualizacion: new Date().toLocaleDateString()
-                });
-            } catch (err) {
-                console.error('Error al respaldar servicios del usuario:', err);
-            }
-        }
     }
-  }, [despieces, projectName, clientName, services, id, currentUser, creationDate, lastModifiedDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [despieces, projectName, clientName, currentUser, services]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------- SISTEMA DE AUTOGUARDADO ---------
   useEffect(() => {
@@ -1838,6 +1861,8 @@ const ModeloDespiece = () => {
               handleDragFill={handleDragFill}
               selection={selection}
               services={services}
+              modules={activeDespiece?.modules}
+              onRenameModule={(module, event) => handleRenameModule(module, event?.currentTarget)}
             />
 
           </form>
@@ -1927,6 +1952,7 @@ const ModeloDespiece = () => {
                       ⚡ Despiece Auto
                     </button>
                   )}
+                  <button type="button" onClick={(event) => { findReplaceOpenerRef.current = event.currentTarget; setFindReplaceOpen(true); setShowMenuAcciones(false); }}>Buscar y reemplazar</button>
                 </div>
               )}
             </div>
@@ -1934,13 +1960,21 @@ const ModeloDespiece = () => {
         </div>
 
         {/* PARTE DERECHA: RESUMEN Y CONTEO DE SERVICIOS */}
-        <PanelResumen 
+        <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+          {serviceSelectionAlert && <div role="alert">{serviceSelectionAlert}</div>}
+          {persistenceWarning && <div role="status">{persistenceWarning}{secondaryRetry && <button type="button" onClick={retrySecondaryWrites}>Retry backup</button>}</div>}
+          <ServicesCarousel services={services.filter((service) => service.activo !== false)} onSelect={handleServiceSelection} />
+          <PanelResumen
           darkMode={darkMode}
           totalPieces={totalPieces}
           services={services}
           serviceCounts={serviceCounts}
-        />
+          />
+        </div>
       </div>
+
+      <FindReplaceModal despiece={activeDespiece} isOpen={findReplaceOpen} openerRef={findReplaceOpenerRef} onClose={() => setFindReplaceOpen(false)} onApply={commitTransformation} />
+      <ModuleRenameModal despiece={activeDespiece} module={renameModule} isOpen={Boolean(renameModule)} openerRef={renameOpenerRef} onClose={() => setRenameModule(null)} onApply={commitTransformation} />
 
       {/* MODAL DE HISTORIAL DE VERSIONES */}
       {showHistorialModal && (
