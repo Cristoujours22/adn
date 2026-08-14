@@ -826,9 +826,12 @@ label[for="recordar"] {
 }
 
 /* --- Definición de anchos para cada columna del encabezado --- */
-/* Estos porcentajes deben sumar 100% */
+/* 11 columnas: # (selección fila) + CANT + LARGO + ANCHO + DETALLE + ROTAR + L1 + L2 + A1 + A2 + ACCIONES */
+/* Los porcentajes de datos suman 100% con DETALLE 40% y ACCIONES 12% */
+
+/* # (columna de selección de fila estilo Excel) */
 .filaDespiece>.celdaTitulo:nth-child(1) {
-  width: 6%;
+  width: 28px;
 }
 
 /* CANT */
@@ -843,12 +846,12 @@ label[for="recordar"] {
 
 /* ANCHO */
 .filaDespiece>.celdaTitulo:nth-child(4) {
-  width: 40%;
+  width: 6%;
 }
 
 /* DETALLE */
 .filaDespiece>.celdaTitulo:nth-child(5) {
-  width: 6%;
+  width: 40%;
 }
 
 /* ROTAR */
@@ -873,10 +876,13 @@ label[for="recordar"] {
 
 /* A2 */
 .filaDespiece>.celdaTitulo:nth-child(10) {
-  width: 12%;
+  width: 6%;
 }
 
 /* ACCIONES */
+.filaDespiece>.celdaTitulo:nth-child(11) {
+  width: 12%;
+}
 
 /* --- Anchos para la tabla de Gestión de Usuarios --- */
 .tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(1) {
@@ -996,7 +1002,8 @@ label[for="recordar"] {
 
 /* Si quieres que el input de detalle específicamente tenga alineación izquierda */
 /* (ya está en .inputLargo, pero por si acaso se sobreescribe) */
-.filaDespiece>.celdaDespiece:nth-child(4)>.inputLargo {
+/* DETALLE es la celda 5 (la 1 es la columna # de selección de fila) */
+.filaDespiece>.celdaDespiece:nth-child(5)>.inputLargo {
   text-align: left;
 }
 
@@ -1295,13 +1302,18 @@ body.high-contrast .despieceItem p {
     /* Para el label simulado */
   }
 
-  .celdaDespiece:nth-child(4) {
+  /* La columna # de selección de fila no aplica en tarjetas móviles */
+  .celdaDespiece:nth-child(1) {
+    display: none !important;
+  }
+
+  .celdaDespiece:nth-child(5) {
     /* Detalle (Text Largo) */
     flex: 1 1 100% !important;
   }
 
   /* Simulando Títulos de Columnas */
-  .celdaDespiece:nth-child(1)::before {
+  .celdaDespiece:nth-child(2)::before {
     content: "Cant";
     position: absolute;
     top: 0;
@@ -1310,7 +1322,7 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(2)::before {
+  .celdaDespiece:nth-child(3)::before {
     content: "Largo";
     position: absolute;
     top: 0;
@@ -1319,7 +1331,7 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(3)::before {
+  .celdaDespiece:nth-child(4)::before {
     content: "Ancho";
     position: absolute;
     top: 0;
@@ -1328,7 +1340,7 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(4)::before {
+  .celdaDespiece:nth-child(5)::before {
     content: "Detalle / Descripción";
     position: absolute;
     top: 0;
@@ -1337,7 +1349,7 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(5)::before {
+  .celdaDespiece:nth-child(6)::before {
     content: "Rotar";
     position: absolute;
     top: 0;
@@ -1346,7 +1358,7 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(6)::before {
+  .celdaDespiece:nth-child(7)::before {
     content: "L1";
     position: absolute;
     top: 0;
@@ -1355,7 +1367,7 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(7)::before {
+  .celdaDespiece:nth-child(8)::before {
     content: "L2";
     position: absolute;
     top: 0;
@@ -1364,7 +1376,7 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(8)::before {
+  .celdaDespiece:nth-child(9)::before {
     content: "A1";
     position: absolute;
     top: 0;
@@ -1373,8 +1385,17 @@ body.high-contrast .despieceItem p {
     color: #777;
   }
 
-  .celdaDespiece:nth-child(9)::before {
+  .celdaDespiece:nth-child(10)::before {
     content: "A2";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(11)::before {
+    content: "Acciones";
     position: absolute;
     top: 0;
     left: 0;
