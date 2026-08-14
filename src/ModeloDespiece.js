@@ -24,6 +24,12 @@ export const coordinateServiceSelection = (filas, services, selection, dependenc
   return { type: 'accepted', rows: dependencies.applyValidatedService(filas, result), result };
 };
 
+export const validatePersistenceIdentity = (projectName, clientName) => {
+  if (!String(projectName || '').trim() || !String(clientName || '').trim()) {
+    throw new Error('Client and project names are required before saving.');
+  }
+};
+
 export const updateServiceDefinition = (service, changes) => ({
   ...(service || {}),
   ...changes,
@@ -596,13 +602,14 @@ const ModeloDespiece = () => {
   });
 
   const persistCandidate = async (candidateDespieces, includeSecondary = true, documentId = persistedDocumentId.current) => {
+    validatePersistenceIdentity(projectName, clientName);
     const snapshot = snapshotFor(candidateDespieces, documentId);
     const history = includeSecondary && documentId ? () => guardarVersion(documentId, { despieces: candidateDespieces, servicios: services, proyecto: projectName, cliente: clientName }) : null;
     const defaults = includeSecondary && currentUser?.uid ? () => setDoc(doc(db, 'userServices', currentUser.uid), { userId: currentUser.uid, servicios: services, fechaActualizacion: new Date().toLocaleDateString() }) : null;
     const result = await coordinateSnapshotPersistence(snapshot, (value, options) => persistDespieceSnapshot(value, { db, collection, doc, writeBatch }, options), {
       history,
       defaults,
-      onCommit: (_value, documentId) => { persistedDocumentId.current = documentId; setDespieces(candidateDespieces); }
+      onCommit: (_value, documentId) => { persistedDocumentId.current = documentId; }
     });
     setPersistenceWarning(result.warning);
     setSecondaryRetry(result.retry ? { failed: result.retry.failed, history, defaults } : null);
@@ -620,13 +627,18 @@ const ModeloDespiece = () => {
 
   const handleServiceSelection = async (service) => {
     const active = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
-    const outcome = coordinateServiceSelection(active?.filas || [], services, { label: service.nomenclatura, serviceId: service.serviceId, accepted: true });
+    const outcome = coordinateServiceSelection(active?.filas || [], services, { label: service.nomenclatura, serviceId: service.serviceId || service.nomenclatura, accepted: true });
     if (outcome.type === 'accepted') {
       const candidate = despieces.map((despiece) => despiece.id === active?.id ? { ...despiece, filas: outcome.rows } : despiece);
+      setDespieces(candidate);
       try {
         await persistCandidate(candidate);
         setServiceSelectionAlert('');
       } catch (error) {
+        if (error.message === 'Client and project names are required before saving.') {
+          setServiceSelectionAlert(error.message);
+          return;
+        }
         console.error('Could not persist service selection:', error);
         setServiceSelectionAlert('Could not save the service selection. Try again.');
       }
@@ -638,9 +650,11 @@ const ModeloDespiece = () => {
   const activeDespiece = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
   const commitTransformation = async (result) => {
     const candidate = despieces.map((despiece) => despiece.id === activeDespiece?.id ? result.despiece : despiece);
+    setDespieces(candidate);
     try {
       await persistCandidate(candidate);
     } catch (error) {
+      if (error.message === 'Client and project names are required before saving.') throw error;
       throw new Error('Could not save changes. Review your connection and try again.');
     }
   };
