@@ -1,6 +1,39 @@
 /* === Contenido de App.module.css === */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
+/* ====== DESIGN TOKENS (CSS Variables) ====== */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f6f8;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --accent-color: #1976d2;
+  --accent-hover: #1565c0;
+  --danger-color: #d32f2f;
+  --danger-hover: #b71c1c;
+  --border-color: #dddddd;
+  --card-bg: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+}
+
+body.dark-mode {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaaaaa;
+  --accent-color: #4fc3f7;
+  --accent-hover: #29b6f6;
+  --danger-color: #ef5350;
+  --danger-hover: #e53935;
+  --border-color: #333333;
+  --card-bg: #1e1e1e;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.6);
+  --input-bg: #2c2c2c;
+}
+
 /* Estilos Globales y de otras páginas (proporcionados por ti) */
 * {
   margin: 0;
@@ -105,25 +138,26 @@ button {
 }
 
 .butom {
-  background: linear-gradient(135deg, #fe0004 0%, #aa0003 100%);
-  color: white;
   width: 100%;
-  padding: 12px 20px;
-  margin: 16px 0;
-  /* font-family inhered from body */
-  font-size: 18px;
-  font-weight: bold;
-  border: none;
-  border-radius: 8px;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--border-color);
+  padding: 12px 24px;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  font-weight: bold;
+  font-size: 18px;
   transition: all 0.3s ease;
+  margin: 16px 0;
+  /* Kept from original */
 }
 
 .butom:hover {
-  background: linear-gradient(135deg, #aa0003 0%, #fe0004 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-color) 100%);
+  color: white;
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(254, 0, 4, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
 .footer {
@@ -177,7 +211,8 @@ button {
   width: 600px;
   background: hsla(0, 0%, 0%, 0.75);
   /* Considera usar variables CSS */
-  padding: 30px;
+  padding: 30px 20px;
+  /* Adjusted padding to match .butom1 */
   margin: 30px auto;
   border-radius: 10px;
   /* font-family inhered from body */
@@ -194,14 +229,13 @@ button {
 }
 
 .butom1 {
-  background: linear-gradient(135deg, #313131 0%, #1a1a1a 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
   letter-spacing: 1px;
   width: auto;
   height: auto;
   padding: 12px 24px;
   margin: 16px 0;
-  /* font-family inhered from body */
   font-size: 18px;
   font-weight: bold;
   border-radius: 8px;
@@ -209,14 +243,14 @@ button {
   display: flex;
   align-items: flex-start;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
 }
 
 .butom1:hover {
-  background: linear-gradient(135deg, #fe0004 0%, #aa0003 100%);
+  background: linear-gradient(135deg, var(--danger-hover) 0%, var(--danger-color) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(254, 0, 4, 0.4);
+  box-shadow: var(--shadow-md);
   color: white;
 }
 
@@ -792,9 +826,12 @@ label[for="recordar"] {
 }
 
 /* --- Definición de anchos para cada columna del encabezado --- */
-/* Estos porcentajes deben sumar 100% */
+/* 11 columnas: # (selección fila) + CANT + LARGO + ANCHO + DETALLE + ROTAR + L1 + L2 + A1 + A2 + ACCIONES */
+/* Los porcentajes de datos suman 100% con DETALLE 40% y ACCIONES 12% */
+
+/* # (columna de selección de fila estilo Excel) */
 .filaDespiece>.celdaTitulo:nth-child(1) {
-  width: 6%;
+  width: 28px;
 }
 
 /* CANT */
@@ -809,12 +846,12 @@ label[for="recordar"] {
 
 /* ANCHO */
 .filaDespiece>.celdaTitulo:nth-child(4) {
-  width: 40%;
+  width: 6%;
 }
 
 /* DETALLE */
 .filaDespiece>.celdaTitulo:nth-child(5) {
-  width: 6%;
+  width: 40%;
 }
 
 /* ROTAR */
@@ -839,10 +876,13 @@ label[for="recordar"] {
 
 /* A2 */
 .filaDespiece>.celdaTitulo:nth-child(10) {
-  width: 12%;
+  width: 6%;
 }
 
 /* ACCIONES */
+.filaDespiece>.celdaTitulo:nth-child(11) {
+  width: 12%;
+}
 
 /* --- Anchos para la tabla de Gestión de Usuarios --- */
 .tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(1) {
@@ -962,7 +1002,8 @@ label[for="recordar"] {
 
 /* Si quieres que el input de detalle específicamente tenga alineación izquierda */
 /* (ya está en .inputLargo, pero por si acaso se sobreescribe) */
-.filaDespiece>.celdaDespiece:nth-child(4)>.inputLargo {
+/* DETALLE es la celda 5 (la 1 es la columna # de selección de fila) */
+.filaDespiece>.celdaDespiece:nth-child(5)>.inputLargo {
   text-align: left;
 }
 
@@ -1102,19 +1143,23 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .footerDespiece {
   position: fixed;
-  bottom: 0;
-  right: 0;
+  bottom: 15px;
+  right: 50px;
   background-color: transparent;
   padding: 5px 10px;
   box-shadow: none;
   text-align: right;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .footerDespiece .botonSubmit {
   margin: 0;
-  padding: 8px 16px;
-  font-size: 14px;
-  min-width: 150px;
+  padding: 6px 12px;
+  font-size: 13px;
+  min-width: 130px;
   font-weight: bold;
   color: #fff;
   background: linear-gradient(135deg, #1e7e34 0%, #145523 100%);
@@ -1134,9 +1179,9 @@ input[type="number"]::-webkit-outer-spin-button {
 .botonCopiar {
   display: block;
   margin: 0;
-  padding: 8px 16px;
-  font-size: 14px;
-  min-width: 150px;
+  padding: 6px 12px;
+  font-size: 13px;
+  min-width: 130px;
   font-weight: bold;
   color: #fff;
   background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
@@ -1231,4 +1276,654 @@ body.high-contrast .userDropdownItem {
 body.high-contrast .despieceItem h3,
 body.high-contrast .despieceItem p {
   color: #FFD600 !important;
+}
+
+/* RESPONSIVE MÓVIL (TARJETAS DESPIECE) */
+@media (max-width: 768px) {
+  .filaDespiece {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .celdaTitulo {
+    display: none !important;
+  }
+
+  .celdaDespiece {
+    flex: 1 1 45% !important;
+    margin-bottom: 8px;
+    position: relative;
+    padding-top: 15px;
+    /* Para el label simulado */
+  }
+
+  /* La columna # de selección de fila no aplica en tarjetas móviles */
+  .celdaDespiece:nth-child(1) {
+    display: none !important;
+  }
+
+  .celdaDespiece:nth-child(5) {
+    /* Detalle (Text Largo) */
+    flex: 1 1 100% !important;
+  }
+
+  /* Simulando Títulos de Columnas */
+  .celdaDespiece:nth-child(2)::before {
+    content: "Cant";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(3)::before {
+    content: "Largo";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(4)::before {
+    content: "Ancho";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(5)::before {
+    content: "Detalle / Descripción";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(6)::before {
+    content: "Rotar";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(7)::before {
+    content: "L1";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(8)::before {
+    content: "L2";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(9)::before {
+    content: "A1";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(10)::before {
+    content: "A2";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .celdaDespiece:nth-child(11)::before {
+    content: "Acciones";
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 10px;
+    color: #777;
+  }
+
+  .inputCorto,
+  .inputLargo {
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 10px;
+    font-size: 16px;
+    /* Evitar zoom en iOS */
+  }
+}
+
+/* =========================================================
+   MÓDULOS EN DESPiece
+   ========================================================= */
+
+/* Fila con color de módulo */
+.moduleRow {
+  background-color: var(--module-color, transparent);
+}
+
+/* Celda de acciones con fondo blanco */
+.moduleActionsCell {
+  background-color: #fff !important;
+}
+
+/* Colores de módulos específicos */
+.moduleD1 { --module-color: #4285f4; }
+.moduleD2 { --module-color: #ea4335; }
+.moduleD3 { --module-color: #fbbc04; }
+.moduleD4 { --module-color: #a020f0; }
+.moduleD5 { --module-color: #00bcd4; }
+.moduleD6 { --module-color: #ff7043; }
+.moduleDoorPanel { --module-color: #4caf50; }
+
+.moduleHeader {
+  margin-top: 6px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moduleBadge {
+  font-weight: bold;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #fff;
+}
+
+/* =========================================================
+   USER PROFILE REDESIGN - BENTO GLASSMORPHISM
+   ========================================================= */
+
+.profileBentoContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1100px;
+  /* Ampliado para acomodar los stats */
+  margin: 0 auto;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glassBentoBox {
+  background: rgba(43, 48, 55, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 3rem;
+  width: 100%;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.glassBentoBoxDark {
+  background: rgba(20, 24, 28, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* responsive grid */
+@media (max-width: 768px) {
+  .glassBentoBox {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2rem;
+    text-align: center;
+  }
+}
+
+.profilePhotoBox {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+/* Foto circular pulida */
+.profilePhotoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease;
+}
+
+/* La cubierta del boton foto aparece al hover */
+.profilePhotoOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  /* invisible por defecto */
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.profilePhotoBox:hover .profilePhotoOverlay {
+  opacity: 1;
+  /* aparece on hover */
+}
+
+.profilePhotoBox:hover .profilePhotoImg {
+  transform: scale(0.97);
+  /* ligero hundimiento de la foto */
+}
+
+.cameraIconHover {
+  color: white;
+  font-size: 2rem;
+  transition: transform 0.2s ease;
+}
+
+.profilePhotoBox:hover .cameraIconHover {
+  transform: scale(1.1);
+  /* rebote de la camara */
+}
+
+/* Caja de informacion a la derecha */
+.profileInfoBox {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.infoItemBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: transparent;
+  padding: 0;
+}
+
+/* Tipografía de la viñeta-Label */
+.infoLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  color: #999;
+}
+
+/* Color especial para label en modo oscuro */
+.infoLabelDark {
+  color: #777;
+}
+
+/* Tipografía Principal del Valor */
+.infoValueName {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin: 0;
+  color: #fff;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+/* Destacar el Color ADN para el Rol si se requiere */
+.infoValueYellow {
+  color: #FFD600;
+  /* ADN Yellow */
+  text-shadow: 0 0 10px rgba(255, 214, 0, 0.2);
+}
+
+.infoValueRole {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+  color: #e0e0e0;
+}
+
+.infoValueDate {
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin: 0;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* STATS BENTO CELL */
+.profileStatsBox {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 3rem;
+  height: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .profileStatsBox {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 2rem;
+  }
+}
+
+.statCard {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.statIconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 214, 0, 0.1);
+  /* ADN Yellow tint */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  color: #FFD600;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* === MODAL SUGERENCIAS === */
+.modalOverlaySugerencias {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modalContentSugerencias {
+  background: #1e1e1e;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalContentSugerencias h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #fff;
+}
+
+.textareaSugerencia {
+  width: 100%;
+  height: 120px;
+  background: #2c2c2c;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  font-size: 1rem;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.textareaSugerencia:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+.btnSugerencia {
+  padding: 10px 20px;
+  background: #4fc3f7;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnSugerencia:hover {
+  background: #29b6f6;
+}
+
+.btnSugerencia:disabled {
+  background: #555;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.btnCancelarSugerencia {
+  padding: 10px 20px;
+  background: transparent;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnCancelarSugerencia:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sugerenciasAcciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* === FLOATING BELL & INBOX === */
+.floatingBellContainer {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  background: #1a73e8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  z-index: 1500;
+  transition: transform 0.2s;
+}
+
+.floatingBellContainer:hover {
+  transform: scale(1.1);
+}
+
+.floatingBellBadge {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background: #dc3545;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1a73e8;
+}
+
+.modalContentInbox {
+  background: #1e1e1e;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inboxList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 10px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+
+.inboxItem {
+  background: #2a2a2a;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #4fc3f7;
+}
+
+.inboxItem.leida {
+  border-left-color: #555;
+  opacity: 0.7;
+}
+
+.inboxItemHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.inboxItemText {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.btnMarcarLeida {
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid #4fc3f7;
+  color: #4fc3f7;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnMarcarLeida:hover {
+  background: rgba(79, 195, 247, 0.1);
+}
+
+.despiece-dialog {
+  box-sizing: border-box;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1rem;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.despiece-dialog input,
+.despiece-dialog select,
+.despiece-dialog button {
+  max-width: 100%;
 }

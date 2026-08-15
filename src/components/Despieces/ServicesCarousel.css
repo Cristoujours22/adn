@@ -1,0 +1,3 @@
+.services-carousel { min-width: 0; max-width: 100%; width: 100%; overflow: hidden; }
+.services-carousel .slick-slide { min-width: 0; }
+.services-carousel button { max-width: 100%; overflow-wrap: anywhere; }

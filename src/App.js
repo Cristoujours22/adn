@@ -8,12 +8,14 @@ import { AuthProvider } from './authContext';
 import ModeloDespiece from "./ModeloDespiece";
 import Recuperar from './recuperar';
 import AdminUsuarios from './AdminUsuarios';
+import GlobalAlert from './GlobalAlert';
 
 function App() {
   return (
     <AuthProvider>
       <Router basename="/">
-        <main aria-label="Aplicación ADN">
+        <div aria-label="Aplicación ADN" className="App_main__wrapper">
+          <GlobalAlert />
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginPage />} />
@@ -60,7 +62,7 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
-        </main>
+        </div>
       </Router>
     </AuthProvider>
   );

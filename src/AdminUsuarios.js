@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from './credenciales';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { useAuth } from './authContext';
 import Menu from './menu';
 import estilos from './App.module.css';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from './ThemeContext';
 
 function AdminUsuarios() {
     const [users, setUsers] = useState([]);
@@ -16,25 +17,7 @@ function AdminUsuarios() {
     const [showAddUserForm, setShowAddUserForm] = useState(false);
     const [newUserData, setNewUserData] = useState({ Nombre: '', email: '', password: '', Cargo: 'Vendedor' });
     const [isAddingUser, setIsAddingUser] = useState(false);
-    const [darkMode, setDarkMode] = useState(() => {
-        const savedMode = localStorage.getItem("darkMode");
-        return savedMode ? JSON.parse(savedMode) : false;
-    });
-
-    useEffect(() => {
-        const handleStorageChange = () => {
-            const savedMode = localStorage.getItem("darkMode");
-            if (savedMode !== null) {
-                setDarkMode(JSON.parse(savedMode));
-            }
-        };
-        window.addEventListener("darkModeChanged", handleStorageChange);
-        window.addEventListener("storage", handleStorageChange);
-        return () => {
-            window.removeEventListener("darkModeChanged", handleStorageChange);
-            window.removeEventListener("storage", handleStorageChange);
-        };
-    }, []);
+    const { darkMode } = useTheme();
 
     useEffect(() => {
         const checkAdmin = async () => {
@@ -159,6 +142,19 @@ function AdminUsuarios() {
         }
     };
 
+    const handleResetPassword = async (userEmail) => {
+        if (!userEmail) return;
+        if (window.confirm(`¿Seguro que quieres enviar un correo de restablecimiento de contraseña a ${userEmail}?`)) {
+            try {
+                await sendPasswordResetEmail(auth, userEmail);
+                alert(`Correo de restablecimiento enviado exitosamente a ${userEmail}. Que revise su bandeja de entrada.`);
+            } catch (error) {
+                console.error("Error al enviar correo de restablecimiento:", error);
+                alert("Error al enviar el correo: " + error.message);
+            }
+        }
+    };
+
     if (userCargo !== 'Administrador') {
         // Muestra un loader o nada mientras se verifica el rol
         return <div><Menu /><p>Verificando permisos...</p></div>;
@@ -264,6 +260,14 @@ function AdminUsuarios() {
                                                 style={{ width: '110px', margin: 0 }}
                                             >
                                                 Eliminar
+                                            </button>
+                                            <button
+                                                onClick={() => handleResetPassword(user.email)}
+                                                className={estilos.botonAgregar}
+                                                style={{ width: '110px', margin: 0, padding: '6px 10px', fontSize: '13px', backgroundColor: '#17a2b8' }}
+                                                title="Enviar enlace para nueva clave"
+                                            >
+                                                Reset Clave
                                             </button>
                                         </div>
                                     )}

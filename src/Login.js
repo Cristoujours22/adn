@@ -14,7 +14,15 @@ function LoginPage() {
   const [mensajeConexion, setMensajeConexion] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#262626', color: 'white' }}>
+        <h2>Verificando sesión...</h2>
+      </div>
+    );
+  }
 
   if (currentUser) {
     const from = location.state?.from?.pathname || "/menu";
@@ -38,20 +46,23 @@ function LoginPage() {
       const userDocRef = doc(db, "usuarios", user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      if (userDoc.exists() && userDoc.data().bloqueado === true) {
+      if (!userDoc.exists()) {
+        await signOut(auth);
+        setMensajeConexion("❌ Su cuenta ha sido eliminada por un administrador.");
+        return;
+      }
+
+      if (userDoc.data().bloqueado === true) {
         await signOut(auth);
         setMensajeConexion("❌ Su cuenta ha sido bloqueada por un administrador.");
         return;
       }
 
-      // Actualizar datos del usuario en Firestore
       const userData = {
         lastSignInTime: user.metadata.lastSignInTime,
         email: user.email,
       };
-      if (!userDoc.exists() || !userDoc.data().creationTime) {
-        userData.creationTime = user.metadata.creationTime;
-      }
+      // No necesitamos crear creationTime aquí si el doc ya debe existir
       await setDoc(userDocRef, userData, { merge: true });
 
       setMensajeConexion("✅ Conexión exitosa");

@@ -1,16 +1,56 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, query, where, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
 import { useAuth } from './authContext';
+import TabsDespiece from './components/Despieces/TabsDespiece';
+import PanelResumen from './components/Despieces/PanelResumen';
+import TablaPiezas from './components/Despieces/TablaPiezas';
+import { useTheme } from './ThemeContext';
+import { calculateCanonicalServiceTotals, aplicarDespieceAutomatico, MODOS_DESPECIE, detectServiceOccurrences, applyValidatedService, getServiceSelectionAlert } from './utils/despieceCalculations';
+import { deterministicServiceId, hydrateDespieceSchema } from './utils/moduleIdentity';
+import ServicesCarousel from './components/Despieces/ServicesCarousel';
+import FindReplaceModal from './components/Despieces/FindReplaceModal';
+import ModuleRenameModal from './components/Despieces/ModuleRenameModal';
+import { persistDespieceSnapshot } from './services/despiecePersistence';
+
+export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
+  const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
+  if (result.status !== 'valid' || result.serviceId !== selection?.serviceId || !selection?.accepted) {
+    return { type: 'alert', role: 'alert', message: getServiceSelectionAlert(selection) };
+  }
+  return { type: 'accepted', rows: dependencies.applyValidatedService(filas, result), result };
+};
+
+export const validatePersistenceIdentity = (projectName, clientName) => {
+  if (!String(projectName || '').trim() || !String(clientName || '').trim()) {
+    throw new Error('Client and project names are required before saving.');
+  }
+};
+
+export const updateServiceDefinition = (service, changes) => ({
+  ...(service || {}),
+  ...changes,
+  serviceId: service?.serviceId || deterministicServiceId(changes.nomenclatura)
+});
+
+export const coordinateSnapshotPersistence = async (snapshot, persist, { onCommit, history, defaults } = {}) => {
+  const result = await persist(snapshot, { history, defaults, onPrimaryCommit: ({ documentId }) => onCommit?.(snapshot, documentId) }) || { retry: null };
+  return { ...result, warning: result.retry ? 'Project saved, but a secondary backup failed. Retry is available.' : '' };
+};
+
+export const resolveDuplicateDocumentId = (existingDocs, isAutoSave, confirmOverwrite) => {
+  if (existingDocs.empty || isAutoSave) return undefined;
+  return confirmOverwrite() ? existingDocs.docs[0].id : null;
+};
 
 // Generador de ID único estable
 let rowIdCounter = Date.now(); // Iniciar con timestamp para evitar colisiones entre sesiones
 const createNewRow = () => ({
   id: `row_${rowIdCounter++}`,
-  cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: ''
+  cant: '', largo: '', ancho: '', detalle: '', rotar: '', l1: '', l2: '', a1: '', a2: '', narizCobro: '', enchapeCobro: ''
 });
 
 // Generador de ID para despieces (pestañas)
@@ -21,58 +61,68 @@ const createNewDespiece = (name = "Despiece 1") => ({
   filas: [createNewRow()]
 });
 
+const normalizeStoredCantoValue = (value) => {
+  if (value === true) return '1';
+  if (value === false || value == null || value === '') return '';
+  const stringValue = String(value);
+  return /^[1-8]$/.test(stringValue) ? stringValue : '';
+};
+
+const normalizeReglasCantoConfig = (config) => {
+  if (!config || typeof config !== 'object') return config;
+
+  return Object.fromEntries(
+    Object.entries(config).map(([modo, opciones]) => [
+      modo,
+      Object.fromEntries(
+        Object.entries(opciones || {}).map(([opcion, reglas]) => [
+          opcion,
+          Array.isArray(reglas)
+            ? reglas.map((regla) => ({
+                ...regla,
+                l1: normalizeStoredCantoValue(regla.l1),
+                l2: normalizeStoredCantoValue(regla.l2),
+                a1: normalizeStoredCantoValue(regla.a1),
+                a2: normalizeStoredCantoValue(regla.a2)
+              }))
+            : []
+        ])
+      )
+    ])
+  );
+};
+
 // Lista de servicios por defecto basados en Excel del cliente
+// Estructura: nomenclatura (principal), aliases (array de nombres alternativos), nombreOriginal, tipoCobro
 const DEFAULT_SERVICES = [
-  { nomenclatura: 'CSARMADO', nombreOriginal: 'SERVICIO ARMADO DE PUERTA COMPLETO', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSRAPU1C', nombreOriginal: 'SERVICIO RANURA PUERTA 1 CARA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCORTEB', nombreOriginal: 'SERVICIO CAMBIO BASTIDOR', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCORTEP', nombreOriginal: 'SERVICIO CORTE REFILADO PUERTA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSHCHAPA', nombreOriginal: 'SERVICIO DE HUECO CHAPA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSICHAPA', nombreOriginal: 'SERVICIO INSTALACION CHAPA TAMBOR', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERCORP', nombreOriginal: 'SERVICIO CORTE DE PERFILERIA ALUMINIO', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSPERALM', nombreOriginal: 'SERVICIO PEGADO PERFIL MANIJA ALUMINIO', tipoCobro: 'ml_largo_ancho' }, // Usualmente L o A, asumo unidad o ML
-  { nomenclatura: 'CSCANTOA', nombreOriginal: 'SERVICIO PEGADO PERFIL CANTO ALUMINIO', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SCUBMDLAR1', nombreOriginal: 'SERVICIOS CORTE CUBO MODULAR', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCUBMDLAR2', nombreOriginal: 'SERVICIO DE CORTE Y PERFORACIÓN CUBO MODULAR', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCUBMDLAR3', nombreOriginal: 'SERVICIO DE CORTE, PERFORACIÓN Y AVELLANADO', tipoCobro: 'unidad' },
-  { nomenclatura: 'SESTRAL', nombreOriginal: 'SERVICIO DE CORTE MARCO DE ALUMINIO', tipoCobro: 'unidad' },
-  { nomenclatura: 'SRRANUPE', nombreOriginal: 'SERVICIO RANURA PARA PERFIL', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SERPERBIS', nombreOriginal: 'SERVICIO DE PERFORACION BISAGRA', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSRANUFO', nombreOriginal: 'SERVICIO DE RANURA FONDO', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'RANULED', nombreOriginal: 'SERVICIO DE RANURA PARA DIFUSOR LED', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCURVA1', nombreOriginal: 'SERVICIO DE CURVA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SRNAR000', nombreOriginal: 'SERVICIO NARIZ, ENGRUESE', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SRREPEGA', nombreOriginal: 'SERVICIO ENGRUESE COMPLETO O ENSANDUCHAR', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SERVREME', nombreOriginal: 'SERVICIO ENGRUESE COMPLETO SOLO CON PEGANTE', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SERVIMARCO', nombreOriginal: 'SERVICIO DE MARCO, ENGRUESE EN MELAMINA', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'SERVICIOS DE CIRCULOS', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERANGUL', nombreOriginal: 'SERVICIO DE ANGULO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'CSCALADO', nombreOriginal: 'SERVICIO DE CALADO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'SRCALAEI', nombreOriginal: 'SERVICIO DE CALADO CON ENCHAPE INTERNO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'SERVIENL', nombreOriginal: 'SERVICIO EN L O ESCRITORIO', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCHAFLA', nombreOriginal: 'SERVICIO CHAFLAN O CORTE A 45º', tipoCobro: 'unidad' },
-  { nomenclatura: 'SENCHAMANUAL', nombreOriginal: 'SERVICIO DE ENCHAPE A PIEZA ESPECIAL', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SENCHACURVA', nombreOriginal: 'SERVICIO DE ENCHAPE EN MÁQUINA CURVA', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSCANTOC2', nombreOriginal: 'Servicio Enchape Canto Curvo 2mm. (Rígido)', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSINGLES', nombreOriginal: 'SERVICIO DE CAJA MEDIA MADERA ESTANTERÍA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERVICENEFA', nombreOriginal: 'SERVICIO DE CAJA CENEFA ESQUINERA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERPASACABLE', nombreOriginal: 'SERVICIO DE HUECO PARA PASACABLE', tipoCobro: 'unidad' },
-  { nomenclatura: 'MANICHAFLAN', nombreOriginal: 'SERVICIO DE MANIJA CHAFLAN', tipoCobro: 'unidad' },
-  { nomenclatura: 'CORLISTON', nombreOriginal: 'SERVICIO CORTE LISTON MADERA', tipoCobro: 'unidad' },
-  { nomenclatura: 'MANICRUS', nombreOriginal: 'SERVICIO DE CAJA PARA MANIJA DE INCRUSTAR', tipoCobro: 'unidad' },
-  { nomenclatura: 'MANIGAVETA', nombreOriginal: 'SERVICIO DE CALADO PARA MANIJA EN V', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERCURML', nombreOriginal: 'SERVICIO DE CURVA MEDIA LUNA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERMESCORTO', nombreOriginal: 'SERVICIO DE ADECUACION LADO CORTO MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERMESLARGO', nombreOriginal: 'SERVICIO DE ADECUACION LADO LARGO MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCALMEPOZ', nombreOriginal: 'SERVICIO DE CALADO DE POZUELO PARA MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SCALMECUB', nombreOriginal: 'SERVICIO DE CALADO DE CUBIERTA PARA MESON', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERSALCORTE', nombreOriginal: 'SERVICIO DE ADECUACION LADO CORTO SALPICADERO 57CM', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERSALLARGO', nombreOriginal: 'SERVICIO DE ADECUACION LADO LARGO SALPICADERO 57CM', tipoCobro: 'unidad' },
-  { nomenclatura: 'SESUSTRALAP', nombreOriginal: 'SERVICIO DE ENCHAPE CON LAP TABLERO COMPLETO 122x244', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERINSKIT', nombreOriginal: 'SERVICIO DE PEGADO DE PERFIL PARA PIZARRON 122*244', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERVTSMU', nombreOriginal: 'SERVICIO TALADRO MULTIPLE', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERHRCNC', nombreOriginal: 'PAGO DE 1 HORA POR SERVICIO DE CNC', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERHRSACCNC', nombreOriginal: 'PAGO DE 1 HORA POR SERV DE CNC CON SACRI', tipoCobro: 'unidad' }
+  { nomenclatura: 'CSPERALM', nombreOriginal: 'PEGADO MANIJA ALUMINIO', tipoCobro: 'ml_largo_ancho' }, // Usualmente L o A, asumo unidad o ML
+  { nomenclatura: 'CSCANTOA', nombreOriginal: 'PEGADO CANTO ALUMINIO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SRRANUPE', nombreOriginal: 'RANURAPE', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SERPERBIS', nombreOriginal: 'PERBIS', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSRANUFO', nombreOriginal: 'RANURAFO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'RANULED', nombreOriginal: 'RANULED', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSCURVA1', nombreOriginal: 'CURVA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SRNAR000', nombreOriginal: 'NARIZ', aliases: ['nariz', 'nar'], tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SRREPEGA', nombreOriginal: 'SANDUCHE CLAVILLO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SERVREME', nombreOriginal: 'SANDUCHE PEGA', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SERVIMARCO', nombreOriginal: 'MARCO, ENGRUESE EN MELAMINA', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'CIRCULOS', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SERANGUL', nombreOriginal: 'ANGULO', tipoCobro: 'escala_60' },
+  { nomenclatura: 'CSCALADO', nombreOriginal: 'CALADO', tipoCobro: 'escala_60' },
+  { nomenclatura: 'SRCALAEI', nombreOriginal: 'CALADO  INTERNO', tipoCobro: 'escala_60' },
+  { nomenclatura: 'SERVIENL', nombreOriginal: 'EN L', tipoCobro: 'unidad' },
+  { nomenclatura: 'CSCHAFLA', nombreOriginal: 'CHAFLAN', tipoCobro: 'unidad' },
+  { nomenclatura: 'SENCHAMANUAL', nombreOriginal: 'ENCHAPE MANUAL', aliases: ['senchamanual', 'enchape manual', 'enchape a pieza especial'], tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SENCHACURVA', nombreOriginal: 'ENCHAPE CURVO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSCANTOC2', nombreOriginal: 'Enchape Canto Curvo 2mm. (Rígido)', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSINGLES', nombreOriginal: 'CAJA INGLESA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERVICENEFA', nombreOriginal: 'CAJA', aliases: ['caja'], tipoCobro: 'unidad' },
+  { nomenclatura: 'SERPASACABLE', nombreOriginal: 'PASACABLE', tipoCobro: 'unidad' },
+  { nomenclatura: 'MANICHAFLAN', nombreOriginal: 'MANICHAFLAN', tipoCobro: 'unidad' },
+  { nomenclatura: 'MANICRUS', nombreOriginal: 'MANIJA DE INCRUSTAR', tipoCobro: 'unidad' },
+  { nomenclatura: 'MANIGAVETA', nombreOriginal: 'MANIGAVETA', tipoCobro: 'unidad' },
+  { nomenclatura: 'SERCURML', nombreOriginal: 'CURVA MEDIA LUNA', tipoCobro: 'unidad' },
+  { nomenclatura: 'ENGNA', nombreOriginal: 'Engorde Nariz', aliases: ['engna', 'engorde', 'engordenariz'], tipoCobro: 'ml_largo_ancho' }
 ];
 
 const ModeloDespiece = () => {
@@ -83,7 +133,7 @@ const ModeloDespiece = () => {
   const [clientName, setClientName] = useState('');
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
-  const [services, setServices] = useState(DEFAULT_SERVICES); // Inicializar con lista excel
+  const [services, setServices] = useState(() => DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) }))); // Initialize with canonical ids
   const [newServiceNombre, setNewServiceNombre] = useState('');
   const [newServiceNomenclatura, setNewServiceNomenclatura] = useState('');
   const [newServiceTipoCobro, setNewServiceTipoCobro] = useState('unidad');
@@ -91,35 +141,303 @@ const ModeloDespiece = () => {
   const [showNomenclaturesModal, setShowNomenclaturesModal] = useState(false);
   const [totalPieces, setTotalPieces] = useState(0);
   const [serviceCounts, setServiceCounts] = useState({});
+  const [serviceSelectionAlert, setServiceSelectionAlert] = useState('');
   const { currentUser } = useAuth();
+  const [userCargo, setUserCargo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedMode = localStorage.getItem("darkMode");
-    return savedMode ? JSON.parse(savedMode) : false;
-  });
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const findReplaceOpenerRef = useRef(null);
+  const [renameModule, setRenameModule] = useState(null);
+  const renameOpenerRef = useRef(null);
+  const persistedDocumentId = useRef(id);
+  const [persistenceWarning, setPersistenceWarning] = useState('');
+  const [secondaryRetry, setSecondaryRetry] = useState(null);
 
+  // Cargar cargo del usuario
   useEffect(() => {
-    const handleStorageChange = () => {
-      const savedMode = localStorage.getItem("darkMode");
-      if (savedMode !== null) {
-        setDarkMode(JSON.parse(savedMode));
+    const fetchUserCargo = async () => {
+      if (!currentUser?.uid) {
+        setUserCargo('');
+        return;
+      }
+      try {
+        const userDocRef = doc(db, 'usuarios', currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setUserCargo(userDocSnap.data().Cargo || '');
+        } else {
+          setUserCargo('');
+        }
+      } catch (error) {
+        console.error('Error al cargar cargo:', error);
+        setUserCargo('');
       }
     };
+    fetchUserCargo();
+  }, [currentUser]);
 
+  // Función para cargar servicios del usuario desde Firestore
+  const loadUserServices = useCallback(async () => {
+    if (!currentUser?.uid) return null;
+    try {
+      const userServicesRef = doc(db, 'userServices', currentUser.uid);
+      const userServicesSnap = await getDoc(userServicesRef);
+      if (userServicesSnap.exists() && userServicesSnap.data()?.servicios) {
+        return userServicesSnap.data().servicios;
+      }
+    } catch (error) {
+      console.error('Error al cargar servicios del usuario:', error);
+    }
+    return null;
+  }, [currentUser]);
+
+  // Función para guardar servicios como defaults del usuario
+  const saveUserServicesAsDefault = useCallback(async () => {
+    if (!currentUser?.uid) {
+      alert('Debes estar autenticado para guardar tus servicios por defecto.');
+      return;
+    }
+    try {
+      const userServicesRef = doc(db, 'userServices', currentUser.uid);
+      await setDoc(userServicesRef, {
+        userId: currentUser.uid,
+        servicios: services,
+        fechaActualizacion: new Date().toLocaleDateString()
+      });
+      alert('Servicios guardados como tus valores por defecto.');
+    } catch (error) {
+      console.error('Error al guardar servicios del usuario:', error);
+      alert('Error al guardar los servicios. Consulta la consola.');
+    }
+  }, [currentUser, services]);
+
+  // Cargar servicios del usuario al iniciar (solo si no hay id - nuevo proyecto)
+  useEffect(() => {
+    if (!id) {
+      const loadInitialServices = async () => {
+        const userServices = await loadUserServices();
+        if (userServices) {
+          setServices(userServices);
+        }
+      };
+      loadInitialServices();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, loadUserServices]);
+  const [pieceSearchTerm, setPieceSearchTerm] = useState('');
+  const [pieceSearchLargo, setPieceSearchLargo] = useState('');
+  const [pieceSearchAncho, setPieceSearchAncho] = useState('');
+  const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
+  const [cobroExtraModal, setCobroExtraModal] = useState({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
+  const [showModuleColors, setShowModuleColors] = useState(false);
+  const editingValueRef = useRef({}); // Guarda el valor original cuando se entra en edición { "0_largo": "790", "1_cant": "2" }
+  const { darkMode } = useTheme();
+
+  // Cargar preferencia de colores de módulos
+  useEffect(() => {
+    const loadPreference = async () => {
+      if (!currentUser?.uid) return;
+      try {
+        const userSettingsRef = doc(db, 'userSettings', currentUser.uid);
+        const userSettingsSnap = await getDoc(userSettingsRef);
+        if (userSettingsSnap.exists() && userSettingsSnap.data()?.showModuleColors !== undefined) {
+          setShowModuleColors(userSettingsSnap.data().showModuleColors);
+        }
+        if (userSettingsSnap.exists() && userSettingsSnap.data()?.despieceAutoRules) {
+          setReglasCantoPorModo(normalizeReglasCantoConfig(userSettingsSnap.data().despieceAutoRules));
+        }
+      } catch (error) {
+        console.error('Error al cargar preferencia de colores:', error);
+      }
+    };
+    loadPreference();
+  }, [currentUser]);
+
+  // Guardar preferencia de colores de módulos
+  const getModuleNameFromDetalle = (detalle) => {
+    if (!detalle) return null;
+    const match = String(detalle).match(/D\d+-\d+/i);
+    return match ? match[0].toUpperCase() : null;
+  };
+
+  const groupRowsByModule = (filas = []) => {
+    const groupedRows = [];
+    const moduleBuckets = new Map();
+    const moduleOrder = [];
+    const rowsWithoutModule = [];
+
+    filas.forEach((fila) => {
+      const moduleName = getModuleNameFromDetalle(fila?.detalle);
+
+      if (!moduleName) {
+        rowsWithoutModule.push(fila);
+        return;
+      }
+
+      if (!moduleBuckets.has(moduleName)) {
+        moduleBuckets.set(moduleName, []);
+        moduleOrder.push(moduleName);
+      }
+
+      moduleBuckets.get(moduleName).push(fila);
+    });
+
+    moduleOrder.forEach((moduleName) => {
+      groupedRows.push(...moduleBuckets.get(moduleName));
+    });
+
+    groupedRows.push(...rowsWithoutModule);
+    return groupedRows;
+  };
+
+  const toggleModuleColors = async () => {
+    const newValue = !showModuleColors;
+
+    if (newValue) {
+      saveToHistory();
+      setDespieces((prevDespieces) => prevDespieces.map((despiece) => {
+        if (despiece.id !== activeDespieceId) return despiece;
+        return {
+          ...despiece,
+          filas: groupRowsByModule(despiece.filas || [])
+        };
+      }));
+    }
+
+    setShowModuleColors(newValue);
+    if (currentUser?.uid) {
+      try {
+        const userSettingsRef = doc(db, 'userSettings', currentUser.uid);
+        await setDoc(userSettingsRef, {
+          userId: currentUser.uid,
+          showModuleColors: newValue
+        }, { merge: true });
+      } catch (error) {
+        console.error('Error al guardar preferencia de colores:', error);
+      }
+    }
+  };
+
+  // Excel-like table state
+  const [activeCell, setActiveCell] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [dragSelection, setDragSelection] = useState(null); // { startIndex, endIndex, startField, endField, value }
+  // eslint-disable-next-line no-unused-vars
+  const [history, setHistory] = useState([]);
+  const [selection, setSelection] = useState(null); // { start: { index, field }, end: { index, field } }
+  const [rowSelection, setRowSelection] = useState(new Set()); // Selection of row indices (Excel-style)
+  const [rowClipboard, setRowClipboard] = useState([]); // Internal clipboard for row copy/cut/paste
+
+  const [showHistorialModal, setShowHistorialModal] = useState(false);
+  const [historialVersiones, setHistorialVersiones] = useState([]);
+  const [versionSeleccionada, setVersionSeleccionada] = useState(null);
+  const [showMenuAcciones, setShowMenuAcciones] = useState(false);
+  const [showDespieceAutoModal, setShowDespieceAutoModal] = useState(false);
+  const [despieceAutoModo, setDespieceAutoModo] = useState('cocina');
+  const [despieceAutoOpcion, setDespieceAutoOpcion] = useState(1);
+  
+  // Estado para reglas personalizadas de canto automático (por modo y opción)
+  const [reglasCantoPorModo, setReglasCantoPorModo] = useState({
+    COCINA: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: false, l2: false, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: false, a2: false },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: true },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: true, a2: true },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+    },
+    CLOSET: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: false, l2: false, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: false, a1: true, a2: false },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: true },
+        { id: 2, tipo: 'ENTREPANO', l1: false, l2: false, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: false, a2: false },
+      ],
+    },
+    CENTRO_TV: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: true, l2: false, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: false, l2: true, a1: false, a2: true },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: true },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: true, a2: true },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+    },
+    ESCRITORIO: {
+      1: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: true, a2: true },
+      ],
+      2: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: false, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: false, l2: false, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: true, a1: false, a2: true },
+      ],
+      3: [
+        { id: 1, tipo: 'BASE', l1: true, l2: true, a1: true, a2: false },
+        { id: 2, tipo: 'ENTREPANO', l1: true, l2: true, a1: false, a2: false },
+        { id: 3, tipo: 'LATERAL', l1: true, l2: false, a1: true, a2: true },
+      ],
+    },
+  });
+
+  const saveToHistory = useCallback(() => {
+    setHistory(prev => {
+        const currentStateStr = JSON.stringify(despieces);
+        if (prev.length > 0 && prev[prev.length - 1] === currentStateStr) {
+            return prev;
+        }
+        const newHistory = [...prev, currentStateStr];
+        if (newHistory.length > 50) newHistory.shift();
+        return newHistory;
+    });
+  }, [despieces]);
+
+  const undo = useCallback(() => {
+    setHistory(prev => {
+        if (prev.length === 0) return prev;
+        const newHistory = [...prev];
+        const lastState = newHistory.pop();
+        setDespieces(JSON.parse(lastState));
+        return newHistory;
+    });
+  }, []);
+
+  useEffect(() => {
     const handleOpenModal = () => setShowNomenclaturesModal(true);
     
     // Listen to our custom event for instant updates within the same window
-    window.addEventListener("darkModeChanged", handleStorageChange);
-    window.addEventListener("highContrastChanged", handleStorageChange);
     window.addEventListener("openNomenclaturesModal", handleOpenModal);
-    // Listen to storage event for cross-tab updates
-    window.addEventListener("storage", handleStorageChange);
-    
+     
     return () => {
-      window.removeEventListener("darkModeChanged", handleStorageChange);
-      window.removeEventListener("highContrastChanged", handleStorageChange);
       window.removeEventListener("openNomenclaturesModal", handleOpenModal);
-      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
@@ -148,7 +466,9 @@ const ModeloDespiece = () => {
                   return { ...row, id: `row_${rowId}` };
               });
               const newTab = createNewDespiece("Mueble Principal");
-              newTab.filas = loadedRows.length ? loadedRows : [createNewRow()];
+              const hydrated = hydrateDespieceSchema({ ...newTab, filas: loadedRows }, data.serviciosGuardados || []);
+              newTab.filas = hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()];
+              newTab.modules = hydrated.despiece.modules;
               setDespieces([newTab]);
               setActiveDespieceId(newTab.id);
           } else if (data.despieces && Array.isArray(data.despieces)) {
@@ -160,10 +480,12 @@ const ModeloDespiece = () => {
                       usedIds.add(`row_${rowId}`);
                       return { ...row, id: `row_${rowId}` };
                   });
+                  const hydrated = hydrateDespieceSchema({ ...desp, filas: safeRows }, data.serviciosGuardados || []);
                   return {
                       ...desp,
                       id: desp.id || `tab_${despieceIdCounter++}`,
-                      filas: safeRows.length ? safeRows : [createNewRow()]
+                      filas: hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()],
+                      modules: hydrated.despiece.modules
                   };
               });
               setDespieces(loadedDespieces.length ? loadedDespieces : [createNewDespiece()]);
@@ -176,12 +498,14 @@ const ModeloDespiece = () => {
           rowIdCounter = maxRowId;
           // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
           if (data.serviciosGuardados) {
-            const parsedServices = data.serviciosGuardados.map(s => {
-              if (typeof s === 'string') return { nombreOriginal: s, nomenclatura: s, tipoCobro: 'unidad' };
-              if (!s.tipoCobro) return { ...s, tipoCobro: 'unidad' };
-              return s;
-            });
+            const parsedServices = hydrateDespieceSchema({ filas: [] }, data.serviciosGuardados).services;
             setServices(parsedServices);
+          } else {
+            // Si no hay servicios en el proyecto, cargar servicios del usuario o defaults
+            const userServices = await loadUserServices();
+            if (userServices) {
+              setServices(userServices);
+            }
           }
         }
       } catch (err) {
@@ -192,83 +516,14 @@ const ModeloDespiece = () => {
     // eslint-disable-next-line
   }, [id]);
 
-  // Calcular totales (piezas y servicios) cada vez que cambien rows o services
+  // Calcular totales (piezas y servicios) sólo de la pestaña activa cada vez que cambien datos o de pestaña
   useEffect(() => {
-    let piecesCount = 0;
-    const sCounts = {};
-    
-    // Inicializar contadores de servicios a 0
-    services.forEach(service => {
-      sCounts[service.nomenclatura] = 0;
-    });
-
-    // Sumar filas de TODOS los despieces de forma segura
-    despieces.forEach(despiece => {
-      (despiece.filas || []).forEach(row => {
-        const cant = parseInt(row?.cant, 10);
-        if (!isNaN(cant) && cant > 0) {
-          piecesCount += cant;
-          
-          // Contar servicios en el detalle usando nombre original o nomenclatura
-          const detalle = row?.detalle ? row.detalle.toLowerCase() : '';
-          services.forEach(service => {
-          // Escapar caracteres especiales y asegurar límite de palabra (\b)
-          const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regexNombre = new RegExp(`\\b${escapeRegExp(service.nombreOriginal.toLowerCase())}\\b`, 'gi');
-          const regexNom = new RegExp(`\\b${escapeRegExp(service.nomenclatura.toLowerCase())}\\b`, 'gi');
-          
-          const matchesNombre = detalle.match(regexNombre);
-          const matchesNom = detalle.match(regexNom);
-          // Combine matches correctly. Since usually they just type one of them, sum them.
-          // Better: just check total overlaps or use one if identical. To not double count:
-          let count = 0;
-          if (service.nombreOriginal.toLowerCase() === service.nomenclatura.toLowerCase()) {
-             count = matchesNombre ? matchesNombre.length : 0;
-          } else {
-             count = (matchesNombre ? matchesNombre.length : 0) + (matchesNom ? matchesNom.length : 0);
-          }
-          if (count > 0) {
-            // Aplicar regla de cobro
-            const l = parseFloat(row.largo) || 0;
-            const a = parseFloat(row.ancho) || 0;
-            let multiplier = 1;
-            
-            switch (service.tipoCobro) {
-              case 'ml_largo':
-                multiplier = l / 1000;
-                break;
-              case 'ml_ancho':
-                multiplier = a / 1000;
-                break;
-              case 'ml_largo_ancho':
-                multiplier = (l + a) / 1000;
-                break;
-              case 'ml_perimetro':
-                multiplier = ((l * 2) + (a * 2)) / 1000;
-                break;
-              case 'm2':
-                multiplier = (l / 1000) * (a / 1000);
-                break;
-              case 'escala_60':
-                // Escala: 0-600mm = 1, 601-1200mm = 2, etc. (Usando el lado más largo)
-                multiplier = Math.ceil(Math.max(l, a) / 600) || 1;
-                break;
-              case 'unidad':
-              default:
-                multiplier = 1;
-                break;
-            }
-            
-            sCounts[service.nomenclatura] += (count * cant * multiplier);
-          }
-        });
-      }
-    });
-    });
-
-    setTotalPieces(piecesCount);
-    setServiceCounts(sCounts);
-  }, [despieces, services]);
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    if (!activeDespiece) return;
+    const { totalPieces, serviceCounts } = calculateCanonicalServiceTotals([activeDespiece], services);
+    setTotalPieces(totalPieces);
+    setServiceCounts(serviceCounts);
+  }, [despieces, services, activeDespieceId]);
 
   const handleAddService = (e) => {
     e.preventDefault();
@@ -280,21 +535,21 @@ const ModeloDespiece = () => {
             alert('Ya existe otro servicio con ese nombre o nomenclatura.');
             return;
          }
-         setServices(services.map(s => s.nomenclatura === editingService ? {
+         setServices(services.map(s => s.nomenclatura === editingService ? updateServiceDefinition(s, {
              nombreOriginal: newServiceNombre.trim(),
              nomenclatura: newServiceNomenclatura.trim(),
              tipoCobro: newServiceTipoCobro
-         } : s));
+          }) : s));
          setEditingService(null);
       } else {
          // Add new
          const exists = services.find(s => s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase());
          if (!exists) {
-            setServices([...services, { 
-                nombreOriginal: newServiceNombre.trim(), 
-                nomenclatura: newServiceNomenclatura.trim(),
-                tipoCobro: newServiceTipoCobro
-            }]);
+             setServices([...services, updateServiceDefinition(null, {
+                  nombreOriginal: newServiceNombre.trim(),
+                 nomenclatura: newServiceNomenclatura.trim(),
+                 tipoCobro: newServiceTipoCobro
+             })]);
          } else {
             alert('Ya existe un servicio con ese nombre o nomenclatura.');
             return;
@@ -330,38 +585,318 @@ const ModeloDespiece = () => {
 
   const handleRestoreDefaultServices = () => {
     if (window.confirm("¿Seguro que deseas restaurar los servicios predeterminados? Se perderán los que hayas agregado manualmente.")) {
-      setServices(DEFAULT_SERVICES);
+       setServices(DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) })));
     }
   };
 
+  const snapshotFor = (candidateDespieces, documentId = persistedDocumentId.current) => ({
+    documentId,
+    proyecto: projectName,
+    cliente: clientName,
+    fechaCreacion: creationDate,
+    ultimaModificacion: Date.now(),
+    ultimaModificacionStr: new Date().toLocaleString('es-AR'),
+    despieces: candidateDespieces,
+    serviciosGuardados: services,
+    userId: currentUser?.uid || null
+  });
+
+  const persistCandidate = async (candidateDespieces, includeSecondary = true, documentId = persistedDocumentId.current) => {
+    validatePersistenceIdentity(projectName, clientName);
+    const snapshot = snapshotFor(candidateDespieces, documentId);
+    const history = includeSecondary && documentId ? () => guardarVersion(documentId, { despieces: candidateDespieces, servicios: services, proyecto: projectName, cliente: clientName }) : null;
+    const defaults = includeSecondary && currentUser?.uid ? () => setDoc(doc(db, 'userServices', currentUser.uid), { userId: currentUser.uid, servicios: services, fechaActualizacion: new Date().toLocaleDateString() }) : null;
+    const result = await coordinateSnapshotPersistence(snapshot, (value, options) => persistDespieceSnapshot(value, { db, collection, doc, writeBatch }, options), {
+      history,
+      defaults,
+      onCommit: (_value, documentId) => { persistedDocumentId.current = documentId; }
+    });
+    setPersistenceWarning(result.warning);
+    setSecondaryRetry(result.retry ? { failed: result.retry.failed, history, defaults } : null);
+    return result;
+  };
+
+  const retrySecondaryWrites = async () => {
+    const failures = [];
+    for (const name of secondaryRetry?.failed || []) {
+      try { await secondaryRetry[name]?.(); } catch (error) { failures.push(name); }
+    }
+    setSecondaryRetry(failures.length ? { ...secondaryRetry, failed: failures } : null);
+    setPersistenceWarning(failures.length ? 'Secondary backup still failed. Try again.' : 'Secondary backup completed.');
+  };
+
+  const handleServiceSelection = async (service) => {
+    const active = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+    const outcome = coordinateServiceSelection(active?.filas || [], services, { label: service.nomenclatura, serviceId: service.serviceId || service.nomenclatura, accepted: true });
+    if (outcome.type === 'accepted') {
+      const candidate = despieces.map((despiece) => despiece.id === active?.id ? { ...despiece, filas: outcome.rows } : despiece);
+      setDespieces(candidate);
+      try {
+        await persistCandidate(candidate);
+        setServiceSelectionAlert('');
+      } catch (error) {
+        if (error.message === 'Client and project names are required before saving.') {
+          setServiceSelectionAlert(error.message);
+          return;
+        }
+        console.error('Could not persist service selection:', error);
+        setServiceSelectionAlert('Could not save the service selection. Try again.');
+      }
+    } else {
+      setServiceSelectionAlert(outcome.message);
+    }
+  };
+
+  const activeDespiece = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+  const commitTransformation = async (result) => {
+    const candidate = despieces.map((despiece) => despiece.id === activeDespiece?.id ? result.despiece : despiece);
+    setDespieces(candidate);
+    try {
+      await persistCandidate(candidate);
+    } catch (error) {
+      if (error.message === 'Client and project names are required before saving.') throw error;
+      throw new Error('Could not save changes. Review your connection and try again.');
+    }
+  };
+  const handleRenameModule = (module, opener) => { if (module) { renameOpenerRef.current = opener; setRenameModule(module); } };
+
   const handleInputChange = useCallback((index, field, value) => {
+    // La validación de cant/largo/ancho se hace al confirmar con Enter (en handleKeyDown)
+    
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       const newRows = [...(despiece.filas || [])];
+      
+      // Aplicar a la celda actual
       if (newRows[index]) {
         newRows[index] = { ...newRows[index], [field]: value };
       }
+
+      // Si hay seleccion múltiple y la celda actual está en ella, aplicar a todas las celdas seleccionadas del mismo campo
+      if (selection) {
+        const startIdx = Math.min(selection.start.index, selection.end.index);
+        const endIdx = Math.max(selection.start.index, selection.end.index);
+        const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+        const startFldIdx = fields.indexOf(selection.start.field);
+        const endFldIdx = fields.indexOf(selection.end.field);
+        const minFldIdx = Math.min(startFldIdx, endFldIdx);
+        const maxFldIdx = Math.max(startFldIdx, endFldIdx);
+        const currFldIdx = fields.indexOf(field);
+
+        if (index >= startIdx && index <= endIdx && currFldIdx >= minFldIdx && currFldIdx <= maxFldIdx) {
+          for (let i = startIdx; i <= endIdx; i++) {
+            for (let fIdx = minFldIdx; fIdx <= maxFldIdx; fIdx++) {
+               const f = fields[fIdx];
+               if (newRows[i]) {
+                  newRows[i] = { ...newRows[i], [f]: value };
+               }
+            }
+          }
+        }
+      }
+
       return { ...despiece, filas: newRows };
     }));
-  }, [activeDespieceId]);
+  }, [activeDespieceId, selection, despieces]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemoveRow = useCallback((indexToRemove) => {
+    saveToHistory();
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       return { ...despiece, filas: (despiece.filas || []).filter((_, index) => index !== indexToRemove) };
     }));
-  }, [activeDespieceId]);
+  }, [activeDespieceId, saveToHistory]);
+
+  // Excel-style row selection: click on row number to select entire row
+  const handleRowClick = useCallback((index, e) => {
+    setRowSelection(prev => {
+      if (e?.ctrlKey || e?.metaKey) {
+        // Toggle row in selection (Ctrl+click)
+        const next = new Set(prev);
+        if (next.has(index)) {
+          next.delete(index);
+        } else {
+          next.add(index);
+        }
+        return next;
+      } else if (e?.shiftKey && prev.size > 0) {
+        // Range selection (Shift+click)
+        const lastIndex = Math.max(...prev);
+        const start = Math.min(lastIndex, index);
+        const end = Math.max(lastIndex, index);
+        const range = new Set();
+        for (let i = start; i <= end; i++) range.add(i);
+        return range;
+      } else {
+        // Single row selection
+        return new Set([index]);
+      }
+    });
+  }, []);
+
+  // Copy selected rows to internal clipboard
+  const handleCopyRows = useCallback(() => {
+    if (rowSelection.size === 0) return;
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    const rows = (activeDespiece?.filas || []).filter((_, i) => rowSelection.has(i));
+    setRowClipboard(rows);
+  }, [rowSelection, despieces, activeDespieceId]);
+
+  // Cut selected rows (copy + remove)
+  const handleCutRows = useCallback(() => {
+    if (rowSelection.size === 0) return;
+    saveToHistory();
+    handleCopyRows();
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const filas = (despiece.filas || []).filter((_, i) => !rowSelection.has(i));
+      return { ...despiece, filas };
+    }));
+    setRowSelection(new Set());
+  }, [rowSelection, activeDespieceId, saveToHistory, handleCopyRows]);
+
+  // Paste rows from internal clipboard (insert after current position or at end)
+  const handlePasteRows = useCallback(() => {
+    if (rowClipboard.length === 0) return;
+    saveToHistory();
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const insertIndex = activeCell?.index ?? despiece.filas?.length ?? 0;
+      const filas = [...(despiece.filas || [])];
+      // Generate new IDs for pasted rows
+      const newRows = rowClipboard.map(row => ({
+        ...row,
+        id: Date.now() + Math.random(),
+        cant: row.cant || '',
+        largo: row.largo || '',
+        ancho: row.ancho || '',
+        detalle: row.detalle || '',
+        rotar: row.rotar || '',
+        l1: row.l1 || '',
+        l2: row.l2 || '',
+        a1: row.a1 || '',
+        a2: row.a2 || '',
+      }));
+      filas.splice(insertIndex + 1, 0, ...newRows);
+      return { ...despiece, filas };
+    }));
+  }, [rowClipboard, activeDespieceId, activeCell, saveToHistory]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+        // Undo: Ctrl+Z
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            undo();
+        }
+        // Copy rows: Ctrl+C (when rows are selected)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && rowSelection.size > 0) {
+            e.preventDefault();
+            handleCopyRows();
+        }
+        // Cut rows: Ctrl+X (when rows are selected)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'x' && rowSelection.size > 0) {
+            e.preventDefault();
+            handleCutRows();
+        }
+        // Paste rows: Ctrl+V (when clipboard has data)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && rowClipboard.length > 0) {
+            e.preventDefault();
+            handlePasteRows();
+        }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [undo, rowSelection, rowClipboard, handleCopyRows, handleCutRows, handlePasteRows]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     handleSaveToFirestore();
   };
 
-  // Al pegar filas, asegurar IDs únicos y evitar fila vacía inicial
+  // Pegado inteligente: si se pega sobre una celda, respeta posición/selección; si no, agrega filas al final
   const handlePaste = useCallback((e) => {
+    const target = e.target;
+    const inputId = target.id || target.name || '';
+    const isTextInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+    const isSearchInput = inputId.includes('search-') || inputId === 'proyecto' || inputId === 'cliente';
+
+    // Permitir comportamiento nativo en campos fuera de la grilla
+    if (isTextInput && isSearchInput) {
+      return;
+    }
+
+    const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+    const cellIdRegex = /^(cant|largo|ancho|detalle|rotar|l1|l2|a1|a2)-(\d+)$/;
+    const cellIdMatch = inputId.match(cellIdRegex);
+
+    // Modo edición inmersiva (doble click/F2): permitir pegado nativo dentro del texto
+    const isImmersiveEditPaste = Boolean(
+      cellIdMatch &&
+      isEditing &&
+      activeCell?.field === cellIdMatch[1] &&
+      activeCell?.index === parseInt(cellIdMatch[2], 10) &&
+      document.activeElement?.id === inputId
+    );
+
+    if (isImmersiveEditPaste) {
+      return;
+    }
+
+    // Detectar si el pegado viene desde una celda activa de la tabla
+    const isGridCellPaste = Boolean(cellIdMatch || activeCell);
+
     e.preventDefault();
-    const clipboardData = e.clipboardData.getData('text');
-    const rowsFromClipboard = clipboardData.split('\n').filter(row => row.trim() !== '');
+    saveToHistory();
+
+    const clipboardData = e.clipboardData.getData('text') || '';
+    const rowsFromClipboard = clipboardData
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .filter(row => row !== '');
+
+    if (rowsFromClipboard.length === 0) return;
+
+    // --- Caso 1: Pegado dentro de celda(s) ---
+    if (isGridCellPaste) {
+      const startIndex = cellIdMatch ? parseInt(cellIdMatch[2], 10) : (activeCell?.index ?? 0);
+      const startField = cellIdMatch ? cellIdMatch[1] : (activeCell?.field ?? 'cant');
+      const startFieldIdx = Math.max(0, fields.indexOf(startField));
+
+      const gridValues = rowsFromClipboard.map((row) => row.split('\t'));
+
+      setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+        if (despiece.id !== activeDespieceId) return despiece;
+
+        const nextRows = [...(despiece.filas || [])];
+        const requiredRows = startIndex + gridValues.length;
+        while (nextRows.length < requiredRows) {
+          nextRows.push(createNewRow());
+        }
+
+        gridValues.forEach((cols, rOffset) => {
+          const rowIdx = startIndex + rOffset;
+          const baseRow = nextRows[rowIdx] || createNewRow();
+          const updatedRow = { ...baseRow };
+
+          cols.forEach((rawValue, cOffset) => {
+            const fieldIdx = startFieldIdx + cOffset;
+            if (fieldIdx >= fields.length) return;
+            const field = fields[fieldIdx];
+            updatedRow[field] = (rawValue ?? '').trim();
+          });
+
+          nextRows[rowIdx] = updatedRow;
+        });
+
+        return { ...despiece, filas: nextRows };
+      }));
+
+      return;
+    }
+
+    // --- Caso 2: Pegado en contenedor (comportamiento histórico: agregar filas) ---
     const newRows = rowsFromClipboard.map((row) => {
       const columns = row.split('\t').map(col => col.trim());
       return {
@@ -377,62 +912,205 @@ const ModeloDespiece = () => {
         a2: columns[8] || '',
       };
     }).filter(row => Object.values(row).some(val => val !== ''));
+
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       const prevRows = despiece.filas || [];
+
       // Si la primera fila está vacía, reemplazarla
-      if (prevRows.length === 1 && Object.values(prevRows[0] || {}).every((v, i) => v === '' || (i === 0 && (typeof v === 'string' && /^row_/.test(v))))) {
+      if (
+        prevRows.length === 1 &&
+        Object.values(prevRows[0] || {}).every((v, i) => v === '' || (i === 0 && (typeof v === 'string' && /^row_/.test(v))))
+      ) {
         return { ...despiece, filas: newRows.length ? newRows : [createNewRow()] };
       }
+
       // Si no, agregar normalmente
       return { ...despiece, filas: [...prevRows, ...newRows] };
     }));
-  }, [activeDespieceId]);
+  }, [activeCell, activeDespieceId, isEditing, saveToHistory]);
 
-  // Guardar: si es edición, actualizar, si no, crear
-  const handleSaveToFirestore = async () => {
+  // ==================== HISTORIAL DE VERSIONES ====================
+  const guardarVersion = async (despieceId, datos) => {
+    if (!despieceId) return;
+    
+    const historialRef = collection(db, 'historialVersiones');
+    
+    // Obtener número de versión actual
+    const q = query(historialRef, where('despieceId', '==', despieceId));
+    const snapshot = await getDocs(q);
+    const numVersion = snapshot.size + 1;
+    
+    // Crear nueva versión
+    await addDoc(historialRef, {
+      despieceId,
+      version: numVersion,
+      fecha: new Date().toLocaleString(),
+      usuario: currentUser?.uid || 'anonimo',
+      datos: datos.despieces,
+      serviciosGuardados: datos.servicios,
+      proyecto: datos.proyecto,
+      cliente: datos.cliente
+    });
+    
+    // Mantener solo últimas 5 versiones
+    if (numVersion > 5) {
+      const docsOrdenados = snapshot.docs.sort((a, b) => a.data().version - b.data().version);
+      const docsAEliminar = docsOrdenados.slice(0, numVersion - 5);
+      for (const docItem of docsAEliminar) {
+        await deleteDoc(docItem.ref);
+      }
+    }
+  };
+
+  const cargarHistorialVersiones = async (despieceId) => {
+    if (!despieceId) return;
+    
+    const q = query(collection(db, 'historialVersiones'), where('despieceId', '==', despieceId));
+    const snapshot = await getDocs(q);
+    const historial = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    historial.sort((a, b) => b.version - a.version);
+    setHistorialVersiones(historial);
+  };
+
+  const restaurarVersion = (version) => {
+    if (window.confirm(`¿Estás seguro que deseas restaurar la versión ${version.version} del ${version.fecha}? Los cambios actuales se perderán.`)) {
+      setDespieces(version.datos);
+      setServices(version.serviciosGuardados || DEFAULT_SERVICES);
+      setShowHistorialModal(false);
+      alert('Versión restaurada exitosamente. No olvides guardar los cambios.');
+    }
+  };
+
+  const normalizeCantoInputValue = (value) => {
+    if (value === true) return '1';
+    if (value === false || value == null) return '';
+    return String(value);
+  };
+
+  const sanitizeCantoInputValue = (value) => {
+    if (value === '') return '';
+    return /^[1-8]$/.test(value) ? value : null;
+  };
+
+  const updateReglaCantoField = (idx, field, rawValue) => {
+    const sanitizedValue = sanitizeCantoInputValue(rawValue);
+    if (sanitizedValue === null) return;
+
+    const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+    nuevas[idx] = {
+      ...nuevas[idx],
+      [field]: sanitizedValue
+    };
+
+    setReglasCantoPorModo({
+      ...reglasCantoPorModo,
+      [despieceAutoModo.toUpperCase()]: {
+        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+        [despieceAutoOpcion]: nuevas
+      }
+    });
+  };
+
+  const saveUserDespieceRules = async () => {
+    if (!currentUser?.uid) {
+      alert('Debes estar autenticado para guardar tu configuración de despiece automático.');
+      return;
+    }
+
+    try {
+      const normalizedRules = normalizeReglasCantoConfig(reglasCantoPorModo);
+      const userSettingsRef = doc(db, 'userSettings', currentUser.uid);
+
+      await setDoc(userSettingsRef, {
+        userId: currentUser.uid,
+        despieceAutoRules: normalizedRules,
+        fechaActualizacionDespieceAuto: new Date().toLocaleString('es-AR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }, { merge: true });
+
+      setReglasCantoPorModo(normalizedRules);
+      alert('Configuración de despiece automático guardada.');
+    } catch (error) {
+      console.error('Error al guardar configuración de despiece automático:', error);
+      alert('No se pudo guardar la configuración de despiece automático.');
+    }
+  };
+
+  // ==================== DESPiece AUTOMÁTICO ====================
+  const aplicarDespieceAuto = () => {
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    if (!activeDespiece?.filas || activeDespiece.filas.length === 0) {
+      alert('No hay piezas para aplicar despiece automático.');
+      return;
+    }
+
+    const filasActualizadas = aplicarDespieceAutomatico(
+      activeDespiece.filas, 
+      despieceAutoModo, 
+      despieceAutoOpcion,
+      reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]
+    );
+    
+    setDespieces(prev => prev.map(d => {
+      if (d.id === activeDespieceId) {
+        return { ...d, filas: filasActualizadas };
+      }
+      return d;
+    }));
+    
+    setShowDespieceAutoModal(false);
+    alert('Despiece automático aplicado exitosamente. No olvides guardar los cambios.');
+  };
+
+  // ==================== GUARDAR EN FIRESTORE ====================
+  const handleSaveToFirestore = useCallback(async (isAutoSave = false) => {
     const totalFilas = despieces.reduce((acc, current) => acc + (current.filas ? current.filas.length : 0), 0);
     if (totalFilas === 0) {
-        alert('No hay datos para guardar. Por favor, agrega al menos una fila en algún despiece.');
+        if (!isAutoSave) alert('No hay datos para guardar. Por favor, agrega al menos una fila en algún despiece.');
         return;
     }
     if (!projectName || !clientName) {
-        alert('Por favor, completa el nombre del proyecto y del cliente.');
-        return;
+        if (!isAutoSave) {
+            alert('No hay nombre de cliente y proyecto para guardar. Por favor, llena esos campos.');
+        } 
+        return; // No permitimos guardar si faltan estos datos
     }
     try {
-        if (id) {
-          // Actualizar existente
-          const despieceRef = doc(db, 'despieces', id);
-          await updateDoc(despieceRef, {
-            proyecto: projectName,
-            cliente: clientName,
-            fechaCreacion: creationDate,
-            ultimaModificacion: new Date().toLocaleDateString(),
-            despieces: despieces,
-            serviciosGuardados: services
-          });
-          alert('Despiece actualizado exitosamente.');
-        } else {
-          // Crear nuevo
-          const despiecesCollection = collection(db, 'despieces');
-          const despieceData = {
-            proyecto: projectName,
-            cliente: clientName,
-            fechaCreacion: creationDate,
-            ultimaModificacion: lastModifiedDate,
-            despieces: despieces,
-            serviciosGuardados: services,
-            userId: currentUser ? currentUser.uid : null // Asignar usuario dueño
-          };
-          await addDoc(despiecesCollection, despieceData);
-          alert('Despiece guardado exitosamente en Firestore.');
+        let documentId = persistedDocumentId.current;
+        if (!documentId) {
+          const existingDocs = await getDocs(query(collection(db, 'despieces'), where('cliente', '==', clientName.trim()), where('proyecto', '==', projectName.trim()), where('userId', '==', currentUser?.uid || null)));
+          const duplicateId = resolveDuplicateDocumentId(existingDocs, isAutoSave, () => window.confirm(`Ya existe un proyecto con el mismo cliente y nombre.\n\n¿Deseas sobrescribirlo?`));
+          if (duplicateId === null) return;
+          documentId = duplicateId;
         }
+        await persistCandidate(despieces, !isAutoSave, documentId);
+        if (!isAutoSave) alert(documentId ? 'Despiece actualizado exitosamente.' : 'Despiece guardado exitosamente en Firestore.');
     } catch (error) {
         console.error('Error al guardar en Firestore:', error.message, error.stack);
-        alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
+        if (!isAutoSave) alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
     }
-  };
+  }, [despieces, projectName, clientName, currentUser, services]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // -------- SISTEMA DE AUTOGUARDADO ---------
+  useEffect(() => {
+    // Evitar guardar si no hay ID o datos vitales
+    if (!id || !projectName || !clientName) return;
+
+    // Retrasar el guardado por 10 segundos
+    const timerId = setTimeout(() => {
+        handleSaveToFirestore(true); // true = autoSave flag para no mostrar alertas
+        console.log("Autoguardado completado");
+    }, 10000); 
+
+    return () => clearTimeout(timerId); // Limpiar timeout si vuelve a escribir rápido
+  }, [despieces, projectName, clientName, handleSaveToFirestore, id]);
+  // -------------------------------------------
 
   const handleProjectNameChange = (e) => {
     setProjectName(e.target.value);
@@ -444,87 +1122,396 @@ const ModeloDespiece = () => {
     setLastModifiedDate(new Date().toLocaleDateString());
   };
 
-  const handleArrowNavigation = useCallback((e, index, field) => {
-    const focusField = (rowIndex, fieldName) => {
-      const nextInput = document.getElementById(`${fieldName}-${rowIndex}`);
-      if (nextInput) nextInput.focus();
-    };
-
-    const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
-    switch (e.key) {
-      case 'ArrowUp':
-        if (index > 0) focusField(index - 1, field);
-        break;
-      case 'ArrowDown':
-        if (index < activeRows.length - 1) focusField(index + 1, field);
-        break;
-      case 'ArrowLeft':
-        if (field !== 'cant') {
-          const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
-          const currentIndex = fields.indexOf(field);
-          focusField(index, fields[currentIndex - 1]);
+  // Enfocar el elemento DOM cuando cambia la celda activa
+  useEffect(() => {
+    if (activeCell) {
+        const inputId = `${activeCell.field}-${activeCell.index}`;
+        const inputEl = document.getElementById(inputId);
+        if (inputEl && document.activeElement !== inputEl) {
+            inputEl.focus();
+            if (isEditing) {
+                // Si entra en edición, posicionar cursor al final del texto (opcional pero de buen uso)
+                const valObj = inputEl.value;
+                inputEl.setSelectionRange(valObj.length, valObj.length);
+            }
         }
-        break;
-      case 'ArrowRight':
-        if (field !== 'a2') {
-          const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
-          const currentIndex = fields.indexOf(field);
-          focusField(index, fields[currentIndex + 1]);
-        }
-        break;
-      default:
-        break;
     }
-  }, [despieces, activeDespieceId]);
+  }, [activeCell, isEditing]);
 
-  // Mejorar navegación tipo Google Sheets
+  // Cerrar menú de acciones al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showMenuAcciones && !e.target.closest('.menu-acciones')) {
+        setShowMenuAcciones(false);
+      }
+    };
+    if (showMenuAcciones) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showMenuAcciones]);
+
+  // --- EXCEL-LIKE NAVIGATION & EVENT HANDLERS ---
   const handleKeyDown = useCallback((e, index, field) => {
     const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-    }
     const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
     const currentIndex = fields.indexOf(field);
-    if (e.key === 'Enter') {
+
+    if (e.key === 'Tab') {
       e.preventDefault();
-      if (currentIndex < fields.length - 1) {
-        // Mover al siguiente campo en la misma fila
-        const nextField = fields[currentIndex + 1];
-        const nextInput = document.getElementById(`${nextField}-${index}`);
-        if (nextInput) nextInput.focus();
-      } else if (index < activeRows.length - 1) {
-        // Mover al primer campo de la siguiente fila
-        const nextInput = document.getElementById(`cant-${index + 1}`);
-        if (nextInput) nextInput.focus();
-      } else {
-        // Agregar una nueva fila y mover al primer campo de esa fila
-        setDespieces((prevDespieces) => prevDespieces.map(despiece => {
-          if (despiece.id !== activeDespieceId) return despiece;
-          return { ...despiece, filas: [...(despiece.filas || []), createNewRow()] };
+      setIsEditing(false); // Cancel edit on tab
+      if (e.shiftKey) { // Shift+Tab
+          if (currentIndex > 0) setActiveCell({ index, field: fields[currentIndex - 1] });
+          else if (index > 0) setActiveCell({ index: index - 1, field: fields[fields.length - 1] });
+      } else { // Tab
+          if (currentIndex < fields.length - 1) setActiveCell({ index, field: fields[currentIndex + 1] });
+          else if (index < activeRows.length - 1) setActiveCell({ index: index + 1, field: fields[0] });
+      }
+      // Al tabular, colapsamos la selección a la nueva celda activa
+      setTimeout(() => {
+          setActiveCell(curr => {
+              if (curr) setSelection({ start: { ...curr }, end: { ...curr } });
+              return curr;
+          });
+      }, 0);
+      return;
+    }
+
+    // --- SHORTCUTS GLOBALES ---
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        saveToHistory();
+        setDespieces(prev => prev.map(d => {
+            if (d.id !== activeDespieceId) return d;
+            const newFilas = [...d.filas];
+            const rowToDuplicate = { ...newFilas[index] };
+            rowToDuplicate.id = `row_${rowIdCounter++}`;
+            newFilas.splice(index + 1, 0, rowToDuplicate);
+            return { ...d, filas: newFilas };
         }));
-        setTimeout(() => {
-          const nextInput = document.getElementById(`cant-${activeRows.length}`);
-          if (nextInput) nextInput.focus();
-        }, 0);
-      }
-    } else if (e.key === 'Tab') {
-      // Permitir tabulación normal
-    } else if (e.key === 'ArrowLeft') {
-      if (currentIndex > 0) {
-        const prevField = fields[currentIndex - 1];
-        const prevInput = document.getElementById(`${prevField}-${index}`);
-        if (prevInput) prevInput.focus();
-      }
-    } else if (e.key === 'ArrowRight') {
-      if (currentIndex < fields.length - 1) {
-        const nextField = fields[currentIndex + 1];
-        const nextInput = document.getElementById(`${nextField}-${index}`);
-        if (nextInput) nextInput.focus();
+        return;
+    }
+
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsEditing(false);
+        // Regresar foco al contenedor principal de la tabla si se desea, por ahora mantenemos foco en celda como solo lectura
+        return;
+    }
+
+    if (e.key === ' ' && !isEditing) {
+        e.preventDefault();
+        saveToHistory();
+        const newValue = activeRows[index].rotar === 'X' ? '' : 'X';
+        handleInputChange(index, 'rotar', newValue);
+        return;
+    }
+
+    if (!isEditing) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (index > 0) {
+            const newCell = { index: index - 1, field };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        } else {
+          setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+          setTimeout(() => {
+              const newCell = { index: activeRows.length, field };
+              setActiveCell(newCell);
+              setSelection({ start: newCell, end: newCell });
+          }, 0);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentIndex > 0) {
+            const newCell = { index, field: fields[currentIndex - 1] };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        } else if (index > 0 && !e.shiftKey) {
+            // Saltar al final de la fila anterior si presiona izquierda en la primera columna
+            const newCell = { index: index - 1, field: fields[fields.length - 1] };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentIndex < fields.length - 1) {
+            const newCell = { index, field: fields[currentIndex + 1] };
+            setActiveCell(newCell);
+            if (e.shiftKey) setSelection(prev => ({ ...prev, end: newCell }));
+            else setSelection({ start: newCell, end: newCell });
+        } else if (!e.shiftKey) {
+            // Saltar al inicio de la siguiente fila si presiona derecha en la ultima columna
+            if (index < activeRows.length - 1) {
+                const newCell = { index: index + 1, field: fields[0] };
+                setActiveCell(newCell);
+                setSelection({ start: newCell, end: newCell });
+            } else {
+                setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+                setTimeout(() => {
+                    const newCell = { index: activeRows.length, field: fields[0] };
+                    setActiveCell(newCell);
+                    setSelection({ start: newCell, end: newCell });
+                }, 0);
+            }
+        }
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        saveToHistory();
+        saveOriginalValue(index, field);
+        setIsEditing(true);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        } else {
+          setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+          setTimeout(() => {
+              const newCell = { index: activeRows.length, field };
+              setActiveCell(newCell);
+              setSelection({ start: newCell, end: newCell });
+          }, 0);
+        }
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        saveToHistory();
+        
+        if ((e.ctrlKey || e.metaKey) && selection) {
+            // Borrar FILAS completas
+            const startIdx = Math.min(selection.start.index, selection.end.index);
+            const endIdx = Math.max(selection.start.index, selection.end.index);
+            
+            setDespieces(prev => prev.map(d => {
+                if (d.id !== activeDespieceId) return d;
+                const newFilas = d.filas.filter((_, i) => i < startIdx || i > endIdx);
+                return { ...d, filas: newFilas.length ? newFilas : [createNewRow()] };
+            }));
+            setSelection(null);
+            if (activeRows.length > 0) setActiveCell({ index: Math.max(0, startIdx - 1), field: selection.start.field });
+        } else {
+            // Borrar CONTENIDO de celdas seleccionadas
+            handleInputChange(index, field, '');
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Start editing implicitly on typing and overwrite the cell natively
+        e.preventDefault();
+        saveToHistory();
+        saveOriginalValue(index, field);
+        setIsEditing(true);
+        handleInputChange(index, field, e.key);
       }
     } else {
-      handleArrowNavigation(e, index, field);
+      // Edit Mode
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        
+        // Validar cant/largo/ancho antes de confirmar
+        if (['cant', 'largo', 'ancho'].includes(field)) {
+          const inputEl = document.getElementById(`${field}-${index}`);
+          const newValue = inputEl?.value || '';
+          const originalValue = editingValueRef.current[`${index}_${field}`];
+          
+          if (originalValue !== undefined && 
+              originalValue !== '' && 
+              String(originalValue) !== String(newValue)) {
+            const confirmar = window.confirm(
+              `¿Estás seguro que deseas editar ${field}? Esto reemplazará el valor actual (${originalValue}) por "${newValue}".`
+            );
+            if (!confirmar) {
+              // Cancelar - restaurar valor original y salir del modo edición
+              setDespieces((prev) => prev.map(d => {
+                if (d.id !== activeDespieceId) return d;
+                const newFilas = [...d.filas];
+                if (newFilas[index]) {
+                  newFilas[index] = { ...newFilas[index], [field]: originalValue };
+                }
+                return { ...d, filas: newFilas };
+              }));
+              setIsEditing(false);
+              return;
+            }
+          }
+        }
+        
+        setIsEditing(false);
+        if (index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: { ...newCell }, end: { ...newCell } });
+        } else {
+          setDespieces((prev) => prev.map(d => d.id === activeDespieceId ? { ...d, filas: [...(d.filas || []), createNewRow()] } : d));
+          setTimeout(() => {
+              const newCell = { index: activeRows.length, field };
+              setActiveCell(newCell);
+              setSelection({ start: { ...newCell }, end: { ...newCell } });
+          }, 0);
+        }
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        setIsEditing(false);
+        if (e.key === 'ArrowUp' && index > 0) {
+            const newCell = { index: index - 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+        else if (e.key === 'ArrowDown' && index < activeRows.length - 1) {
+            const newCell = { index: index + 1, field };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+        else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            const newCell = { index, field: fields[currentIndex - 1] };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+        else if (e.key === 'ArrowRight' && currentIndex < fields.length - 1) {
+            const newCell = { index, field: fields[currentIndex + 1] };
+            setActiveCell(newCell);
+            setSelection({ start: newCell, end: newCell });
+        }
+      }
     }
-  }, [despieces, activeDespieceId, handleArrowNavigation]);
+  }, [despieces, activeDespieceId, isEditing, handleInputChange, saveToHistory, selection]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCellClick = useCallback((index, field, e) => {
+     // Si ya estamos editando esta misma celda, no cerramos la edición ni interferimos
+     if (isEditing && activeCell?.index === index && activeCell?.field === field) {
+         return;
+     }
+
+     setActiveCell({ index, field });
+     setIsEditing(false);
+     
+     if (e?.shiftKey && selection) {
+         setSelection(prev => ({ ...prev, end: { index, field } }));
+     } else {
+         setSelection({ start: { index, field }, end: { index, field } });
+      }
+   }, [selection, isEditing, activeCell]);
+
+  // Función helper para guardar el valor original al entrar en modo edición
+  const saveOriginalValue = useCallback((index, field) => {
+    const activeDespiece = despieces.find(d => d.id === activeDespieceId) || despieces[0];
+    const currentValue = activeDespiece?.filas?.[index]?.[field] || '';
+    editingValueRef.current[`${index}_${field}`] = currentValue;
+  }, [despieces, activeDespieceId]);
+
+  const handleCellDoubleClick = useCallback((index, field) => {
+     // Si ya estamos en edición en esta celda, permitimos el doble clic nativo (para seleccionar la palabra)
+     if (isEditing && activeCell?.index === index && activeCell?.field === field) {
+         return;
+     }
+
+     setActiveCell({ index, field });
+     setSelection({ start: { index, field }, end: { index, field } });
+     saveToHistory();
+     
+     // Guardar valor original para validar al confirmar con Enter
+     saveOriginalValue(index, field);
+     
+     setIsEditing(true);
+
+     // Evitar que el *primer* doble clic (el que entra a edición) seleccione el texto
+     setTimeout(() => {
+        const inputEl = document.getElementById(`${field}-${index}`);
+        if (inputEl) {
+            const valObj = inputEl.value;
+            inputEl.setSelectionRange(valObj.length, valObj.length);
+        }
+      }, 10);
+  }, [saveToHistory, isEditing, activeCell, saveOriginalValue]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDragFill = useCallback((startIndex, endIndex, startField, endField, sourceValue) => {
+    saveToHistory();
+    
+    // Determine valid columns to fill horizontally based on rules
+    const columnGroups = {
+        l1: 'edges', l2: 'edges', a1: 'edges', a2: 'edges',
+        largo: 'dim', ancho: 'dim',
+        cant: 'cant', detalle: 'detalle', rotar: 'rotar'
+    };
+    const fields = ['cant', 'largo', 'ancho', 'detalle', 'rotar', 'l1', 'l2', 'a1', 'a2'];
+    
+    let validFields = [startField];
+    const group = columnGroups[startField];
+    
+    if (group !== 'cant' && group !== 'detalle' && group !== 'rotar') {
+        const i1 = fields.indexOf(startField);
+        const i2 = fields.indexOf(endField);
+        if (i1 !== -1 && i2 !== -1) {
+            const start = Math.min(i1, i2);
+            const end = Math.max(i1, i2);
+            validFields = [];
+            for (let i = start; i <= end; i++) {
+                if (columnGroups[fields[i]] === group) validFields.push(fields[i]);
+            }
+            if (validFields.length === 0) validFields = [startField];
+        }
+    }
+
+    setDespieces((prevDespieces) => prevDespieces.map(despiece => {
+      if (despiece.id !== activeDespieceId) return despiece;
+      const newRows = [...(despiece.filas || [])];
+      const startIdx = Math.min(startIndex, endIndex);
+      const endIdx = Math.max(startIndex, endIndex);
+      
+      for (let i = startIdx; i <= endIdx; i++) {
+        if (newRows[i]) {
+            const updatedRow = { ...newRows[i] };
+            validFields.forEach(f => {
+                updatedRow[f] = sourceValue;
+            });
+            newRows[i] = updatedRow;
+        }
+      }
+      return { ...despiece, filas: newRows };
+    }));
+  }, [activeDespieceId, saveToHistory]);
+  // ----------------------------------------------
+
+  const handleOpenCobroModal = useCallback((index, label, targetField) => {
+    const activeRows = despieces.find(d => d.id === activeDespieceId)?.filas || [];
+    const row = activeRows[index];
+    if (!row) return;
+
+    let prefill = row[targetField] !== undefined ? String(row[targetField]) : '';
+    setCobroExtraModal({ isOpen: true, rowIndex: index, value: prefill, label: label, targetField: targetField });
+  }, [despieces, activeDespieceId]);
+
+  const handleCloseCobroModal = () => {
+    setCobroExtraModal({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
+  };
+
+  const handleSaveCobroModal = () => {
+    if (cobroExtraModal.rowIndex === null || !cobroExtraModal.targetField) return;
+    saveToHistory();
+    const value = cobroExtraModal.value.trim();
+    
+    setDespieces(prevDespieces => prevDespieces.map(desp => {
+        if (desp.id !== activeDespieceId) return desp;
+        const newFilas = [...desp.filas];
+        const row = { ...newFilas[cobroExtraModal.rowIndex] };
+
+        row[cobroExtraModal.targetField] = value; // Guardar en campo interno dinámico (narizCobro o enchapeCobro)
+        
+        newFilas[cobroExtraModal.rowIndex] = row;
+        return { ...desp, filas: newFilas };
+    }));
+    handleCloseCobroModal();
+  };
 
   const handleCopyDespiece = () => {
     const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
@@ -634,6 +1621,12 @@ const ModeloDespiece = () => {
                             {services.every(s => s.activo !== false) ? 'Ocultar Todos' : 'Mostrar Todos'}
                         </button>
                         <button 
+                            onClick={saveUserServicesAsDefault}
+                            style={{ background: 'transparent', color: '#ffc107', border: '1px solid #ffc107', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                            ★ Guardar como Mis Defaults
+                        </button>
+                        <button 
                             onClick={handleRestoreDefaultServices}
                             style={{ background: 'transparent', color: '#17a2b8', border: '1px solid #17a2b8', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                         >
@@ -708,344 +1701,651 @@ const ModeloDespiece = () => {
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* PARTE IZQUIERDA: FORMULARIO Y TABLA */}
-        <div style={{ flex: '1 1 65%', minWidth: '300px' }}>
+        <div style={{ flex: '1 1 75%', minWidth: '300px' }}>
           <form onSubmit={handleSubmit} className={estilos.formularioDespiece} onPaste={handlePaste}>
-            <div className={estilos.projectInfo} style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ flex: '1 1 300px', color: darkMode ? '#f1f1f1' : '#333' }}>
+            <div className={estilos.projectInfo} style={{ 
+              display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap',
+              background: darkMode ? '#1c1f26' : '#f8f9fa',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
+              padding: '12px',
+              marginBottom: '12px',
+              fontSize: '13px'
+            }}>
+              <label style={{ flex: '1 1 250px', color: darkMode ? '#f1f1f1' : '#333', fontSize: '13px' }}>
                 Nombre del Cliente:
                 <input
                   type="text"
+                  id="cliente"
                   value={clientName}
                   onChange={handleClientNameChange}
                   className={estilos.inputLargo}
+                  style={{ marginTop: '4px', fontSize: '13px', padding: '6px 8px' }}
                 />
               </label>
-              <label style={{ flex: '1 1 300px', color: darkMode ? '#f1f1f1' : '#333' }}>
+              <label style={{ flex: '1 1 250px', color: darkMode ? '#f1f1f1' : '#333', fontSize: '13px' }}>
                 Nombre del Proyecto:
                 <input
                   type="text"
+                  id="proyecto"
                   value={projectName}
                   onChange={handleProjectNameChange}
                   className={estilos.inputLargo}
+                  style={{ marginTop: '4px', fontSize: '13px', padding: '6px 8px' }}
                 />
               </label>
               <div style={{ flex: '1 1 100%' }}>
-                <p style={{ color: darkMode ? '#ccc' : '#555', margin: '5px 0' }}>Fecha de Creación: {creationDate}</p>
-                <p style={{ color: darkMode ? '#ccc' : '#555', margin: '5px 0' }}>Última Fecha de Modificación: {lastModifiedDate}</p>
+                <p style={{ color: darkMode ? '#ccc' : '#555', margin: '3px 0', fontSize: '12px' }}>Fecha de Creación: {creationDate}</p>
+                <p style={{ color: darkMode ? '#ccc' : '#555', margin: '3px 0', fontSize: '12px' }}>Última Fecha de Modificación: {lastModifiedDate}</p>
               </div>
             </div>
 
-            {/* SISTEMA DE PESTAÑAS (TABS) */}
-            <div style={{ display: 'flex', gap: '5px', marginTop: '20px', overflowX: 'auto', borderBottom: `2px solid ${darkMode ? '#444' : '#ddd'}`, paddingBottom: '5px' }}>
-              {(despieces || []).map((desp, idx) => (
-                <div 
-                  key={desp?.id || `tab_${idx}`}
-                  style={{
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    background: activeDespieceId === desp?.id ? (darkMode ? '#3a3f4b' : '#007bff') : (darkMode ? '#2c303a' : '#e9ecef'),
-                    color: activeDespieceId === desp?.id ? '#fff' : (darkMode ? '#aaa' : '#333'),
-                    borderRadius: '8px 8px 0 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    fontWeight: activeDespieceId === desp?.id ? 'bold' : 'normal',
-                    boxShadow: activeDespieceId === desp?.id ? '0 -2px 5px rgba(0,0,0,0.1)' : 'none',
-                    border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
-                    borderBottom: 'none'
+            {/* SISTEMA DE PESTAÑAS (TABS) Y BUSCADOR DE PIEZAS */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ flex: '1 1 auto' }}>
+                <TabsDespiece 
+                  despieces={despieces}
+                  setDespieces={setDespieces}
+                  activeDespieceId={activeDespieceId}
+                  setActiveDespieceId={setActiveDespieceId}
+                  darkMode={darkMode}
+                  createNewDespiece={createNewDespiece}
+                />
+              </div>
+
+              {/* BUSCADOR DE PIEZAS */}
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <select 
+                  className={estilos.controls}
+                  style={{ width: 'auto', margin: 0, padding: '4px 8px', height: '28px', fontSize: '12px' }}
+                  value={pieceSearchType}
+                  onChange={(e) => {
+                    setPieceSearchType(e.target.value);
+                    setPieceSearchTerm('');
+                    setPieceSearchLargo('');
+                    setPieceSearchAncho('');
                   }}
-                  onClick={() => setActiveDespieceId(desp?.id)}
                 >
-                  <input 
-                    type="text" 
-                    value={desp?.nombre || `Despiece ${idx + 1}`}
-                    onChange={(e) => {
-                      const newName = e.target.value;
-                      setDespieces(prev => prev.map(d => d.id === desp.id ? { ...d, nombre: newName } : d));
+                  <option value="detalle">Detalle</option>
+                  <option value="medida">Largo y Ancho</option>
+                </select>
+
+                {pieceSearchType === 'detalle' ? (
+                  <>
+                    <input 
+                      id="search-detalle"
+                      className={estilos.controls}
+                      style={{ width: '150px', margin: 0, padding: '4px 8px', height: '28px', fontSize: '12px' }}
+                      type="text"
+                      placeholder="Buscar..."
+                      value={pieceSearchTerm}
+                      onChange={(e) => setPieceSearchTerm(e.target.value)}
+                    />
+                    {pieceSearchTerm && (
+                      <button 
+                        type="button"
+                        onClick={() => setPieceSearchTerm('')}
+                        style={{ background: 'transparent', border: 'none', color: darkMode ? '#ff6b6b' : '#dc3545', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                        title="Limpiar Búsqueda"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                    <input 
+                      id="search-largo"
+                      className={estilos.controls}
+                      style={{ width: '70px', margin: 0, padding: '4px 6px', height: '28px', fontSize: '12px' }}
+                      type="number"
+                      placeholder="Largo"
+                      value={pieceSearchLargo}
+                      onChange={(e) => setPieceSearchLargo(e.target.value)}
+                    />
+                    <span style={{ color: darkMode ? '#ccc' : '#555', fontSize: '11px' }}>x</span>
+                    <input 
+                      id="search-ancho"
+                      className={estilos.controls}
+                      style={{ width: '70px', margin: 0, padding: '4px 6px', height: '28px', fontSize: '12px' }}
+                      type="number"
+                      placeholder="Ancho"
+                      value={pieceSearchAncho}
+                      onChange={(e) => setPieceSearchAncho(e.target.value)}
+                    />
+                    {(pieceSearchLargo || pieceSearchAncho) && (
+                      <button 
+                        type="button"
+                        onClick={() => { setPieceSearchLargo(''); setPieceSearchAncho(''); }}
+                        style={{ background: 'transparent', border: 'none', color: darkMode ? '#ff6b6b' : '#dc3545', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                        title="Limpiar Búsqueda"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Toggle Colores de Módulos */}
+                <button
+                  type="button"
+                  onClick={toggleModuleColors}
+                  style={{
+                    background: showModuleColors ? '#4caf50' : 'transparent',
+                    border: `1px solid ${showModuleColors ? '#4caf50' : '#ccc'}`,
+                    color: showModuleColors ? '#fff' : (darkMode ? '#ccc' : '#666'),
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    marginLeft: 'auto',
+                    height: '28px'
+                  }}
+                  title={showModuleColors ? "Desactivar colores de módulos" : "Activar colores de módulos"}
+                >
+                  🎨 Módulos
+                </button>
+              </div>
+            </div>
+
+            <TablaPiezas
+              despieces={despieces}
+              activeDespieceId={activeDespieceId}
+              pieceSearchTerm={pieceSearchTerm}
+              pieceSearchLargo={pieceSearchLargo}
+              pieceSearchAncho={pieceSearchAncho}
+              pieceSearchType={pieceSearchType}
+              showModuleColors={showModuleColors}
+              handleInputChange={handleInputChange}
+              handleKeyDown={handleKeyDown}
+              handleRemoveRow={handleRemoveRow}
+              handleRowClick={handleRowClick}
+              rowSelection={rowSelection}
+              handleOpenCobroModal={handleOpenCobroModal}
+              darkMode={darkMode}
+              activeCell={activeCell}
+              setActiveCell={setActiveCell}
+              isEditing={isEditing}
+              setIsEditing={setIsEditing}
+              dragSelection={dragSelection}
+              setDragSelection={setDragSelection}
+              handleCellClick={handleCellClick}
+              handleCellDoubleClick={handleCellDoubleClick}
+              handleDragFill={handleDragFill}
+              selection={selection}
+              services={services}
+              modules={activeDespiece?.modules}
+              onRenameModule={(module, event) => handleRenameModule(module, event?.currentTarget)}
+            />
+
+          </form>
+          <footer className={estilos.footerDespiece} style={{ marginTop: '40px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+            <div style={{ position: 'relative' }} className="menu-acciones">
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); setShowMenuAcciones(!showMenuAcciones); }}
+                style={{ margin: 0, padding: '8px 16px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+              >
+                ▼ Mas opciones
+              </button>
+              
+              {showMenuAcciones && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  marginBottom: '4px',
+                  background: darkMode ? '#2c303a' : '#fff',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  zIndex: 1000,
+                  minWidth: '150px',
+                  overflow: 'hidden'
+                }}>
+                  <button 
+                    type="button"
+                    onClick={() => { handleSaveToFirestore(false); setShowMenuAcciones(false); }}
+                    style={{ 
+                      display: 'block', width: '100%', padding: '10px 14px', 
+                      background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                      color: darkMode ? '#fff' : '#333',
+                      borderBottom: '1px solid #eee',
+                      fontSize: '13px'
                     }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'inherit',
-                      outline: 'none',
-                      fontWeight: 'inherit',
-                      width: '100px',
-                      cursor: activeDespieceId === desp?.id ? 'text' : 'pointer'
+                    onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                    onMouseLeave={(e) => e.target.style.background = 'none'}
+                  >
+                    💾 Guardar Despiece
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { handleCopyDespiece(); setShowMenuAcciones(false); }}
+                    style={{ 
+                      display: 'block', width: '100%', padding: '10px 14px', 
+                      background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                      color: darkMode ? '#fff' : '#333',
+                      borderBottom: '1px solid #eee',
+                      fontSize: '13px'
                     }}
-                    onClick={(e) => { if(activeDespieceId !== desp?.id) e.preventDefault(); }}
-                  />
-                  {(despieces || []).length > 1 && (
+                    onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                    onMouseLeave={(e) => e.target.style.background = 'none'}
+                  >
+                    📊 Copiar a Excel
+                  </button>
+                  {id && (
                     <button 
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`¿Seguro que deseas eliminar la pestaña "${desp?.nombre}"?`)) {
-                          const newDespieces = despieces.filter(d => d.id !== desp?.id);
-                          setDespieces(newDespieces);
-                          if (activeDespieceId === desp?.id) {
-                            setActiveDespieceId(newDespieces[0]?.id);
-                          }
-                        }
+                      onClick={() => { cargarHistorialVersiones(id); setShowHistorialModal(true); setShowMenuAcciones(false); }}
+                      style={{ 
+                        display: 'block', width: '100%', padding: '10px 14px', 
+                        background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                        color: darkMode ? '#fff' : '#333',
+                        fontSize: '13px'
                       }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: activeDespieceId === desp?.id ? '#ffcccc' : '#dc3545',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        padding: '0 5px'
-                      }}
-                      title="Eliminar pestaña"
+                      onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
                     >
-                      ×
+                      📜 Historial
                     </button>
                   )}
+                  {userCargo.toLowerCase().includes('admin') && (
+                    <button 
+                      type="button"
+                      onClick={() => { setShowDespieceAutoModal(true); setShowMenuAcciones(false); }}
+                      style={{ 
+                        display: 'block', width: '100%', padding: '10px 14px', 
+                        background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer',
+                        color: darkMode ? '#fff' : '#333',
+                        fontSize: '13px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = darkMode ? '#3a3f47' : '#f0f0f0'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >
+                      ⚡ Despiece Auto
+                    </button>
+                  )}
+                  <button type="button" onClick={(event) => { findReplaceOpenerRef.current = event.currentTarget; setFindReplaceOpen(true); setShowMenuAcciones(false); }}>Buscar y reemplazar</button>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  const newTab = createNewDespiece(`Despiece ${despieces.length + 1}`);
-                  setDespieces([...despieces, newTab]);
-                  setActiveDespieceId(newTab.id);
-                }}
-                style={{
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  background: darkMode ? '#28a745' : '#1e7e34',
-                  color: '#fff',
-                  borderRadius: '8px 8px 0 0',
-                  border: 'none',
-                  fontWeight: 'bold'
-                }}
-                title="Agregar nuevo despiece"
-              >
-                +
-              </button>
+              )}
             </div>
-
-            <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }}>
-          <div className={estilos.filaDespiece}>
-            <div className={estilos.celdaTitulo}>CANT</div>
-            <div className={estilos.celdaTitulo}>LARGO</div>
-            <div className={estilos.celdaTitulo}>ANCHO</div>
-            <div className={estilos.celdaTitulo}>DETALLE</div>
-            <div className={estilos.celdaTitulo}>ROTAR</div>
-            <div className={estilos.celdaTitulo}>L1</div>
-            <div className={estilos.celdaTitulo}>L2</div>
-            <div className={estilos.celdaTitulo}>A1</div>
-            <div className={estilos.celdaTitulo}>A2</div>
-            <div className={estilos.celdaTitulo}>ACCIONES</div>
-          </div>
-          {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).map((row, index) => {
-            const safeRow = row || {};
-            return (
-            <div key={safeRow.id || `row_${index}`} className={estilos.filaDespiece}>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="number"
-                  className={`${estilos.inputCorto} ${estilos.flexibleWidth}`}
-                  name={`cant-${index}`}
-                  id={`cant-${index}`}
-                  value={safeRow.cant || ''}
-                  onChange={(e) => handleInputChange(index, 'cant', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'cant')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`largo-${index}`}
-                  id={`largo-${index}`}
-                  value={safeRow.largo || ''}
-                  onChange={(e) => handleInputChange(index, 'largo', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'largo')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`ancho-${index}`}
-                  id={`ancho-${index}`}
-                  value={safeRow.ancho || ''}
-                  onChange={(e) => handleInputChange(index, 'ancho', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'ancho')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputLargo}
-                  name={`detalle-${index}`}
-                  id={`detalle-${index}`}
-                  value={safeRow.detalle || ''}
-                  onChange={(e) => handleInputChange(index, 'detalle', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'detalle')}
-                  required
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`rotar-${index}`}
-                  id={`rotar-${index}`}
-                  value={safeRow.rotar || ''}
-                  onChange={(e) => handleInputChange(index, 'rotar', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'rotar')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`l1-${index}`}
-                  id={`l1-${index}`}
-                  value={safeRow.l1 || ''}
-                  onChange={(e) => handleInputChange(index, 'l1', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'l1')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`l2-${index}`}
-                  id={`l2-${index}`}
-                  value={safeRow.l2 || ''}
-                  onChange={(e) => handleInputChange(index, 'l2', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'l2')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`a1-${index}`}
-                  id={`a1-${index}`}
-                  value={safeRow.a1 || ''}
-                  onChange={(e) => handleInputChange(index, 'a1', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'a1')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                <input
-                  type="text"
-                  className={estilos.inputCorto}
-                  name={`a2-${index}`}
-                  id={`a2-${index}`}
-                  value={safeRow.a2 || ''}
-                  onChange={(e) => handleInputChange(index, 'a2', e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, index, 'a2')}
-                />
-              </div>
-              <div className={estilos.celdaDespiece}>
-                {((despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || []).length > 1 && (
-                  <button
-                    onClick={() => handleRemoveRow(index)}
-                    className={estilos.botonEliminar}
-                    type="button"
-                  >
-                    Eliminar
-                  </button>
-                )}
-              </div>
-            </div>
-          )})}
-          </div>
-          </form>
-          <footer className={estilos.footerDespiece} style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={handleSaveToFirestore} className={estilos.botonSubmit}>
-              Guardar Despiece
-            </button>
-            <button className={estilos.botonCopiar} onClick={handleCopyDespiece}>
-              Copiar Despiece
-            </button>
           </footer>
         </div>
 
         {/* PARTE DERECHA: RESUMEN Y CONTEO DE SERVICIOS */}
-        <div style={{ 
-          flex: '1 1 30%', 
-          minWidth: '250px',
-          background: darkMode ? '#1c1f26' : '#f8f9fa',
-          borderRadius: '8px',
-          border: `1px solid ${darkMode ? '#444' : '#ddd'}`,
-          padding: '20px',
-          position: 'sticky',
-          top: '80px'
-        }}>
-          <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333', borderBottom: `2px solid ${darkMode ? '#444' : '#eee'}`, paddingBottom: '10px' }}>Resumen del Despiece</h3>
-          
-          <div style={{
-            background: darkMode ? '#2d3342' : '#fff',
-            padding: '15px',
-            borderRadius: '8px',
-            textAlign: 'center',
-            marginBottom: '20px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-             <h4 style={{ margin: '0 0 10px 0', color: darkMode ? '#ccc' : '#666' }}>Piezas Totales</h4>
-             <p style={{ margin: 0, fontSize: '36px', fontWeight: 'bold', color: '#007bff' }}>{totalPieces}</p>
-          </div>
-
-          <h4 style={{ color: darkMode ? '#ccc' : '#666', marginBottom: '15px' }}>Conteo de Servicios</h4>
-          {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).length === 0 ? (
-            <p style={{ color: darkMode ? '#888' : '#888', fontSize: '14px', fontStyle: 'italic' }}>
-              {services.length === 0 ? "No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas." : "No hay servicios asociados detectados en el detalle de las piezas."}
-            </p>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {services.filter(s => s.activo !== false && serviceCounts[s.nomenclatura] > 0).map(s => {
-                  const count = serviceCounts[s.nomenclatura] || 0;
-                  
-                  // Formatear display del contador dependiendo del tipo de cobro
-                  let countDisplay = count;
-                  if (s.tipoCobro && s.tipoCobro !== 'unidad' && s.tipoCobro !== 'escala_60') {
-                      countDisplay = Number(count).toFixed(2);
-                      if (s.tipoCobro.startsWith('ml')) countDisplay += ' ml';
-                      else if (s.tipoCobro === 'm2') countDisplay += ' m²';
-                  } else if (s.tipoCobro === 'escala_60') {
-                      countDisplay += ' ser';
-                  }
-
-                  return (
-                    <li key={s.nomenclatura} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '10px',
-                        borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
-                        background: darkMode ? '#1e2b22' : '#e8f5e9'
-                    }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <strong style={{ color: darkMode ? '#fff' : '#333' }}>{s.nombreOriginal}</strong>
-                            <span style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
-                        </div>
-                        <span style={{
-                            background: '#28a745',
-                            color: '#fff',
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            whiteSpace: 'nowrap'
-                        }}>
-                            {countDisplay}
-                        </span>
-                    </li>
-                  );
-              })}
-            </ul>
-          )}
+        <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+          {serviceSelectionAlert && <div role="alert">{serviceSelectionAlert}</div>}
+          {persistenceWarning && <div role="status">{persistenceWarning}{secondaryRetry && <button type="button" onClick={retrySecondaryWrites}>Retry backup</button>}</div>}
+          <ServicesCarousel services={services.filter((service) => service.activo !== false)} onSelect={handleServiceSelection} />
+          <PanelResumen
+          darkMode={darkMode}
+          totalPieces={totalPieces}
+          services={services}
+          serviceCounts={serviceCounts}
+          />
         </div>
       </div>
+
+      <FindReplaceModal despiece={activeDespiece} isOpen={findReplaceOpen} openerRef={findReplaceOpenerRef} onClose={() => setFindReplaceOpen(false)} onApply={commitTransformation} />
+      <ModuleRenameModal despiece={activeDespiece} module={renameModule} isOpen={Boolean(renameModule)} openerRef={renameOpenerRef} onClose={() => setRenameModule(null)} onApply={commitTransformation} />
+
+      {/* MODAL DE HISTORIAL DE VERSIONES */}
+      {showHistorialModal && (
+        <div className={estilos.modalOverlay}>
+            <div className={estilos.modalContent} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
+                <button className={estilos.closeButton} onClick={() => setShowHistorialModal(false)}>×</button>
+                <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>Historial de Versiones</h3>
+                
+                {historialVersiones.length === 0 ? (
+                  <p style={{ color: '#ccc', textAlign: 'center' }}>No hay versiones guardadas.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {historialVersiones.map((v) => (
+                      <div key={v.id} style={{ 
+                        background: darkMode ? '#3a3f47' : '#f8f9fa', 
+                        padding: '12px', 
+                        borderRadius: '6px',
+                        border: versionSeleccionada?.id === v.id ? '2px solid #1a73e8' : '1px solid #ddd'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div>
+                            <strong style={{ color: '#1a73e8' }}>Version {v.version}</strong>
+                            <span style={{ color: '#888', marginLeft: '10px' }}>{v.fecha}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            <button 
+                              onClick={() => setVersionSeleccionada(versionSeleccionada?.id === v.id ? null : v)}
+                              style={{ padding: '4px 8px', fontSize: '12px', cursor: 'pointer' }}
+                            >
+                              {versionSeleccionada?.id === v.id ? 'Ocultar' : 'Ver'}
+                            </button>
+                            <button 
+                              onClick={() => restaurarVersion(v)}
+                              style={{ padding: '4px 8px', fontSize: '12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+                            >
+                              Restaurar
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {versionSeleccionada?.id === v.id && (
+                          <div style={{ marginTop: '10px', padding: '10px', background: darkMode ? '#2a2e35' : '#fff', borderRadius: '4px', fontSize: '12px' }}>
+                            <p><strong>Proyecto:</strong> {v.proyecto}</p>
+                            <p><strong>Cliente:</strong> {v.cliente}</p>
+                            <p><strong>Usuario:</strong> {v.usuario}</p>
+                            <p><strong>Servicios:</strong> {v.serviciosGuardados?.length || 0}</p>
+                            <p><strong>Despieces:</strong> {v.datos?.length || 0}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p style={{ color: '#888', fontSize: '11px', marginTop: '15px', textAlign: 'center' }}>
+                  Ultimas 5 versiones. Solo se crea version al guardar manualmente.
+                </p>
+            </div>
+        </div>
+      )}
+
+      {/* MODAL DE DESPiece AUTOMÁTICO */}
+      {showDespieceAutoModal && (
+        <div className={estilos.modalOverlay}>
+            <div className={estilos.modalContent} style={{ maxWidth: '500px' }}>
+                <button className={estilos.closeButton} onClick={() => setShowDespieceAutoModal(false)}>×</button>
+                <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>⚡ Despiece Automático</h3>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', color: darkMode ? '#ccc' : '#555' }}>
+                    Seleccionar modo:
+                  </label>
+                  <select 
+                    value={despieceAutoModo}
+                    onChange={(e) => setDespieceAutoModo(e.target.value)}
+                    className={estilos.controls}
+                    style={{ width: '100%', height: '40px' }}
+                  >
+                    {Object.values(MODOS_DESPECIE).map(modo => (
+                      <option key={modo.id} value={modo.id}>{modo.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', color: darkMode ? '#ccc' : '#555' }}>
+                    Seleccionar canto:
+                  </label>
+                  <select 
+                    value={despieceAutoOpcion}
+                    onChange={(e) => setDespieceAutoOpcion(parseInt(e.target.value))}
+                    className={estilos.controls}
+                    style={{ width: '100%', height: '40px' }}
+                  >
+                    {MODOS_DESPECIE.COCINA.opciones.map(opcion => (
+                      <option key={opcion.id} value={opcion.id}>{opcion.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', color: darkMode ? '#ccc' : '#555' }}>
+                    Configurar cantos por tipo de pieza:
+                  </label>
+                  <div style={{ 
+                    background: darkMode ? '#2a2e35' : '#f8f9fa', 
+                    borderRadius: '4px', 
+                    padding: '10px',
+                    fontSize: '12px',
+                    color: darkMode ? '#fff' : '#333',
+                    maxHeight: '250px',
+                    overflowY: 'auto'
+                  }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #ddd' }}>
+                          <th style={{ textAlign: 'left', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>Tipo de Pieza</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>L1</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>L2</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>A1</th>
+                          <th style={{ textAlign: 'center', padding: '4px', color: darkMode ? '#fff' : '#333', fontSize: '11px' }}>A2</th>
+                          <th style={{ textAlign: 'center', padding: '4px' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion].map((regla, idx) => (
+                          <tr key={regla.id} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '4px' }}>
+                              <input 
+                                type="text" 
+                                value={regla.tipo}
+                                onChange={(e) => {
+                                  const nuevas = [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion]];
+                                  nuevas[idx].tipo = e.target.value.toUpperCase();
+                                  setReglasCantoPorModo({
+                                      ...reglasCantoPorModo,
+                                      [despieceAutoModo.toUpperCase()]: {
+                                        ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                        [despieceAutoOpcion]: nuevas
+                                      }
+                                    });
+                                }}
+                                style={{ 
+                                  width: '100%', 
+                                  padding: '4px', 
+                                  background: darkMode ? '#3a3f47' : '#fff',
+                                  border: '1px solid #ddd',
+                                  borderRadius: '3px',
+                                  color: darkMode ? '#fff' : '#333',
+                                  fontSize: '12px'
+                                }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.l1)}
+                                onChange={(e) => updateReglaCantoField(idx, 'l1', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.l2)}
+                                onChange={(e) => updateReglaCantoField(idx, 'l2', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.a1)}
+                                onChange={(e) => updateReglaCantoField(idx, 'a1', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <input 
+                                type="number"
+                                min="1"
+                                max="8"
+                                step="1"
+                                value={normalizeCantoInputValue(regla.a2)}
+                                onChange={(e) => updateReglaCantoField(idx, 'a2', e.target.value)}
+                                style={{ width: '55px', padding: '2px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ textAlign: 'center', padding: '2px' }}>
+                              <button 
+                                onClick={() => setReglasCantoPorModo({
+                                  ...reglasCantoPorModo,
+                                  [despieceAutoModo.toUpperCase()]: {
+                                    ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                                    [despieceAutoOpcion]: reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion].filter((_, i) => i !== idx)
+                                  }
+                                })}
+                                style={{ 
+                                  background: '#dc3545', 
+                                  color: 'white', 
+                                  border: 'none', 
+                                  borderRadius: '3px', 
+                                  padding: '2px 6px', 
+                                  cursor: 'pointer',
+                                  fontSize: '12px'
+                                }}
+                              >
+                                ×
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button 
+                      onClick={() => setReglasCantoPorModo({
+                        ...reglasCantoPorModo,
+                        [despieceAutoModo.toUpperCase()]: {
+                          ...reglasCantoPorModo[despieceAutoModo.toUpperCase()],
+                          [despieceAutoOpcion]: [...reglasCantoPorModo[despieceAutoModo.toUpperCase()][despieceAutoOpcion], { 
+                            id: Date.now(), 
+                            tipo: 'NUEVO', 
+                            l1: '', 
+                            l2: '', 
+                            a1: '', 
+                            a2: '' 
+                          }]
+                        }
+                      })}
+                      style={{ 
+                        marginTop: '10px', 
+                        padding: '5px 10px', 
+                        background: '#007bff', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '3px', 
+                        cursor: 'pointer',
+                        fontSize: '11px'
+                      }}
+                    >
+                      + Agregar tipo de pieza
+                    </button>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={saveUserDespieceRules}
+                    style={{ 
+                      padding: '10px 20px', 
+                      background: '#17a2b8', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Guardar configuración
+                  </button>
+                  <button 
+                    onClick={() => setShowDespieceAutoModal(false)}
+                    style={{ 
+                      padding: '10px 20px', 
+                      background: '#6c757d', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={aplicarDespieceAuto}
+                    style={{ 
+                      padding: '10px 20px', 
+                      background: '#28a745', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Aplicar
+                  </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* MODAL DINAMICO PARA COBROS EXACTOS (NARIZ, ENCHAPE) */}
+      {cobroExtraModal.isOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div style={{
+            background: darkMode ? '#2c303a' : '#fff',
+            padding: '20px', borderRadius: '8px', minWidth: '300px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ marginTop: 0, color: darkMode ? '#fff' : '#333' }}>Cantidad para {cobroExtraModal.label}</h3>
+            <p style={{ fontSize: '13px', color: darkMode ? '#aaa' : '#666', marginBottom: '15px' }}>
+              {cobroExtraModal.targetField === 'narizCobro' 
+                ? "Ingresa la cantidad exacta de unidades de Nariz a cobrar para esta pieza."
+                : "Ingresa el valor total en MILÍMETROS de enchape manual para esta pieza."}
+            </p>
+            <input
+              type="number"
+              step="any"
+              autoFocus
+              className={estilos.controls}
+              value={cobroExtraModal.value}
+              onChange={(e) => setCobroExtraModal({ ...cobroExtraModal, value: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveCobroModal();
+                } else if (e.key === 'Escape') {
+                  handleCloseCobroModal();
+                }
+              }}
+              placeholder={cobroExtraModal.targetField === 'narizCobro' ? "Ej: 2" : "Ej: 1350"}
+              style={{ width: '100%', margin: '15px 0', padding: '10px' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button 
+                type="button" 
+                onClick={handleCloseCobroModal} 
+                className={estilos.botonEliminar}
+                style={{ padding: '8px 15px', margin: 0 }}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSaveCobroModal} 
+                className={estilos.botonGuardar}
+                style={{ background: '#28a745', border: 'none', color: '#fff', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                Guardar Valor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -1,6 +1,6 @@
 {
   "name": "adn",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
@@ -13,13 +13,18 @@
     "react-google-recaptcha": "^3.1.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.14.2",
+    "react-slick": "^0.31.0",
+    "slick-carousel": "^1.8.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "release:patch": "npm version patch && git push origin feature/mejoras-adn --tags",
+    "release:minor": "npm version minor && git push origin feature/mejoras-adn --tags",
+    "release:major": "npm version major && git push origin feature/mejoras-adn --tags"
   },
   "eslintConfig": {
     "extends": [
