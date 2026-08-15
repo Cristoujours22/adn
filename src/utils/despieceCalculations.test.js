@@ -33,6 +33,7 @@ test.each([
 test('legacy services without ids remain distinct', () => {
   const legacy = [{ nomenclatura: 'ONE', nombreOriginal: 'ONE', tipoCobro: 'unidad' }, { nomenclatura: 'TWO', nombreOriginal: 'TWO', tipoCobro: 'unidad' }];
   expect(calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: 'ONE' }] }], legacy).serviceCounts).toEqual({ ONE: 1, TWO: 0 });
+  expect(detectServiceOccurrences([{ id: 'r1', detalle: 'ONE' }, { id: 'r2', detalle: 'TWO' }], legacy, 'ONE')).toEqual({ status: 'valid', serviceId: 'ONE', rowIds: ['r1'], count: 1 });
 });
 
 test('retains specialized edge-based billing', () => {

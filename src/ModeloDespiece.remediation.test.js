@@ -12,9 +12,15 @@ jest.mock('./ThemeContext', () => ({ useTheme: () => ({ darkMode: false }) }));
 jest.mock('./menu', () => () => <div />);
 jest.mock('./components/Despieces/TabsDespiece', () => () => <div />);
 jest.mock('./components/Despieces/PanelResumen', () => () => <div />);
-jest.mock('./components/Despieces/TablaPiezas', () => () => <div />);
-jest.mock('./components/Despieces/ServicesCarousel', () => () => <div />);
+jest.mock('./components/Despieces/TablaPiezas', () => ({ despieces, activeDespieceId, handleInputChange }) => { const row = despieces.find((item) => item.id === activeDespieceId)?.filas?.[0]; return <div><button onClick={() => handleInputChange(0, 'detalle', 'PERBIS')}>Set detail</button><button onClick={() => handleInputChange(0, 'detalle', 'newer edit')}>Set newer edit</button><output data-testid="detail">{row?.detalle}</output></div>; });
+jest.mock('./components/Despieces/ServicesCarousel', () => ({ services, onSelect }) => <div>{services.map((service) => <button key={service.serviceId || service.nomenclatura} onClick={() => onSelect(service)}>Select {service.nomenclatura}</button>)}</div>);
 jest.mock('./services/despiecePersistence', () => ({ persistDespieceSnapshot: (...args) => mockPersistDespieceSnapshot(...args) }));
+
+beforeEach(() => {
+  getDocs.mockResolvedValue({ empty: true, docs: [], size: 0 });
+  mockPersistDespieceSnapshot.mockReset();
+  mockPersistDespieceSnapshot.mockImplementation(async (_snapshot, _firestore, options) => { options.onPrimaryCommit({ documentId: 'generated' }); return { documentId: 'generated', secondary: { history: 'skipped', defaults: 'skipped' }, retry: null }; });
+});
 
 test('service edits preserve canonical identity and metadata', () => {
   const original = { serviceId: 'svc-fixed', nomenclatura: 'OLD', nombreOriginal: 'Old', aliases: ['legacy'], activo: false, metadata: { source: 'user' } };
@@ -67,4 +73,33 @@ test('manual save after only service definitions change persists current service
   fireEvent.click(screen.getByRole('button', { name: /guardar despiece/i }));
   await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalled());
   expect(mockPersistDespieceSnapshot.mock.calls[0][0].serviciosGuardados).toEqual(expect.arrayContaining([expect.objectContaining({ serviceId: 'svc_custom', nomenclatura: 'CUSTOM' })]));
+});
+
+test('capability writes wait for required document identity', async () => {
+  render(<ModeloDespiece />);
+  fireEvent.click(screen.getByRole('button', { name: 'Set detail' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Select SERPERBIS' }));
+  await screen.findByText(/client and project names are required/i);
+  expect(mockPersistDespieceSnapshot).not.toHaveBeenCalled();
+
+  fireEvent.change(screen.getByLabelText(/nombre del cliente/i), { target: { value: 'Client' } });
+  fireEvent.change(screen.getByLabelText(/nombre del proyecto/i), { target: { value: 'Project' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Select SERPERBIS' }));
+  await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalledTimes(1));
+});
+
+test('completed capability persistence does not overwrite a newer edit', async () => {
+  let finishPersistence;
+  mockPersistDespieceSnapshot.mockImplementation((_snapshot, _firestore, options) => new Promise((resolve) => {
+    finishPersistence = () => { options.onPrimaryCommit({ documentId: 'generated' }); resolve({ documentId: 'generated', secondary: {}, retry: null }); };
+  }));
+  render(<ModeloDespiece />);
+  fireEvent.change(screen.getByLabelText(/nombre del cliente/i), { target: { value: 'Client' } });
+  fireEvent.change(screen.getByLabelText(/nombre del proyecto/i), { target: { value: 'Project' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Set detail' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Select SERPERBIS' }));
+  await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole('button', { name: 'Set newer edit' }));
+  await act(async () => finishPersistence());
+  expect(screen.getByTestId('detail')).toHaveTextContent('newer edit');
 });

@@ -48,7 +48,7 @@ export const detectServiceOccurrences = (filas = [], services = [], selectedServ
     const match = [...byService.values()][0];
     return {
         status: 'valid',
-        serviceId: match.service.serviceId,
+        serviceId: serviceKey(match),
         rowIds: selectedMatches.filter((item) => serviceKey(item) === serviceKey(match)).map((item) => item.rowId),
         count: selectedMatches.filter((item) => serviceKey(item) === serviceKey(match)).reduce((total, item) => total + item.count, 0)
     };
