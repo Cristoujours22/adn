@@ -119,3 +119,68 @@ export const parseModule = (detalle, configuration) => {
 };
 
 export const getModuleKey = (detalle, configuration) => parseModule(detalle, configuration)?.moduleKey || null;
+
+const getDetailValue = (item) => (
+  item && typeof item === 'object' ? item.detalle : item
+);
+
+const uniqueKeys = (keys) => [...new Set(keys.filter(Boolean))];
+
+export const getModuleDetectionPreview = (details = [], configuration) => {
+  const values = Array.isArray(details) ? details : [details];
+  const entries = values.map((item) => {
+    const detail = getDetailValue(item);
+    return {
+      detail,
+      moduleKey: getModuleKey(detail, configuration)
+    };
+  });
+
+  return {
+    entries,
+    recognizedModuleKeys: uniqueKeys(entries.map((entry) => entry.moduleKey))
+  };
+};
+
+export const findModuleDetectionConflicts = ({
+  details = [],
+  currentConfig,
+  nextConfig,
+  superGroups = []
+} = {}) => {
+  const previousPreview = getModuleDetectionPreview(details, currentConfig);
+  const nextPreview = getModuleDetectionPreview(details, nextConfig);
+  const nextKeys = new Set(nextPreview.recognizedModuleKeys);
+  const lostModuleKeys = previousPreview.recognizedModuleKeys.filter((key) => !nextKeys.has(key));
+  const lostKeySet = new Set(lostModuleKeys);
+
+  return {
+    previouslyRecognizedModuleKeys: previousPreview.recognizedModuleKeys,
+    nextRecognizedModuleKeys: nextPreview.recognizedModuleKeys,
+    lostModuleKeys,
+    affectedSuperGroups: (Array.isArray(superGroups) ? superGroups : []).filter((group) => (
+      Array.isArray(group?.moduleKeys) && group.moduleKeys.some((key) => lostKeySet.has(key))
+    )),
+    hasConflicts: lostModuleKeys.length > 0
+  };
+};
+
+export const getProjectModuleDetectionConfig = (projectData = {}) => {
+  const storedConfig = projectData && typeof projectData === 'object'
+    ? projectData.moduleDetectionConfig
+    : null;
+
+  return normalizeModuleDetectionConfig(storedConfig || DEFAULT_MODULE_DETECTION_CONFIG);
+};
+
+export const getUserModuleDetectionConfig = (userSettings = {}) => {
+  const storedConfig = userSettings && typeof userSettings === 'object'
+    ? userSettings.moduleDetectionDefault || userSettings.moduleDetectionConfig
+    : null;
+
+  return normalizeModuleDetectionConfig(storedConfig || DEFAULT_MODULE_DETECTION_CONFIG);
+};
+
+export const buildModuleDetectionMetadata = (configuration) => ({
+  moduleDetectionConfig: normalizeModuleDetectionConfig(configuration)
+});

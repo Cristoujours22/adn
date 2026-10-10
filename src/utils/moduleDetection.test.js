@@ -1,5 +1,7 @@
 import {
   DEFAULT_MODULE_DETECTION_CONFIG,
+  findModuleDetectionConflicts,
+  getModuleDetectionPreview,
   normalizeModuleDetectionConfig,
   parseModule
 } from './moduleDetection';
@@ -66,5 +68,33 @@ describe('parseModule', () => {
     invalidDetails.forEach((detail) => {
       expect(parseModule(detail)).toBeNull();
     });
+  });
+});
+
+describe('module detection previews and conflicts', () => {
+  test('previews the example detail and unique recognized module keys', () => {
+    const preview = getModuleDetectionPreview([
+      '1020-entrepaño-D1-005',
+      '1020-entrepaño-D1-005',
+      '1020-entrepaño-T2-010'
+    ], { designPrefixes: ['D', 'T'] });
+
+    expect(preview.recognizedModuleKeys).toEqual(['D1-005', 'T2-010']);
+    expect(preview.entries.map((entry) => entry.moduleKey)).toEqual(['D1-005', 'D1-005', 'T2-010']);
+  });
+
+  test('reports previously recognized keys that a new configuration would lose', () => {
+    const conflicts = findModuleDetectionConflicts({
+      details: [
+        'pieza D1-005',
+        'pieza D2-010',
+        'pieza T1-001'
+      ],
+      currentConfig: { designPrefixes: ['D', 'T'] },
+      nextConfig: { designPrefixes: ['T'] }
+    });
+
+    expect(conflicts.lostModuleKeys).toEqual(['D1-005', 'D2-010']);
+    expect(conflicts.nextRecognizedModuleKeys).toEqual(['T1-001']);
   });
 });

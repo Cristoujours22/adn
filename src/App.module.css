@@ -1927,3 +1927,124 @@ body.high-contrast .despieceItem p {
 .despiece-dialog button {
   max-width: 100%;
 }
+
+.moduleDetectionModal {
+  width: min(680px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.moduleDetectionTitle {
+  color: white;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.moduleDetectionHelp,
+.moduleDetectionHint,
+.moduleDetectionPreviewResult {
+  color: #ccc;
+  font-size: 12px;
+}
+
+.moduleDetectionHelp {
+  margin-bottom: 18px;
+}
+
+.moduleDetectionHint {
+  margin: -10px 0 14px;
+}
+
+.moduleDetectionLabel {
+  color: #f1f1f1;
+  margin-bottom: 5px;
+}
+
+.moduleDetectionPreview {
+  margin-top: 12px;
+  padding: 12px;
+  background: #2c303a;
+  border-radius: 6px;
+}
+
+.moduleDetectionPreviewResult {
+  margin: 8px 0 0;
+}
+
+.moduleDetectionPreviewResult strong {
+  color: #7dd3fc;
+}
+
+.moduleDetectionConflict {
+  margin-top: 14px;
+  padding: 12px;
+  color: #ffd6d6;
+  background: #5b2020;
+  border: 1px solid #ef5350;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.moduleDetectionConflict ul {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+
+.moduleDetectionConflict p {
+  margin: 8px 0 0;
+}
+
+.moduleDetectionDefaultOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: #f1f1f1;
+  font-size: 13px;
+}
+
+.moduleDetectionDefaultOption input {
+  width: auto;
+  margin: 0;
+}
+
+.moduleDetectionError {
+  margin-top: 12px;
+  color: #ffb3b3;
+  font-size: 13px;
+}
+
+.moduleDetectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.moduleDetectionActions .botonSubmit,
+.moduleDetectionActions .botonEliminar {
+  margin: 0;
+  min-width: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.moduleDetectionConfirm {
+  padding: 8px 14px;
+  color: #fff;
+  background: #b45309;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.moduleDetectionConfirm:focus-visible,
+.moduleDetectionActions button:focus-visible,
+.moduleDetectionModal input:focus-visible,
+.moduleDetectionModal select:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 2px;
+}
