@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './PanelResumen.module.css';
 
 const PanelResumen = ({
     darkMode, 
@@ -6,8 +7,12 @@ const PanelResumen = ({
     services, 
     serviceCounts 
 }) => {
+    const activeServices = services.filter(s => s.activo !== false && serviceCounts[s.serviceId || s.nomenclatura] > 0);
+
     return (
-        <div style={{ 
+        <div
+            className={styles.summaryPanel}
+            style={{
             flex: '1 1 20%', 
             minWidth: '200px',
             background: darkMode ? '#1c1f26' : '#f8f9fa',
@@ -33,15 +38,26 @@ const PanelResumen = ({
                 <p style={{ margin: 0, fontSize: '36px', fontWeight: 'bold', color: '#007bff' }}>{totalPieces}</p>
             </div>
 
-            <h4 style={{ color: darkMode ? '#ccc' : '#666', marginBottom: '15px' }}>Conteo de Servicios</h4>
-            {services.filter(s => s.activo !== false && serviceCounts[s.serviceId || s.nomenclatura] > 0).length === 0 ? (
-                <p style={{ color: darkMode ? '#888' : '#888', fontSize: '14px', fontStyle: 'italic' }}>
-                    {services.length === 0 ? "No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas." : "No hay servicios asociados detectados en el detalle de las piezas."}
-                </p>
-            ) : (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    {services.filter(s => s.activo !== false && serviceCounts[s.serviceId || s.nomenclatura] > 0).map(s => {
-                        const count = serviceCounts[s.serviceId || s.nomenclatura] || 0;
+            <h4
+                id="service-summary-heading"
+                style={{ color: darkMode ? '#ccc' : '#666', marginBottom: '15px' }}
+            >
+                Conteo de Servicios
+            </h4>
+            <div
+                className={`${styles.serviceListRegion} ${darkMode ? styles.serviceListRegionDark : styles.serviceListRegionLight}`}
+                role="region"
+                aria-labelledby="service-summary-heading"
+                tabIndex={0}
+            >
+                {activeServices.length === 0 ? (
+                    <p style={{ color: darkMode ? '#888' : '#888', fontSize: '14px', fontStyle: 'italic' }}>
+                        {services.length === 0 ? "No hay nomenclaturas configuradas. Abre el menú lateral para agregarlas." : "No hay servicios asociados detectados en el detalle de las piezas."}
+                    </p>
+                ) : (
+                    <ul className={styles.serviceList}>
+                        {activeServices.map(s => {
+                            const count = serviceCounts[s.serviceId || s.nomenclatura] || 0;
                         
                         // Formatear display del contador dependiendo del tipo de cobro
                         let countDisplay = count;
@@ -54,34 +70,40 @@ const PanelResumen = ({
                         }
 
                         return (
-                            <li key={s.nomenclatura} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '10px',
-                                borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
-                                background: darkMode ? '#1e2b22' : '#e8f5e9'
-                            }}>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <strong style={{ color: darkMode ? '#fff' : '#333', fontSize: '13px' }}>{s.nombreOriginal}</strong>
-                                    <span style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
+                            <li
+                                key={s.nomenclatura}
+                                className={styles.serviceRow}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
+                                    background: darkMode ? '#1e2b22' : '#e8f5e9'
+                                }}
+                            >
+                                <div className={styles.serviceDetails}>
+                                    <strong className={styles.serviceName} style={{ color: darkMode ? '#fff' : '#333' }}>{s.nombreOriginal}</strong>
+                                    <span className={styles.serviceNomenclature} style={{ color: darkMode ? '#aaa' : '#666' }}>({s.nomenclatura})</span>
                                 </div>
-                                <span style={{
-                                    background: '#28a745',
-                                    color: '#fff',
-                                    padding: '3px 10px',
-                                    borderRadius: '12px',
-                                    fontWeight: 'bold',
-                                    fontSize: '13px',
-                                    whiteSpace: 'nowrap'
-                                }}>
+                                <span
+                                    className={styles.serviceCount}
+                                    style={{
+                                        background: '#28a745',
+                                        color: '#fff',
+                                        padding: '3px 10px',
+                                        borderRadius: '12px',
+                                        fontWeight: 'bold',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
                                     {countDisplay}
                                 </span>
                             </li>
                         );
-                    })}
-                </ul>
-            )}
+                        })}
+                    </ul>
+                )}
+            </div>
         </div>
     );
 };
