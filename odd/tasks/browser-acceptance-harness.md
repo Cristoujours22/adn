@@ -67,12 +67,12 @@ Planned commit: `test(e2e): add isolated Firebase browser harness`
 
 ### E2E-2 — Cover completed ADN workflows in Chromium
 
-- [ ] Seed deterministic rows, module configuration, services, and a saved project.
-- [ ] Verify module configuration preview, conflict handling, and persistence.
-- [ ] Verify complete-module super-group preview, creation, collapse totals, reload, and ungrouping.
-- [ ] Verify alias collision feedback and non-overlapping counts for `sencha curva + curva`, `curvado`, `naranja`, and `2Lcurva`.
-- [ ] Verify summary focus and native scrolling with many positive services.
-- [ ] Run desktop and mobile viewport lanes with keyboard-focused assertions.
+- [x] Seed deterministic rows, module configuration, services, and a saved project.
+- [x] Verify module configuration preview, conflict handling, and persistence.
+- [x] Verify complete-module super-group preview, creation, collapse totals, reload, and ungrouping.
+- [x] Verify alias collision feedback and non-overlapping counts for `sencha curva + curva`, `curvado`, `naranja`, and `2Lcurva`.
+- [x] Verify summary focus and native scrolling with many positive services.
+- [x] Run desktop and mobile viewport lanes with keyboard-focused assertions.
 
 Acceptance:
 - Tests exercise user-visible controls rather than internal React state.
@@ -110,8 +110,9 @@ Planned commit if needed: `fix(e2e): resolve ADN browser regressions`
 
 ## Progress
 
-- Current task: E2E-2 — Cover completed ADN workflows in Chromium.
-- Completed tasks: E2E-1.
+- Current task: E2E-3 — Resolve browser-discovered regressions.
+- Completed tasks: E2E-1, E2E-2.
+- E2E-1 commit: `a31916f` (`test(e2e): add isolated Firebase browser harness`).
 - Browser capability discovery found no existing E2E framework, emulator configuration, local auth bypass, or seeded account.
 - The user selected an isolated E2E environment instead of testing against remote Firebase.
 
@@ -131,7 +132,19 @@ E2E-1 writer evidence (partial):
 - Writer verification after Docker recovery: isolated login smoke passed against demo project `demo-adn-e2e` and reached `/menu`; focused gating Jest passed 1 suite/2 tests; production build passed with emulator variables unset; `git diff --check` passed.
 - Independent clean-container verification repeated `npm ci`, 1 Jest suite/2 tests, the Chromium login smoke, production build with emulator variables unset, and `git diff --check`; all passed. No remote Firebase endpoint was used and no production-safety blocker remained.
 - Final non-lock harness size is 474 A+D. The required dependency lock graph is 15,829 A+D; `npm ci` reports 120 dependency audit findings and deprecated transitive packages, while build reports deprecation and stale Browserslist warnings.
+- Work-unit commit `a31916f` contains 11,621 additions + 4,684 deletions = 16,305 A+D, dominated by the generated dependency lock graph.
+- Native INSPECT excluded the unintended untracked `.codegraph/` cache and offered START; START created no lineage and performed no mutation because the Windows-mounted Git common directory lacks required POSIX permission semantics (`candidate-owner-parent-chmod-ineffective`).
+- Reassessment with `nativeReviewOutcome=unavailable` remained unassessable because the read-only assessment route cannot declare untracked scope. The risk-gated plan therefore requires independent verification, which the clean-container verifier already completed successfully. The native candidate remains unconsumed.
+
+E2E-2 writer evidence (partial):
+
+- Added deterministic project seed `adn-e2e-project` with one tab, seven stable rows, complete `D1-005`/`D2-010` modules, 15 services, 14 positive overflow entries, and details covering `sencha curva + curva`, `curvado`, `naranja`, and `2Lcurva`.
+- Added reusable per-test reset/authentication fixtures plus desktop 1280×800 and mobile 390×844 Chromium projects.
+- Browser lane: 8/8 tests passed (desktop 4/4, mobile 4/4), including module settings, super-group preview/collapse/reload/ungroup, alias collisions and counts, summary focus/scroll, responsive behavior, and persistence.
+- Focused regression lane: 11 suites/64 tests passed. Production build, syntax checks, endpoint isolation, and `git diff --check` passed.
+- Current scoped diff is 480 A+D.
+- Independent clean-container verification repeated the complete lane: desktop 4/4, mobile 4/4, focused Jest 13 suites/69 tests, production build, endpoint isolation, and `git diff --check` all passed. Spot review found no concrete blocker.
 
 ## Next step
 
-Commit E2E-1 as a reviewable work unit, record native-review outcome, then seed and automate the completed ADN desktop/mobile browser workflows in E2E-2.
+Commit E2E-2, record native-review outcome, then close E2E-3 as no product regression required if the committed browser slice remains green.
