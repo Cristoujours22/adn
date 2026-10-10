@@ -1452,6 +1452,124 @@ body.high-contrast .despieceItem p {
   color: #fff;
 }
 
+.superGroupHeader {
+  display: table-row;
+}
+
+.superGroupHeaderCell {
+  display: table-cell;
+  padding: 7px 10px;
+  background: linear-gradient(90deg, #45227a, #6f42c1);
+  color: #fff;
+  border: 1px solid #3d1d6f;
+  font-size: 12px;
+}
+
+.superGroupHeaderCell > div:first-child {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.superGroupHeaderCell h4 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.superGroupHeaderCell span {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.superGroupHeaderActions {
+  float: right;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.superGroupHeaderActions button {
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.superGroupHeaderActions button:focus-visible,
+.superGroupDialog button:focus-visible {
+  outline: 3px solid #ffd600;
+  outline-offset: 2px;
+}
+
+.superGroupDialog {
+  max-width: 560px;
+  max-height: min(90vh, 680px);
+  overflow-y: auto;
+}
+
+.superGroupDialogDark {
+  background: #1e1e1e;
+  color: #fff;
+}
+
+.superGroupPreviewList {
+  margin: 18px 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #555;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.superGroupPreviewList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #555;
+}
+
+.superGroupPreviewList li:last-child {
+  border-bottom: none;
+}
+
+.superGroupPreviewList span {
+  white-space: nowrap;
+}
+
+.superGroupActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.superGroupError {
+  padding: 8px 10px;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  color: #ffb3b3;
+}
+
+@media (max-width: 768px) {
+  .superGroupHeader {
+    display: block;
+    margin: 8px 0;
+  }
+
+  .superGroupHeaderCell {
+    display: block;
+    border-radius: 6px;
+  }
+
+  .superGroupHeaderActions {
+    float: none;
+    margin-top: 8px;
+  }
+}
+
 /* =========================================================
    USER PROFILE REDESIGN - BENTO GLASSMORPHISM
    ========================================================= */

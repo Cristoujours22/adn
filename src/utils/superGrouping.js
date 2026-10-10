@@ -5,7 +5,7 @@ const NESTED_GROUP_FIELDS = ['groups', 'superGroups', 'children'];
 
 const asArray = (value) => Array.isArray(value) ? value : [];
 const getRowId = (row) => row && row.id;
-const getGroupId = (group) => group && (group.id ?? group.groupId ?? group.key);
+const getGroupId = (group) => group && (group.id ?? group.groupId ?? group.key ?? group.label);
 const getModuleConfiguration = (configuration) => normalizeModuleDetectionConfig(configuration);
 
 const hasNestedGroups = (group) => NESTED_GROUP_FIELDS.some((field) => (

@@ -24,6 +24,14 @@ import {
   normalizeModuleDetectionConfig
 } from './utils/moduleDetection';
 import ModuleDetectionSettingsModal from './components/Despieces/ModuleDetectionSettingsModal';
+import SuperGroupDialog from './components/Despieces/SuperGroupDialog';
+import {
+  applySuperGroupPreview,
+  createSuperGroupPreview,
+  reconcileSuperGroups,
+  resolveSelectedModules,
+  ungroupSuperGroup
+} from './utils/superGrouping';
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -67,8 +75,22 @@ let despieceIdCounter = Date.now();
 const createNewDespiece = (name = "Despiece 1") => ({
   id: `tab_${despieceIdCounter++}`,
   nombre: name,
-  filas: [createNewRow()]
+  filas: [createNewRow()],
+  superGroups: []
 });
+
+export const getSelectedRowIdsForSuperGrouping = (rows = [], rowSelection) => {
+  const selectedIndexes = new Set(
+    rowSelection instanceof Set ? [...rowSelection] : Array.isArray(rowSelection) ? rowSelection : []
+  );
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row, index) => selectedIndexes.has(index) && row?.id != null)
+    .map((row) => row.id);
+};
+
+export const canCreateSuperGroup = (rows = [], rowSelection, configuration) => (
+  resolveSelectedModules(rows, getSelectedRowIdsForSuperGrouping(rows, rowSelection), configuration).length >= 2
+);
 
 const normalizeStoredCantoValue = (value) => {
   if (value === true) return '1';
@@ -357,6 +379,11 @@ const ModeloDespiece = () => {
   const [versionSeleccionada, setVersionSeleccionada] = useState(null);
   const [showMenuAcciones, setShowMenuAcciones] = useState(false);
   const [showDespieceAutoModal, setShowDespieceAutoModal] = useState(false);
+  const [showSuperGroupDialog, setShowSuperGroupDialog] = useState(false);
+  const [superGroupPreview, setSuperGroupPreview] = useState(null);
+  const [superGroupError, setSuperGroupError] = useState('');
+  const superGroupTriggerRef = useRef(null);
+  const superGroupTableRef = useRef(null);
   const [despieceAutoModo, setDespieceAutoModo] = useState('cocina');
   const [despieceAutoOpcion, setDespieceAutoOpcion] = useState(1);
   
@@ -454,6 +481,69 @@ const ModeloDespiece = () => {
     });
   }, []);
 
+  const closeSuperGroupDialog = useCallback(() => {
+    setShowSuperGroupDialog(false);
+    setSuperGroupPreview(null);
+    setSuperGroupError('');
+    window.setTimeout(() => {
+      if (superGroupTriggerRef.current && !superGroupTriggerRef.current.disabled) {
+        superGroupTriggerRef.current.focus();
+      } else {
+        superGroupTableRef.current?.focus();
+      }
+    }, 0);
+  }, []);
+
+  const handleOpenSuperGroupDialog = useCallback(() => {
+    const activeDespiece = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+    const rows = activeDespiece?.filas || [];
+    const selectedRowIds = getSelectedRowIdsForSuperGrouping(rows, rowSelection);
+    if (!canCreateSuperGroup(rows, rowSelection, moduleDetectionConfig)) return;
+
+    const preview = createSuperGroupPreview(rows, selectedRowIds, moduleDetectionConfig, {
+      groupId: `super-group:${Date.now()}`,
+      existingSuperGroups: activeDespiece?.superGroups || []
+    });
+    setSuperGroupError('');
+    setSuperGroupPreview(preview);
+    setShowSuperGroupDialog(true);
+  }, [despieces, activeDespieceId, rowSelection, moduleDetectionConfig]);
+
+  const handleConfirmSuperGroup = useCallback((preview) => {
+    const activeDespiece = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+    if (!activeDespiece) return;
+
+    // Keep the pre-change tab snapshot before applying the stale-safe operation.
+    saveToHistory();
+    try {
+      const result = applySuperGroupPreview(activeDespiece.filas || [], preview, {
+        configuration: moduleDetectionConfig,
+        existingSuperGroups: activeDespiece.superGroups || []
+      });
+      setDespieces((previous) => previous.map((despiece) => (
+        despiece.id === activeDespieceId
+          ? { ...despiece, filas: result.rows, superGroups: result.superGroups }
+          : despiece
+      )));
+      setRowSelection(new Set());
+      setSelection(null);
+      setActiveCell(null);
+      setIsEditing(false);
+      closeSuperGroupDialog();
+    } catch (error) {
+      setSuperGroupError(error?.message || 'No se pudo aplicar la agrupación.');
+    }
+  }, [despieces, activeDespieceId, moduleDetectionConfig, saveToHistory, closeSuperGroupDialog]);
+
+  const handleUngroupSuperGroup = useCallback((groupId) => {
+    saveToHistory();
+    setDespieces((previous) => previous.map((despiece) => (
+      despiece.id === activeDespieceId
+        ? { ...despiece, superGroups: ungroupSuperGroup(despiece.superGroups || [], groupId) }
+        : despiece
+    )));
+  }, [activeDespieceId, saveToHistory]);
+
   useEffect(() => {
     const handleOpenModal = () => setShowNomenclaturesModal(true);
     
@@ -474,7 +564,8 @@ const ModeloDespiece = () => {
         const despieceSnap = await getDoc(despieceRef);
         if (despieceSnap.exists()) {
           const data = despieceSnap.data();
-          setModuleDetectionConfig(getProjectModuleDetectionConfig(data));
+          const projectModuleDetectionConfig = getProjectModuleDetectionConfig(data);
+          setModuleDetectionConfig(projectModuleDetectionConfig);
           setProjectName(data.proyecto || '');
           setClientName(data.cliente || '');
           setCreationDate(data.fechaCreacion || new Date().toLocaleDateString());
@@ -494,6 +585,7 @@ const ModeloDespiece = () => {
               const hydrated = hydrateDespieceSchema({ ...newTab, filas: loadedRows }, data.serviciosGuardados || []);
               newTab.filas = hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()];
               newTab.modules = hydrated.despiece.modules;
+              newTab.superGroups = [];
               setDespieces([newTab]);
               setActiveDespieceId(newTab.id);
           } else if (data.despieces && Array.isArray(data.despieces)) {
@@ -506,11 +598,17 @@ const ModeloDespiece = () => {
                       return { ...row, id: `row_${rowId}` };
                   });
                   const hydrated = hydrateDespieceSchema({ ...desp, filas: safeRows }, data.serviciosGuardados || []);
+                  const hydratedRows = hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()];
                   return {
                       ...desp,
                       id: desp.id || `tab_${despieceIdCounter++}`,
-                      filas: hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()],
-                      modules: hydrated.despiece.modules
+                      filas: hydratedRows,
+                      modules: hydrated.despiece.modules,
+                      superGroups: reconcileSuperGroups(
+                        hydratedRows,
+                        desp.superGroups || [],
+                        projectModuleDetectionConfig
+                      )
                   };
               });
               setDespieces(loadedDespieces.length ? loadedDespieces : [createNewDespiece()]);
@@ -721,17 +819,26 @@ const ModeloDespiece = () => {
         }
       }
 
-      return { ...despiece, filas: newRows };
+      return {
+        ...despiece,
+        filas: newRows,
+        superGroups: reconcileSuperGroups(newRows, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [activeDespieceId, selection, despieces]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeDespieceId, selection, despieces, moduleDetectionConfig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemoveRow = useCallback((indexToRemove) => {
     saveToHistory();
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
-      return { ...despiece, filas: (despiece.filas || []).filter((_, index) => index !== indexToRemove) };
+      const filas = (despiece.filas || []).filter((_, index) => index !== indexToRemove);
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [activeDespieceId, saveToHistory]);
+  }, [activeDespieceId, saveToHistory, moduleDetectionConfig]);
 
   // Excel-style row selection: click on row number to select entire row
   const handleRowClick = useCallback((index, e) => {
@@ -776,10 +883,14 @@ const ModeloDespiece = () => {
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       const filas = (despiece.filas || []).filter((_, i) => !rowSelection.has(i));
-      return { ...despiece, filas };
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
     setRowSelection(new Set());
-  }, [rowSelection, activeDespieceId, saveToHistory, handleCopyRows]);
+  }, [rowSelection, activeDespieceId, saveToHistory, handleCopyRows, moduleDetectionConfig]);
 
   // Paste rows from internal clipboard (insert after current position or at end)
   const handlePasteRows = useCallback(() => {
@@ -804,9 +915,13 @@ const ModeloDespiece = () => {
         a2: row.a2 || '',
       }));
       filas.splice(insertIndex + 1, 0, ...newRows);
-      return { ...despiece, filas };
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [rowClipboard, activeDespieceId, activeCell, saveToHistory]);
+  }, [rowClipboard, activeDespieceId, activeCell, saveToHistory, moduleDetectionConfig]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
@@ -916,7 +1031,11 @@ const ModeloDespiece = () => {
           nextRows[rowIdx] = updatedRow;
         });
 
-        return { ...despiece, filas: nextRows };
+        return {
+          ...despiece,
+          filas: nextRows,
+          superGroups: reconcileSuperGroups(nextRows, despiece.superGroups || [], moduleDetectionConfig)
+        };
       }));
 
       return;
@@ -948,13 +1067,23 @@ const ModeloDespiece = () => {
         prevRows.length === 1 &&
         Object.values(prevRows[0] || {}).every((v, i) => v === '' || (i === 0 && (typeof v === 'string' && /^row_/.test(v))))
       ) {
-        return { ...despiece, filas: newRows.length ? newRows : [createNewRow()] };
+        const filas = newRows.length ? newRows : [createNewRow()];
+        return {
+          ...despiece,
+          filas,
+          superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+        };
       }
 
       // Si no, agregar normalmente
-      return { ...despiece, filas: [...prevRows, ...newRows] };
+      const filas = [...prevRows, ...newRows];
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [activeCell, activeDespieceId, isEditing, saveToHistory]);
+  }, [activeCell, activeDespieceId, isEditing, saveToHistory, moduleDetectionConfig]);
 
   // ==================== HISTORIAL DE VERSIONES ====================
   const guardarVersion = async (despieceId, datos) => {
@@ -1137,6 +1266,10 @@ const ModeloDespiece = () => {
     }
 
     setModuleDetectionConfig(normalizedConfig);
+    setDespieces((previous) => previous.map((despiece) => ({
+      ...despiece,
+      superGroups: reconcileSuperGroups(despiece.filas || [], despiece.superGroups || [], normalizedConfig)
+    })));
   }, [id, saveUserModuleDetectionDefault]);
 
   // -------- SISTEMA DE AUTOGUARDADO ---------
@@ -1583,6 +1716,12 @@ const ModeloDespiece = () => {
     () => despieces.flatMap((despiece) => (despiece.filas || []).map((row) => row?.detalle)),
     [despieces]
   );
+  const activeDespieceForGrouping = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+  const superGroupActionEnabled = canCreateSuperGroup(
+    activeDespieceForGrouping?.filas || [],
+    rowSelection,
+    moduleDetectionConfig
+  );
 
   return (
     <div className={`${estilos.modeloDespieceContainer} ${darkMode ? estilos.despiecesSectionDark : ''}`} style={{ marginTop: '50px' }}>
@@ -1593,9 +1732,19 @@ const ModeloDespiece = () => {
         isOpen={showModuleDetectionSettings}
         initialConfig={moduleDetectionConfig}
         details={moduleDetectionDetails}
+        superGroups={activeDespieceForGrouping?.superGroups || []}
         darkMode={darkMode}
         onClose={() => setShowModuleDetectionSettings(false)}
         onSave={handleModuleDetectionSave}
+      />
+
+      <SuperGroupDialog
+        isOpen={showSuperGroupDialog}
+        preview={superGroupPreview}
+        darkMode={darkMode}
+        errorMessage={superGroupError}
+        onConfirm={handleConfirmSuperGroup}
+        onCancel={closeSuperGroupDialog}
       />
 
       {/* MODAL DE NOMENCLATURAS */}
@@ -1921,6 +2070,30 @@ const ModeloDespiece = () => {
                 >
                   ⚙ Configurar módulos
                 </button>
+                <button
+                  ref={superGroupTriggerRef}
+                  type="button"
+                  onClick={handleOpenSuperGroupDialog}
+                  disabled={!superGroupActionEnabled}
+                  aria-haspopup="dialog"
+                  aria-controls="super-group-dialog"
+                  title={superGroupActionEnabled
+                    ? 'Agrupar los módulos de las filas seleccionadas'
+                    : 'Selecciona filas de al menos dos módulos'}
+                  style={{
+                    background: superGroupActionEnabled ? '#6f42c1' : (darkMode ? '#3a3f47' : '#e9ecef'),
+                    border: `1px solid ${superGroupActionEnabled ? '#6f42c1' : (darkMode ? '#666' : '#bbb')}`,
+                    color: superGroupActionEnabled ? '#fff' : (darkMode ? '#999' : '#777'),
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: superGroupActionEnabled ? 'pointer' : 'not-allowed',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    height: '28px'
+                  }}
+                >
+                  Agrupar módulos
+                </button>
               </div>
             </div>
 
@@ -1952,6 +2125,10 @@ const ModeloDespiece = () => {
               services={services}
               modules={activeDespiece?.modules}
               onRenameModule={(module, event) => handleRenameModule(module, event?.currentTarget)}
+              moduleDetectionConfig={moduleDetectionConfig}
+              focusReturnRef={superGroupTableRef}
+              superGroups={activeDespieceForGrouping?.superGroups || []}
+              onUngroupSuperGroup={handleUngroupSuperGroup}
             />
 
           </form>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import estilos from '../../App.module.css';
 import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
 import { getModuleKey } from '../../utils/moduleDetection';
+import { getRowsForSuperGroup } from '../../utils/superGrouping';
 
 const TablaPiezas = ({
     despieces,
@@ -30,7 +31,11 @@ const TablaPiezas = ({
     showModuleColors,
     services,
     modules = [],
-    onRenameModule
+    onRenameModule,
+    moduleDetectionConfig,
+    focusReturnRef,
+    superGroups = [],
+    onUngroupSuperGroup
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -41,6 +46,7 @@ const TablaPiezas = ({
     };
 
     const [collapsedModules, setCollapsedModules] = useState({});
+    const [collapsedSuperGroups, setCollapsedSuperGroups] = useState({});
     
     const moduleColors = [
         { bg: '#4285f4', border: '#3367d6' },   // Azul vivo
@@ -79,12 +85,26 @@ const TablaPiezas = ({
         setCollapsedModules(prev => ({ ...prev, [moduleName]: !prev[moduleName] }));
     };
 
-    const getModuleName = (detalle) => getModuleKey(detalle);
+    const getModuleName = (detalle) => getModuleKey(detalle, moduleDetectionConfig);
+    const activeRows = (despieces.find(d => d.id === activeDespieceId) || despieces[0])?.filas || [];
+    const isSuperGroupForModule = (group, moduleName) => (
+        Boolean(group && moduleName && Array.isArray(group.moduleKeys) && group.moduleKeys.includes(moduleName))
+    );
+    const getSuperGroupLabel = (group) => group?.label || group?.moduleKeys?.join(' + ') || 'sin nombre';
+    const getSuperGroupKey = (group) => group?.id || group?.groupId || group?.key || getSuperGroupLabel(group);
+    const renderedSuperGroups = new Set();
 
     const getModule = (name) => modules.find((module) => String(module.legacyToken || '').toUpperCase() === String(name || '').toUpperCase());
 
     return (
-        <div className={estilos.tablaDespiece} style={{ marginTop: '0px' }} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+        <div
+            ref={focusReturnRef}
+            className={estilos.tablaDespiece}
+            style={{ marginTop: '0px' }}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            tabIndex="-1"
+        >
             <div className={estilos.filaDespiece} style={{
                 position: 'sticky',
                 top: '49px', // Ajustado a la altura de la topBar
@@ -133,8 +153,64 @@ const TablaPiezas = ({
                     const prevModule = getModuleName(prevRow?.detalle);
                     isFirstOfModule = currentModule !== prevModule;
                 }
-                
+
+                const currentSuperGroup = !isSearching
+                    ? superGroups.find((group) => isSuperGroupForModule(group, currentModule))
+                    : null;
+                const superGroupKey = currentSuperGroup ? getSuperGroupKey(currentSuperGroup) : null;
+                const isFirstOfSuperGroup = Boolean(
+                    currentSuperGroup && !renderedSuperGroups.has(superGroupKey)
+                );
+                if (isFirstOfSuperGroup) renderedSuperGroups.add(superGroupKey);
+                const superGroupLabel = currentSuperGroup ? getSuperGroupLabel(currentSuperGroup) : '';
+                const superGroupPieceCount = currentSuperGroup
+                    ? getRowsForSuperGroup(activeRows, currentSuperGroup, moduleDetectionConfig).length
+                    : 0;
+                const isSuperGroupCollapsed = Boolean(
+                    currentSuperGroup && collapsedSuperGroups[superGroupKey]
+                );
                 const isCollapsed = !isSearching && currentModule && collapsedModules[currentModule];
+                const superGroupHeader = isFirstOfSuperGroup ? (
+                    <div
+                        className={estilos.superGroupHeader}
+                        role="row"
+                        aria-label={`Supergrupo ${superGroupLabel}`}
+                    >
+                        <div className={estilos.superGroupHeaderCell} role="gridcell">
+                            <div>
+                                <h4>{superGroupLabel}</h4>
+                                <span>{superGroupPieceCount} {superGroupPieceCount === 1 ? 'pieza' : 'piezas'}</span>
+                            </div>
+                            <div className={estilos.superGroupHeaderActions}>
+                                <button
+                                    type="button"
+                                    aria-expanded={!isSuperGroupCollapsed}
+                                    aria-label={`${isSuperGroupCollapsed ? 'Expandir' : 'Colapsar'} supergrupo ${superGroupLabel}`}
+                                    onClick={() => setCollapsedSuperGroups((previous) => ({
+                                        ...previous,
+                                        [superGroupKey]: !previous[superGroupKey]
+                                    }))}
+                                >
+                                    {isSuperGroupCollapsed ? '+' : '−'}
+                                </button>
+                                {onUngroupSuperGroup && (
+                                    <button
+                                        type="button"
+                                        aria-label={`Desagrupar supergrupo ${superGroupLabel}`}
+                                        onClick={() => onUngroupSuperGroup(superGroupKey)}
+                                    >
+                                        Desagrupar
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : null;
+
+                // La contracción de un supergrupo sólo oculta su presentación; las filas siguen en el modelo.
+                if (isSuperGroupCollapsed) {
+                    return <React.Fragment key={safeRow.id || `row_${index}`}>{superGroupHeader}</React.Fragment>;
+                }
 
                 // Si la fila pertenece a un módulo que está colapsado y NO es la primera fila de ese módulo, se oculta
                 if (isCollapsed && !isFirstOfModule) {
@@ -308,6 +384,7 @@ const TablaPiezas = ({
 
                 return (
                     <React.Fragment key={safeRow.id || `row_${index}`}>
+                        {superGroupHeader}
 {showModuleColors && currentModule && isFirstOfModule && (
                             <div className={estilos.filaDespiece}>
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
