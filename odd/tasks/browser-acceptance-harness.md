@@ -90,10 +90,10 @@ Planned commit: `test(e2e): cover ADN browser workflows`
 
 ### E2E-3 — Resolve browser-discovered regressions
 
-- [ ] Classify every browser failure as harness, environment, pre-existing, or candidate-caused.
-- [ ] Add the narrowest deterministic regression test before each candidate-caused correction.
-- [ ] Re-run affected focused suites and the complete browser acceptance lane.
-- [ ] Record skipped, environment-blocked, and browser-only boundaries honestly.
+- [x] Classify every browser failure as harness, environment, pre-existing, or candidate-caused.
+- [x] Add the narrowest deterministic regression test before each candidate-caused correction.
+- [x] Re-run affected focused suites and the complete browser acceptance lane.
+- [x] Record skipped, environment-blocked, and browser-only boundaries honestly.
 
 Acceptance:
 - No candidate-caused blocker remains in the tested Chromium lane.
@@ -110,9 +110,10 @@ Planned commit if needed: `fix(e2e): resolve ADN browser regressions`
 
 ## Progress
 
-- Current task: E2E-3 — Resolve browser-discovered regressions.
-- Completed tasks: E2E-1, E2E-2.
+- Current task: Complete.
+- Completed tasks: E2E-1, E2E-2, E2E-3 (no product correction required).
 - E2E-1 commit: `a31916f` (`test(e2e): add isolated Firebase browser harness`).
+- E2E-2 commit: `63701ae` (`test(e2e): cover ADN browser workflows`).
 - Browser capability discovery found no existing E2E framework, emulator configuration, local auth bypass, or seeded account.
 - The user selected an isolated E2E environment instead of testing against remote Firebase.
 
@@ -144,7 +145,17 @@ E2E-2 writer evidence (partial):
 - Focused regression lane: 11 suites/64 tests passed. Production build, syntax checks, endpoint isolation, and `git diff --check` passed.
 - Current scoped diff is 480 A+D.
 - Independent clean-container verification repeated the complete lane: desktop 4/4, mobile 4/4, focused Jest 13 suites/69 tests, production build, endpoint isolation, and `git diff --check` all passed. Spot review found no concrete blocker.
+- Work-unit commit `63701ae` contains 498 additions + 13 deletions = 511 A+D.
+- Native assessment from `a31916f`: medium risk, 511 committed changed lines, `reviewDue=true`, reason `slice_budget_reached`.
+- Native START created no lineage and performed no mutation because the Windows-mounted Git common directory lacks required POSIX permission semantics (`candidate-owner-parent-chmod-ineffective`).
+- Reassessment recorded `nativeReviewOutcome=unavailable`; the risk-gated plan accepted writer verification for the large writer profile and required no additional verifier. The independent clean-container verifier had already passed the full lane; the native candidate remains unconsumed.
+
+E2E-3 closure:
+
+- Initial browser failures were harness-only timing, wide-table interaction, scroll-position, and earlier Docker storage incidents; each was corrected in the harness or environment and the full lane reran green.
+- No candidate-caused application regression was found, so no application source correction or additional regression commit was required.
+- Tested boundary: Chromium desktop/mobile against local Firebase emulators. Firefox, WebKit, real Firebase, deployment, and live production data remain outside scope.
 
 ## Next step
 
-Commit E2E-2, record native-review outcome, then close E2E-3 as no product regression required if the committed browser slice remains green.
+The isolated browser acceptance initiative is complete. Push, pull-request creation, merge, deployment, and any broader cross-browser matrix remain separate user decisions.
