@@ -15,6 +15,7 @@ import ServicesCarousel from './components/Despieces/ServicesCarousel';
 import FindReplaceModal from './components/Despieces/FindReplaceModal';
 import ModuleRenameModal from './components/Despieces/ModuleRenameModal';
 import { persistDespieceSnapshot } from './services/despiecePersistence';
+import { getModuleKey } from './utils/moduleDetection';
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -254,11 +255,7 @@ const ModeloDespiece = () => {
   }, [currentUser]);
 
   // Guardar preferencia de colores de módulos
-  const getModuleNameFromDetalle = (detalle) => {
-    if (!detalle) return null;
-    const match = String(detalle).match(/D\d+-\d+/i);
-    return match ? match[0].toUpperCase() : null;
-  };
+  const getModuleNameFromDetalle = (detalle) => getModuleKey(detalle);
 
   const groupRowsByModule = (filas = []) => {
     const groupedRows = [];

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import estilos from '../../App.module.css';
 import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
+import { getModuleKey } from '../../utils/moduleDetection';
 
 const TablaPiezas = ({
     despieces,
@@ -78,12 +79,7 @@ const TablaPiezas = ({
         setCollapsedModules(prev => ({ ...prev, [moduleName]: !prev[moduleName] }));
     };
 
-    const getModuleName = (detalle) => {
-        if (!detalle) return null;
-        // Buscar el patrón D1-0, D1-1512, D2-34
-        const match = detalle.match(/D\d+-\d+/i);
-        return match ? match[0].toUpperCase() : null;
-    };
+    const getModuleName = (detalle) => getModuleKey(detalle);
 
     const getModule = (name) => modules.find((module) => String(module.legacyToken || '').toUpperCase() === String(name || '').toUpperCase());
 
