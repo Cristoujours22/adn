@@ -3,6 +3,7 @@ import estilos from '../../App.module.css';
 import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
 import { getModuleKey } from '../../utils/moduleDetection';
 import { getRowsForSuperGroup } from '../../utils/superGrouping';
+import { findServiceMatches, getServiceMatchSpans } from '../../utils/serviceMatching';
 
 const TablaPiezas = ({
     despieces,
@@ -481,61 +482,47 @@ const TablaPiezas = ({
                         <div className={`${estilos.celdaDespiece} ${estilos.moduleActionsCell}`}>
                             <div style={{ width: '100%', height: '100%', position: 'relative', boxSizing: 'border-box', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'center', alignItems: 'center', padding: '0 5px' }}>
                                 {(() => {
-                                const detLower = safeRow.detalle?.toLowerCase() || '';
                                 const actions = [];
-                                
-                                // Función helper para obtener todas las keywords de un servicio (nomenclatura + nombreOriginal + aliases)
-                                const getServiceKeys = (service) => {
-                                    const keys = [
-                                        service.nomenclatura?.toLowerCase(),
-                                        service.nombreOriginal?.toLowerCase()
-                                    ];
-                                    if (service.aliases && Array.isArray(service.aliases)) {
-                                        service.aliases.forEach(alias => keys.push(alias.toLowerCase()));
-                                    }
-                                    return keys.filter(k => k);
+                                const matchResult = findServiceMatches(safeRow.detalle || '', services || []);
+                                const hasOwnedSpan = (service) => Boolean(
+                                    service && getServiceMatchSpans(matchResult, service).length > 0
+                                );
+                                const isEnchapeService = (service) => {
+                                    const nomenclatura = service?.nomenclatura?.toUpperCase() || '';
+                                    const nombre = service?.nombreOriginal?.toLowerCase() || '';
+                                    return nomenclatura === 'SENCHAMANUAL'
+                                        || nombre.includes('enchape manual')
+                                        || nombre.includes('enchape a pieza especial');
                                 };
-                                
-                                // Detección dinámica de servicios desde la configuración
-                                const enchapeService = services?.find(s => 
-                                    s.nomenclatura.toUpperCase().includes('SENCHA') || 
-                                    s.nombreOriginal.toLowerCase().includes('enchape manual') ||
-                                    s.nombreOriginal.toLowerCase().includes('enchape a pieza especial')
-                                );
-                                const narizService = services?.find(s => 
-                                    s.nomenclatura.toUpperCase().includes('NAR') || 
-                                    s.nombreOriginal.toLowerCase().includes('nariz')
-                                );
-                                const engnaService = services?.find(s => 
-                                    s.nomenclatura.toUpperCase().includes('ENGNA') || 
-                                    s.nombreOriginal.toLowerCase().includes('engorde')
-                                );
-                                
-                                // Detectar Enchape (SENCHAMANUAL) dinámicamente usando nomenclatura + nombreOriginal + aliases
-                                if (enchapeService) {
-                                    const enchapeKeys = getServiceKeys(enchapeService);
-                                    const hasEnchape = enchapeKeys.some(key => key && detLower.includes(key));
-                                    if (hasEnchape && !detLower.includes('circulo')) {
-                                        actions.push('Enchape');
-                                    }
+                                const isNarizService = (service) => {
+                                    const nomenclatura = service?.nomenclatura?.toUpperCase() || '';
+                                    const nombre = service?.nombreOriginal?.toLowerCase() || '';
+                                    return nomenclatura === 'SRNAR000'
+                                        || (nombre.includes('nariz') && nomenclatura !== 'ENGNA');
+                                };
+                                const isEngnaService = (service) => {
+                                    const nomenclatura = service?.nomenclatura?.toUpperCase() || '';
+                                    const nombre = service?.nombreOriginal?.toLowerCase() || '';
+                                    return nomenclatura === 'ENGNA' || nombre.includes('engorde');
+                                };
+
+                                const enchapeService = services?.find(isEnchapeService);
+                                const narizService = services?.find(isNarizService);
+                                const engnaService = services?.find(isEngnaService);
+                                const circuloService = services?.find((service) => {
+                                    const nomenclatura = service?.nomenclatura?.toUpperCase() || '';
+                                    const nombre = service?.nombreOriginal?.toLowerCase() || '';
+                                    return nomenclatura === 'CSCIRCULO' || nombre.includes('circulo');
+                                });
+
+                                if (hasOwnedSpan(enchapeService) && !hasOwnedSpan(circuloService)) {
+                                    actions.push('Enchape');
                                 }
-                                
-                                // Detectar Nariz dinámicamente usando nomenclatura + nombreOriginal + aliases
-                                if (narizService) {
-                                    const narizKeys = getServiceKeys(narizService);
-                                    const hasNariz = narizKeys.some(key => key && detLower.includes(key));
-                                    if (hasNariz) {
-                                        actions.push('Nariz');
-                                    }
+                                if (hasOwnedSpan(narizService)) {
+                                    actions.push('Nariz');
                                 }
-                                
-                                // Detectar Engorde Nariz (ENGNA) dinámicamente
-                                if (engnaService) {
-                                    const engnaKeys = getServiceKeys(engnaService);
-                                    const hasEngna = engnaKeys.some(key => key && detLower.includes(key));
-                                    if (hasEngna) {
-                                        actions.push('EngNA');
-                                    }
+                                if (hasOwnedSpan(engnaService)) {
+                                    actions.push('EngNA');
                                 }
 
                                 return actions.map((labelAction) => {
