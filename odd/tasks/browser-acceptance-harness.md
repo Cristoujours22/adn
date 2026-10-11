@@ -136,6 +136,7 @@ Planned commit: `fix(despiece): restore table column layout`
 - Completed tasks: E2E-1, E2E-2, E2E-3 (no product correction required), E2E-4.
 - E2E-1 commit: `a31916f` (`test(e2e): add isolated Firebase browser harness`).
 - E2E-2 commit: `63701ae` (`test(e2e): cover ADN browser workflows`).
+- E2E-4 commit: `22e192d` (`fix(despiece): restore table column layout`).
 - Browser capability discovery found no existing E2E framework, emulator configuration, local auth bypass, or seeded account.
 - The user selected an isolated E2E environment instead of testing against remote Firebase.
 
@@ -184,8 +185,12 @@ E2E-4 correction evidence:
 - Corrected positional widths to an eleven-column 100% grid, restored compact row numbers and table-cell semantics, removed the extra module-label cell, and added a mobile 960px scrollable table viewport.
 - Writer GREEN: desktop `DETALLE` 306.125px vs `ANCHO` 63.016px; mobile `DETALLE` 326.047px vs `ANCHO` 67.125px; `ACCIONES` remained 108.047px/115.078px. Full E2E passed 10/10, focused Jest passed 3 suites/7 tests, production build and `git diff --check` passed.
 - Independent retry verification passed desktop/mobile geometry 2/2, focused Jest 3 suites/7 tests, production build, local endpoint isolation, and `git diff --check`. Header, module-label, and data rows each resolve to eleven cells; CSS widths sum to 100%.
-- Candidate size is 212 A+D. Generated `.codegraph/` and `firestore-debug.log` artifacts were removed before independent verification.
+- Candidate size before documentation updates was 212 A+D. Work-unit commit `22e192d` contains 223 additions + 25 deletions = 248 A+D including evidence updates.
+- Generated `.codegraph/` and `firestore-debug.log` artifacts were removed before independent verification.
+- Native assessment from `285fa1c`: medium risk, 248 committed changed lines, `reviewDue=false`, reason `under_budget`.
+- Native START created no lineage and performed no mutation because the Windows-mounted Git common directory lacks required POSIX permission semantics (`candidate-owner-parent-chmod-ineffective`).
+- Reassessment recorded `nativeReviewOutcome=unavailable`; the risk-gated plan accepted writer verification for the large writer profile and required no additional verifier. The independent focused verifier had already passed geometry, Jest, build, and endpoint isolation; the native candidate remains unconsumed.
 
 ## Next step
 
-Commit the verified E2E-4 correction, record native-review outcome, and report the restored layout plus tested boundaries.
+The reported table distribution is corrected and independently verified. Push, pull-request creation, merge, deployment, and broader cross-browser testing remain separate user decisions.
