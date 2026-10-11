@@ -39,7 +39,8 @@ A maintainer can run deterministic desktop and mobile browser acceptance locally
 | E2E-1 | 420 | delegated writer | package/config/source integration across multiple files |
 | E2E-2 | 600 | delegated writer | fixtures plus multi-workflow browser specs |
 | E2E-3 | 240 | delegated writer if needed | browser-discovered product corrections |
-| **Total** | **1,260** |  |  |
+| E2E-4 | 160 | delegated writer | reported table-layout regression across CSS/component/E2E |
+| **Total** | **1,420** |  |  |
 
 ## Tasks
 
@@ -108,10 +109,31 @@ Checks:
 
 Planned commit if needed: `fix(e2e): resolve ADN browser regressions`
 
+### E2E-4 — Restore piece-table column distribution
+
+- [x] Keep header, module-label, and data rows at the same eleven-column structure.
+- [x] Restore the wide `DETALLE` column instead of assigning that width to `ANCHO`.
+- [x] Keep row numbers compact and actions visible within the table layout.
+- [x] Add browser regression coverage for column geometry at desktop and mobile widths.
+
+Acceptance:
+- `DETALLE` is materially wider than `ANCHO` at desktop width.
+- Header, module-label, and piece rows align without creating an anonymous extra column.
+- `ACCIONES` and delete/service controls remain visible and usable.
+- Mobile may scroll horizontally, but column order and proportions remain stable.
+
+Checks:
+- Focused browser layout regression observed RED then GREEN.
+- Existing table/super-group focused Jest suites.
+- Complete Chromium acceptance lane.
+- Production build and `git diff --check`.
+
+Planned commit: `fix(despiece): restore table column layout`
+
 ## Progress
 
 - Current task: Complete.
-- Completed tasks: E2E-1, E2E-2, E2E-3 (no product correction required).
+- Completed tasks: E2E-1, E2E-2, E2E-3 (no product correction required), E2E-4.
 - E2E-1 commit: `a31916f` (`test(e2e): add isolated Firebase browser harness`).
 - E2E-2 commit: `63701ae` (`test(e2e): cover ADN browser workflows`).
 - Browser capability discovery found no existing E2E framework, emulator configuration, local auth bypass, or seeded account.
@@ -156,6 +178,14 @@ E2E-3 closure:
 - No candidate-caused application regression was found, so no application source correction or additional regression commit was required.
 - Tested boundary: Chromium desktop/mobile against local Firebase emulators. Firefox, WebKit, real Firebase, deployment, and live production data remain outside scope.
 
+E2E-4 correction evidence:
+
+- Browser RED reproduced the screenshot defect: desktop `DETALLE` was 54.016px while `ANCHO` was 360.156px; mobile header geometry collapsed to zero.
+- Corrected positional widths to an eleven-column 100% grid, restored compact row numbers and table-cell semantics, removed the extra module-label cell, and added a mobile 960px scrollable table viewport.
+- Writer GREEN: desktop `DETALLE` 306.125px vs `ANCHO` 63.016px; mobile `DETALLE` 326.047px vs `ANCHO` 67.125px; `ACCIONES` remained 108.047px/115.078px. Full E2E passed 10/10, focused Jest passed 3 suites/7 tests, production build and `git diff --check` passed.
+- Independent retry verification passed desktop/mobile geometry 2/2, focused Jest 3 suites/7 tests, production build, local endpoint isolation, and `git diff --check`. Header, module-label, and data rows each resolve to eleven cells; CSS widths sum to 100%.
+- Candidate size is 212 A+D. Generated `.codegraph/` and `firestore-debug.log` artifacts were removed before independent verification.
+
 ## Next step
 
-The isolated browser acceptance initiative is complete. Push, pull-request creation, merge, deployment, and any broader cross-browser matrix remain separate user decisions.
+Commit the verified E2E-4 correction, record native-review outcome, and report the restored layout plus tested boundaries.
