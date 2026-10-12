@@ -68,6 +68,7 @@ Planned commit: `docs(odd): record grouped visual evidence`
 - Current task: Complete.
 - Completed tasks: GVS-1, GVS-2.
 - GVS-1 commit: `f3d0d6f` (`fix(despiece): simplify grouped module visuals`).
+- GVS-2 evidence commit: `7930003` (`docs(odd): record grouped visual evidence`).
 - Grouped module labels are suppressed only when `currentSuperGroup` is truthy; ungrouped labels remain unchanged.
 - Row-number foreground now uses relative-luminance contrast against module/door-panel colors, with selected rows remaining white on blue.
 
@@ -90,6 +91,7 @@ Planned commit: `docs(odd): record grouped visual evidence`
 - Browser execution used one worker, project `demo-adn-e2e`, temporary port 3001, and localhost Auth/Firestore/Storage emulators only. Production Firebase was not contacted and the user's port-3000 server remained running.
 - `git diff --check` passed. Temporary verification servers, containers, logs, configs, build output, and test results were cleaned.
 - Remaining boundaries: Firefox, WebKit, real Firebase, deployment, push, pull request, and merge were not exercised.
+- Native review INSPECT again offered the accumulated feature-branch base diff rather than the bounded GVS work unit, so START was not invoked. The Windows-mounted Git common directory is also known not to honor the POSIX permission changes required for native candidate preparation.
 
 ## Next step
 
