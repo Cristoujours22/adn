@@ -67,11 +67,11 @@ Planned commit: `fix(despiece): preserve complete super-group membership`
 
 ### REG-3 — Run isolated acceptance and record evidence
 
-- [ ] Run focused Jest suites.
-- [ ] Run desktop/mobile Chromium grouping and geometry coverage against local emulators.
-- [ ] Run a production build with emulator variables unset.
-- [ ] Confirm endpoint isolation, clean generated artifacts, and run `git diff --check`.
-- [ ] Record exact evidence and remaining boundaries.
+- [x] Run focused Jest suites.
+- [x] Run desktop/mobile Chromium grouping and geometry coverage against local emulators.
+- [x] Run a production build with emulator variables unset.
+- [x] Confirm endpoint isolation, clean generated artifacts, and run `git diff --check`.
+- [x] Record exact evidence and remaining boundaries.
 
 Acceptance:
 - No candidate-caused blocker remains in the tested Chromium lane.
@@ -82,8 +82,10 @@ Planned commit: `docs(odd): record grouped table regression evidence`
 
 ## Progress
 
-- Current task: REG-3.
-- Completed tasks: REG-1, REG-2.
+- Current task: Complete.
+- Completed tasks: REG-1, REG-2, REG-3.
+- REG-1 commit: `a524d88` (`fix(despiece): repair grouped table layout`).
+- REG-2 commit: `fc07807` (`fix(despiece): preserve complete super-group membership`).
 - REG-1 uses one shared CSS-grid template for the eleven data columns, a full-width module-label row, and a full-width super-group cell with non-wrapping labels and in-flow actions.
 - The obsolete 50px table padding was removed; the mobile table keeps its 960px minimum width for horizontal scrolling.
 - REG-2 confirms suffix-format selections expand through canonical module keys across interleaved rows. The rendered summary now reports module count and complete row count separately without summing `cant`.
@@ -112,6 +114,19 @@ Focused hygiene: `git diff --check` passed. Complete E2E and production-build ve
 - GREEN: `CI=true npm test -- --watchAll=false --runInBand src/ModeloDespiece.superGrouping.test.js src/components/Despieces/SuperGroupDialog.test.js` passed, 2 suites and 4 tests.
 - Focused hygiene: `git diff --check` passed. Complete E2E, production-build, and REG-3 verification remain delegated to the parent; no commit was created by this worker.
 
+## REG-3 verification evidence
+
+- Focused Jest passed 8 suites and 34 tests: module detection, configuration UI/persistence, super-group domain/coordinator/dialog, table layout, and rendered grouping.
+- Production build passed with emulator variables explicitly unset.
+- Initial complete browser rerun passed 8/10. Desktop and mobile geometry, module configuration, services, and authentication passed; both super-group tests failed only because the E2E assertion still expected the obsolete `6 piezas` copy after the UI intentionally changed to `2 módulos · 6 filas`.
+- The stale assertion was corrected without weakening behavior checks. Focused rerun then passed the complete super-group workflow in desktop and mobile Chromium: 2/2.
+- Effective browser result: all ten workflows passed across the combined evidence, with the two previously failing workflows rerun green after the test-only correction.
+- Browser execution used one worker, project `demo-adn-e2e`, and localhost Auth (`9099`), Firestore (`8080`), and Storage (`9199`) emulators only. Production Firebase was not contacted.
+- Desktop and mobile geometry confirmed no 49px blank band, full-width module/super-group rows, non-wrapping labels, visible actions, and `DETALLE` wider than `ANCHO`.
+- `git diff --check` passed. Temporary port 3001, Docker resources created by verification, build output, logs, and temporary configs were removed; the user's port-3000 development server remained running.
+- Pre-existing residuals were intentionally preserved: stopped container `/adn-e2e-emulators-debug`, `.firebase/`, and `test-results/.last-run.json`.
+- Remaining boundaries: Firefox, WebKit, real Firebase, deployment, push, pull request, and merge were not exercised.
+
 ## Next step
 
-Proceed with REG-3 isolated acceptance and evidence recording.
+The reported table and grouping regressions are corrected and verified. Push, pull-request creation, merge, deployment, and broader cross-browser testing remain separate user decisions.

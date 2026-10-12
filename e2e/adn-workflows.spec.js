@@ -195,7 +195,7 @@ test.describe('ADN browser workflows', () => {
     await expect(dialog).toBeHidden();
     const header = page.getByRole('row', { name: 'Supergrupo D1-005 + D2-010' });
     await expect(header).toBeVisible();
-    await expect(header).toContainText('6 piezas');
+    await expect(header).toContainText('2 módulos · 6 filas');
     const superGroupCell = header.locator('[class*="superGroupHeaderCell"]');
     await expect(superGroupCell).toHaveCount(1);
     const superGroupCellBox = await superGroupCell.boundingBox();
