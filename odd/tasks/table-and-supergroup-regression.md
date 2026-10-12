@@ -86,6 +86,7 @@ Planned commit: `docs(odd): record grouped table regression evidence`
 - Completed tasks: REG-1, REG-2, REG-3.
 - REG-1 commit: `a524d88` (`fix(despiece): repair grouped table layout`).
 - REG-2 commit: `fc07807` (`fix(despiece): preserve complete super-group membership`).
+- REG-3 evidence commit: `6a0ccff` (`docs(odd): record grouped table regression evidence`).
 - REG-1 uses one shared CSS-grid template for the eleven data columns, a full-width module-label row, and a full-width super-group cell with non-wrapping labels and in-flow actions.
 - The obsolete 50px table padding was removed; the mobile table keeps its 960px minimum width for horizontal scrolling.
 - REG-2 confirms suffix-format selections expand through canonical module keys across interleaved rows. The rendered summary now reports module count and complete row count separately without summing `cant`.
@@ -126,6 +127,7 @@ Focused hygiene: `git diff --check` passed. Complete E2E and production-build ve
 - `git diff --check` passed. Temporary port 3001, Docker resources created by verification, build output, logs, and temporary configs were removed; the user's port-3000 development server remained running.
 - Pre-existing residuals were intentionally preserved: stopped container `/adn-e2e-emulators-debug`, `.firebase/`, and `test-results/.last-run.json`.
 - Remaining boundaries: Firefox, WebKit, real Firebase, deployment, push, pull request, and merge were not exercised.
+- Native review INSPECT offered the accumulated feature-branch base diff rather than a bounded work-unit candidate, so START was not invoked. This Windows-mounted Git common directory is also known to reject native candidate preparation because it does not honor required POSIX permission changes.
 
 ## Next step
 
