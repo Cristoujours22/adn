@@ -37,10 +37,10 @@ The piece table has no empty bordered band, module labels remain visually separa
 
 ### REG-1 — Repair table and super-group composition
 
-- [ ] Add regression assertions for the empty band and full-width super-group header.
-- [ ] Establish one shared eleven-column layout for header, module labels, data rows, and super-group presentation.
-- [ ] Remove obsolete spacing that creates the blank bordered grid.
-- [ ] Keep desktop and mobile horizontal behavior stable.
+- [x] Add regression assertions for the empty band and full-width super-group header.
+- [x] Establish one shared eleven-column layout for header, module labels, data rows, and super-group presentation.
+- [x] Remove obsolete spacing that creates the blank bordered grid.
+- [x] Keep desktop and mobile horizontal behavior stable.
 
 Acceptance:
 - No bordered empty row appears between the toolbar and header.
@@ -82,15 +82,24 @@ Planned commit: `docs(odd): record grouped table regression evidence`
 
 ## Progress
 
-- Current task: REG-1.
-- Completed tasks: none.
-- Read-only diagnosis confirmed two visual defects: obsolete table padding/sticky composition and a one-cell super-group row constrained to the 4% row-number column.
+- Current task: REG-2.
+- Completed tasks: REG-1.
+- REG-1 uses one shared CSS-grid template for the eleven data columns, a full-width module-label row, and a full-width super-group cell with non-wrapping labels and in-flow actions.
+- The obsolete 50px table padding was removed; the mobile table keeps its 960px minimum width for horizontal scrolling.
 - Functional grouping remains under test: normal application code expands selected IDs through canonical module keys, but the screenshots require a suffix-format/configuration regression reproducer before declaring the count correct.
 
 ## Verification evidence
 
-Pending.
+REG-1 RED (before implementation): `CI=true npm test -- --watchAll=false --runInBand src/components/Despieces/TablaPiezas.layout.test.js` failed with 2 tests failing: the module-label row had 11 children instead of 1, and the stylesheet still contained the obsolete 50px table padding.
+
+REG-1 browser RED (independent verification): desktop alignment failed at `e2e/adn-workflows.spec.js:104`; the exact geometry reported `abs(headerTop - tableTop) === 49` against an expected maximum of `1`. The remaining inline sticky header offset recreated the blank band despite removing table padding.
+
+REG-1 correction: removed the header's inline `position: sticky`, `top: 49px`, and `z-index`, leaving the header in normal flow without changing top-bar or table controls.
+
+REG-1 focused RED/GREEN: after adding the no-sticky assertion, `CI=true npm test -- --watchAll=false --runInBand src/components/Despieces/TablaPiezas.layout.test.js` first failed on the sticky header assertion, then passed with 1 suite and 2 tests after the correction.
+
+Focused hygiene: `git diff --check` passed. Complete E2E and production-build verification remain delegated to the parent; no commit was created by this worker.
 
 ## Next step
 
-Create failing layout assertions, then implement the smallest coherent eleven-column composition correction.
+Proceed with REG-2 complete-module grouping verification.

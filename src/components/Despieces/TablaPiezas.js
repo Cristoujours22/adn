@@ -108,14 +108,11 @@ const TablaPiezas = ({
                 tabIndex="-1"
             >
             <div className={estilos.filaDespiece} style={{
-                position: 'sticky',
-                top: '49px', // Ajustado a la altura de la topBar
-                zIndex: 10,
                 backgroundColor: darkMode ? '#222' : '#f4f6f8',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 paddingBottom: '5px'
             }}>
-                <div className={estilos.celdaTitulo} style={{ width: '28px', minWidth: '28px', padding: '0 4px', fontSize: '10px' }}>#</div>
+                <div className={estilos.celdaTitulo} style={{ padding: '0 4px', fontSize: '10px' }}>#</div>
                 <div className={estilos.celdaTitulo}>CANT</div>
                 <div className={estilos.celdaTitulo}>LARGO</div>
                 <div className={estilos.celdaTitulo}>ANCHO</div>
@@ -178,7 +175,7 @@ const TablaPiezas = ({
                         role="row"
                         aria-label={`Supergrupo ${superGroupLabel}`}
                     >
-                        <div className={estilos.superGroupHeaderCell} role="gridcell">
+                        <div className={estilos.superGroupHeaderCell} role="gridcell" aria-colspan="11">
                             <div>
                                 <h4>{superGroupLabel}</h4>
                                 <span>{superGroupPieceCount} {superGroupPieceCount === 1 ? 'pieza' : 'piezas'}</span>
@@ -387,20 +384,27 @@ const TablaPiezas = ({
                 return (
                     <React.Fragment key={safeRow.id || `row_${index}`}>
                         {superGroupHeader}
-{showModuleColors && currentModule && isFirstOfModule && (
-                            <div className={estilos.filaDespiece}>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: '6px 0 8px 0' }}>
+                        {showModuleColors && currentModule && isFirstOfModule && (
+                            <div className={`${estilos.filaDespiece} ${estilos.moduleLabelRow}`}>
+                                <div className={estilos.moduleLabelCell}>
                                     <div
                                         style={{
-                                            width: '100%',
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center'
+                                            minWidth: '120px',
+                                            maxWidth: '220px',
+                                            padding: '8px 18px',
+                                            borderRadius: '999px',
+                                            background: moduleColor ? moduleColor.bg : (darkMode ? '#2c3e50' : '#e9ecef'),
+                                            border: `1px solid ${moduleColor ? moduleColor.border : (darkMode ? '#4a5568' : '#ced4da')}`,
+                                            color: darkMode ? '#fff' : '#212529',
+                                            fontSize: '13px',
+                                            fontWeight: '700',
+                                            letterSpacing: '0.8px',
+                                            textTransform: 'uppercase',
+                                            textAlign: 'center',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
                                         }}
                                     >
                                         <button
@@ -408,22 +412,10 @@ const TablaPiezas = ({
                                             onDoubleClick={(event) => onRenameModule?.(getModule(currentModule), event)}
                                             onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onRenameModule?.(getModule(currentModule), event); }}
                                             style={{
-                                                minWidth: '120px',
-                                                maxWidth: '220px',
-                                                padding: '8px 18px',
-                                                borderRadius: '999px',
-                                                background: moduleColor ? moduleColor.bg : (darkMode ? '#2c3e50' : '#e9ecef'),
-                                                border: `1px solid ${moduleColor ? moduleColor.border : (darkMode ? '#4a5568' : '#ced4da')}`,
-                                                color: darkMode ? '#fff' : '#212529',
-                                                fontSize: '13px',
-                                                fontWeight: '700',
-                                                letterSpacing: '0.8px',
-                                                textTransform: 'uppercase',
-                                                textAlign: 'center',
-                                                boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis'
+                                                all: 'unset',
+                                                display: 'block',
+                                                width: '100%',
+                                                cursor: 'pointer'
                                             }}
                                             aria-label={`Rename module ${getModule(currentModule)?.displayName || currentModule}`}
                                             title="Double-click to rename module"
@@ -432,11 +424,6 @@ const TablaPiezas = ({
                                         </button>
                                     </div>
                                 </div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                             </div>
                         )}
 <div 
@@ -451,8 +438,6 @@ const TablaPiezas = ({
                             className={estilos.celdaDespiece}
                             onClick={(e) => handleRowClick?.(index, e)}
                             style={{ 
-                                width: '28px', 
-                                minWidth: '28px', 
                                 padding: '0 4px',
                                 cursor: 'pointer',
                                 backgroundColor: rowSelection?.has(index) ? (darkMode ? '#1a73e8' : '#1a73e8') : undefined,
