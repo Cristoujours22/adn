@@ -52,10 +52,10 @@ Planned commit: `fix(despiece): repair grouped table layout`
 
 ### REG-2 — Verify and correct complete-module grouping
 
-- [ ] Reproduce grouping with multiple `...-013-D1` rows plus `...-003-D1`, including interleaving.
-- [ ] Assert preview, persisted module keys, reordered rows, and rendered counts use all matching rows.
-- [ ] Test configuration consistency across creation, reload/reconciliation, and history restore.
-- [ ] Correct only the smallest proven functional defect.
+- [x] Reproduce grouping with multiple `...-013-D1` rows plus `...-003-D1`, including interleaving.
+- [x] Assert preview, persisted module keys, reordered rows, and rendered counts use all matching rows.
+- [x] Test configuration consistency across creation, reload/reconciliation, and history restore.
+- [x] Correct only the smallest proven functional defect.
 
 Acceptance:
 - Selecting one row from each module groups every row of both modules.
@@ -82,11 +82,12 @@ Planned commit: `docs(odd): record grouped table regression evidence`
 
 ## Progress
 
-- Current task: REG-2.
-- Completed tasks: REG-1.
+- Current task: REG-3.
+- Completed tasks: REG-1, REG-2.
 - REG-1 uses one shared CSS-grid template for the eleven data columns, a full-width module-label row, and a full-width super-group cell with non-wrapping labels and in-flow actions.
 - The obsolete 50px table padding was removed; the mobile table keeps its 960px minimum width for horizontal scrolling.
-- Functional grouping remains under test: normal application code expands selected IDs through canonical module keys, but the screenshots require a suffix-format/configuration regression reproducer before declaring the count correct.
+- REG-2 confirms suffix-format selections expand through canonical module keys across interleaved rows. The rendered summary now reports module count and complete row count separately without summing `cant`.
+- Version snapshots now carry the module-detection configuration; restore selects that saved parser and reconciles groups, while old snapshots fall back to the current normalized configuration.
 
 ## Verification evidence
 
@@ -100,6 +101,17 @@ REG-1 focused RED/GREEN: after adding the no-sticky assertion, `CI=true npm test
 
 Focused hygiene: `git diff --check` passed. Complete E2E and production-build verification remain delegated to the parent; no commit was created by this worker.
 
+## REG-2 verification evidence
+
+- RED grouping/component run: `CI=true npm test -- --watchAll=false --runInBand src/utils/superGrouping.test.js src/ModeloDespiece.moduleDetection.test.js src/components/Despieces/TablaPiezas.superGrouping.test.js` exposed the stale rendered `3 piezas` summary before timing out after the component failure; the grouping suite itself passed.
+- RED history regression: `CI=true npm test -- --watchAll=false --runInBand src/ModeloDespiece.moduleDetection.test.js` failed because version snapshots/restores had no parser-bound helper (`buildVersionSnapshot is not a function`).
+- Proven defect: `guardarVersion` persisted rows/groups without `moduleDetectionConfig`, and `restaurarVersion` installed raw groups without reconciling them against the parser configuration.
+- GREEN: `CI=true npm test -- --watchAll=false --runInBand src/utils/superGrouping.test.js` passed, 1 suite and 11 tests.
+- GREEN: `CI=true npm test -- --watchAll=false --runInBand src/ModeloDespiece.moduleDetection.test.js` passed, 1 suite and 4 tests, including saved-parser restore and legacy snapshot fallback.
+- GREEN: `CI=true npm test -- --watchAll=false --runInBand src/components/Despieces/TablaPiezas.superGrouping.test.js src/components/Despieces/TablaPiezas.layout.test.js` passed, 2 suites and 4 tests.
+- GREEN: `CI=true npm test -- --watchAll=false --runInBand src/ModeloDespiece.superGrouping.test.js src/components/Despieces/SuperGroupDialog.test.js` passed, 2 suites and 4 tests.
+- Focused hygiene: `git diff --check` passed. Complete E2E, production-build, and REG-3 verification remain delegated to the parent; no commit was created by this worker.
+
 ## Next step
 
-Proceed with REG-2 complete-module grouping verification.
+Proceed with REG-3 isolated acceptance and evidence recording.

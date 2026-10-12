@@ -162,7 +162,8 @@ const TablaPiezas = ({
                 );
                 if (isFirstOfSuperGroup) renderedSuperGroups.add(superGroupKey);
                 const superGroupLabel = currentSuperGroup ? getSuperGroupLabel(currentSuperGroup) : '';
-                const superGroupPieceCount = currentSuperGroup
+                const superGroupModuleCount = currentSuperGroup?.moduleKeys?.length || 0;
+                const superGroupRowCount = currentSuperGroup
                     ? getRowsForSuperGroup(activeRows, currentSuperGroup, moduleDetectionConfig).length
                     : 0;
                 const isSuperGroupCollapsed = Boolean(
@@ -178,7 +179,11 @@ const TablaPiezas = ({
                         <div className={estilos.superGroupHeaderCell} role="gridcell" aria-colspan="11">
                             <div>
                                 <h4>{superGroupLabel}</h4>
-                                <span>{superGroupPieceCount} {superGroupPieceCount === 1 ? 'pieza' : 'piezas'}</span>
+                                <span>
+                                    {superGroupModuleCount} {superGroupModuleCount === 1 ? 'módulo' : 'módulos'}
+                                    {' · '}
+                                    {superGroupRowCount} {superGroupRowCount === 1 ? 'fila' : 'filas'}
+                                </span>
                             </div>
                             <div className={estilos.superGroupHeaderActions}>
                                 <button

@@ -46,7 +46,7 @@ describe('TablaPiezas super-groups', () => {
   test('renders an accessible semantic header and keeps source rows out of a collapsed presentation', () => {
     renderTable();
 
-    expect(screen.getByRole('row', { name: /supergrupo cocina/i })).toHaveTextContent('3 piezas');
+    expect(screen.getByRole('row', { name: /supergrupo cocina/i })).toHaveTextContent('2 módulos · 3 filas');
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     expect(document.getElementById('detalle-0')).toBeInTheDocument();
     expect(document.getElementById('detalle-1')).toBeInTheDocument();
@@ -58,6 +58,29 @@ describe('TablaPiezas super-groups', () => {
     expect(document.getElementById('detalle-1')).not.toBeInTheDocument();
     expect(document.getElementById('detalle-2')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /expandir supergrupo cocina/i })).toBeInTheDocument();
+  });
+
+  test('reports suffix-format module count separately from complete row count', () => {
+    renderTable({
+      despieces: [{
+        id: 'tab-1',
+        filas: [
+          { id: 'suffix-013-a', cant: '5', detalle: '1041-Lat_der-013-D1' },
+          { id: 'suffix-003', cant: '2', detalle: '1055-Lat_der-003-D1' },
+          { id: 'suffix-013-b', cant: '1', detalle: '1059-Lat_der-013-D1' },
+          { id: 'suffix-013-c', cant: '3', detalle: '1062-Lat_der-013-D1' }
+        ]
+      }],
+      moduleDetectionConfig: { designPrefixes: ['D'], groupIdPosition: 'beforeDesign' },
+      superGroups: [{
+        id: 'suffix-group',
+        label: 'D1-013 + D1-003',
+        moduleKeys: ['D1-013', 'D1-003']
+      }]
+    });
+
+    expect(screen.getByRole('row', { name: /supergrupo d1-013 \+ d1-003/i }))
+      .toHaveTextContent('2 módulos · 4 filas');
   });
 
   test('ungroups without asking the table to reorder source rows', () => {
