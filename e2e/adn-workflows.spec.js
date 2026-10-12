@@ -226,12 +226,15 @@ test.describe('ADN browser workflows', () => {
         backgroundColor: getComputedStyle(numberCell).backgroundColor
       };
     }));
-    const coloredRowNumbers = rowNumberStyles.filter(({ moduleColor }) => moduleColor !== 'transparent');
-    expect(coloredRowNumbers).toHaveLength(6);
+    const selectedRowBackground = 'rgb(26, 115, 232)';
+    const coloredRowNumbers = rowNumberStyles.filter(({ moduleColor, backgroundColor }) => (
+      moduleColor !== 'transparent' && backgroundColor !== selectedRowBackground
+    ));
+    expect(coloredRowNumbers).toHaveLength(5);
     for (const rowNumber of coloredRowNumbers) {
       expect(rowNumber.color).toBe(getExpectedContrastColor(rowNumber.moduleColor));
     }
-    const selectedRowNumbers = rowNumberStyles.filter(({ backgroundColor }) => backgroundColor === 'rgb(26, 115, 232)');
+    const selectedRowNumbers = rowNumberStyles.filter(({ backgroundColor }) => backgroundColor === selectedRowBackground);
     expect(selectedRowNumbers).toHaveLength(1);
     expect(selectedRowNumbers[0].color).toBe('rgb(255, 255, 255)');
 
