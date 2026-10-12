@@ -78,5 +78,5 @@ test('removes the obsolete table band and gives grouped rows the full grid width
   const moduleLabel = container.querySelector('[class*="moduleLabelRow"]');
 
   expect(superGroupCell).toHaveAttribute('aria-colspan', '11');
-  expect(moduleLabel.children).toHaveLength(1);
+  expect(moduleLabel).toBeNull();
 });

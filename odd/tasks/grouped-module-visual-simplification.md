@@ -34,11 +34,11 @@ A super-group uses its purple header as the only module-membership label, while 
 
 ### GVS-1 — Hide grouped badges and improve row-number contrast
 
-- [ ] Add failing component assertions for grouped versus ungrouped module badges.
-- [ ] Add failing contrast assertions for light and dark module backgrounds and selected rows.
-- [ ] Suppress only redundant badge rows inside super-groups.
-- [ ] Apply deterministic black/white foreground contrast to row numbers.
-- [ ] Preserve collapse controls, row selection, and module colors.
+- [x] Add failing component assertions for grouped versus ungrouped module badges.
+- [x] Add failing contrast assertions for light and dark module backgrounds and selected rows.
+- [x] Suppress only redundant badge rows inside super-groups.
+- [x] Apply deterministic black/white foreground contrast to row numbers.
+- [x] Preserve collapse controls, row selection, and module colors.
 
 Acceptance:
 - No per-module pill appears between a super-group header and its grouped rows.
@@ -65,15 +65,19 @@ Planned commit: `docs(odd): record grouped visual evidence`
 
 ## Progress
 
-- Current task: GVS-1.
-- Completed tasks: none.
-- Existing code renders module labels whenever a module starts, even when `currentSuperGroup` is present.
-- Row-number foreground currently uses fixed gray text unless selected, while the parent row supplies vivid module backgrounds.
+- Current task: GVS-1 complete; GVS-2 remains pending.
+- Completed tasks: GVS-1.
+- Grouped module labels are suppressed only when `currentSuperGroup` is truthy; ungrouped labels remain unchanged.
+- Row-number foreground now uses relative-luminance contrast against module/door-panel colors, with selected rows remaining white on blue.
 
 ## Verification evidence
 
-Pending.
+- RED: `CI=true npm test -- --watchAll=false --runInBand src/components/Despieces/TablaPiezas.superGrouping.test.js` failed before implementation with 3 intended failures: grouped labels rendered 2 instead of 1, the contrast helper was absent, and rendered contrast assertions could not run.
+- GREEN: `CI=true npm test -- --watchAll=false --runInBand src/components/Despieces/TablaPiezas.superGrouping.test.js src/components/Despieces/TablaPiezas.layout.test.js` passed: 2 suites, 8 tests.
+- Focused Playwright assertions for grouped badge absence and computed row-number colors were added to `e2e/adn-workflows.spec.js`; E2E/build were not run per GVS-1 scope.
+- `git diff --check`: passed.
+- Commit: pending parent; planned message remains `fix(despiece): simplify grouped module visuals`.
 
 ## Next step
 
-Create focused RED assertions for badge suppression and foreground contrast, then implement the smallest presentation-only correction.
+Run GVS-2 browser, build, artifact, and endpoint-isolation verification.

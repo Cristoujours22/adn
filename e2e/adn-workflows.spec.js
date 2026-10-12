@@ -64,6 +64,17 @@ const getTableRow = (page, inputId) => page
   .locator(`#${inputId}`)
   .locator('xpath=ancestor::div[contains(@class,"filaDespiece")][1]');
 
+const getExpectedContrastColor = (hexColor) => {
+  const [red, green, blue] = hexColor.slice(1).match(/../g).map((channel) => parseInt(channel, 16) / 255);
+  const toLinear = (channel) => channel <= 0.03928
+    ? channel / 12.92
+    : ((channel + 0.055) / 1.055) ** 2.4;
+  const luminance = (0.2126 * toLinear(red)) + (0.7152 * toLinear(green)) + (0.0722 * toLinear(blue));
+  return 1.05 / (luminance + 0.05) > (luminance + 0.05) / 0.05
+    ? 'rgb(255, 255, 255)'
+    : 'rgb(0, 0, 0)';
+};
+
 const getCellGeometry = (row, cellSelector) => row.locator(cellSelector).evaluateAll((cells) => cells.map((cell) => {
   const box = cell.getBoundingClientRect();
   return {
@@ -203,6 +214,27 @@ test.describe('ADN browser workflows', () => {
     expect(Math.abs(superGroupCellBox.x - tableBox.x)).toBeLessThanOrEqual(2);
     expect(Math.abs(superGroupCellBox.width - tableBox.width)).toBeLessThanOrEqual(2);
     await expect(header.locator('h4')).toHaveCSS('white-space', 'nowrap');
+    await page.getByTitle('Activar colores de módulos').click();
+    await expect(page.locator('[class*="moduleLabelRow"]')).toHaveCount(0);
+
+    await getRowNumberCell(page, 0).click();
+    const rowNumberStyles = await page.locator('[class*="moduleRow"]').evaluateAll((rows) => rows.map((row) => {
+      const numberCell = row.querySelector(':scope > [class*="celdaDespiece"]');
+      return {
+        moduleColor: row.style.getPropertyValue('--module-color').trim(),
+        color: getComputedStyle(numberCell).color,
+        backgroundColor: getComputedStyle(numberCell).backgroundColor
+      };
+    }));
+    const coloredRowNumbers = rowNumberStyles.filter(({ moduleColor }) => moduleColor !== 'transparent');
+    expect(coloredRowNumbers).toHaveLength(6);
+    for (const rowNumber of coloredRowNumbers) {
+      expect(rowNumber.color).toBe(getExpectedContrastColor(rowNumber.moduleColor));
+    }
+    const selectedRowNumbers = rowNumberStyles.filter(({ backgroundColor }) => backgroundColor === 'rgb(26, 115, 232)');
+    expect(selectedRowNumbers).toHaveLength(1);
+    expect(selectedRowNumbers[0].color).toBe('rgb(255, 255, 255)');
+
     await assertGroupedOrder(page);
     expect(await getTotalPieces(page)).toBe(totalBefore);
 
