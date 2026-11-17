@@ -24,6 +24,7 @@ import {
   normalizeModuleDetectionConfig
 } from './utils/moduleDetection';
 import ModuleDetectionSettingsModal from './components/Despieces/ModuleDetectionSettingsModal';
+import ServiceDictionaryImport from './components/Despieces/ServiceDictionaryImport';
 import SuperGroupDialog from './components/Despieces/SuperGroupDialog';
 import {
   applySuperGroupPreview,
@@ -205,6 +206,7 @@ const ModeloDespiece = () => {
   const [newServiceTipoCobro, setNewServiceTipoCobro] = useState('unidad');
   const [editingService, setEditingService] = useState(null);
   const [showNomenclaturesModal, setShowNomenclaturesModal] = useState(false);
+  const [showServiceDictionaryImport, setShowServiceDictionaryImport] = useState(false);
   const [showModuleDetectionSettings, setShowModuleDetectionSettings] = useState(false);
   const [moduleDetectionConfig, setModuleDetectionConfig] = useState(() => normalizeModuleDetectionConfig(DEFAULT_MODULE_DETECTION_CONFIG));
   const [totalPieces, setTotalPieces] = useState(0);
@@ -821,6 +823,23 @@ const ModeloDespiece = () => {
     }
   };
   const handleRenameModule = (module, opener) => { if (module) { renameOpenerRef.current = opener; setRenameModule(module); } };
+
+  const handleOpenServiceDictionaryImport = () => {
+    setShowNomenclaturesModal(false);
+    setShowServiceDictionaryImport(true);
+  };
+
+  const handleCancelServiceDictionaryImport = () => {
+    setShowServiceDictionaryImport(false);
+    setShowNomenclaturesModal(true);
+  };
+
+  const handleConfirmServiceDictionaryImport = (importedServices) => {
+    setServices(importedServices);
+    setShowServiceDictionaryImport(false);
+    setShowNomenclaturesModal(true);
+    setSearchTerm('');
+  };
 
   const handleInputChange = useCallback((index, field, value) => {
     // La validación de cant/largo/ancho se hace al confirmar con Enter (en handleKeyDown)
@@ -1784,12 +1803,32 @@ const ModeloDespiece = () => {
         onCancel={closeSuperGroupDialog}
       />
 
+      <ServiceDictionaryImport
+        isOpen={showServiceDictionaryImport}
+        currentServices={services}
+        onCancel={handleCancelServiceDictionaryImport}
+        onConfirm={handleConfirmServiceDictionaryImport}
+      />
+
       {/* MODAL DE NOMENCLATURAS */}
-      {showNomenclaturesModal && (
+      {showNomenclaturesModal && !showServiceDictionaryImport && (
         <div className={estilos.modalOverlay}>
             <div className={estilos.modalContent} style={{ maxWidth: '600px' }}>
                 <button className={estilos.closeButton} onClick={() => setShowNomenclaturesModal(false)}>×</button>
                 <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>Gestión de Nomenclaturas (Servicios)</h3>
+                <div style={{ marginBottom: '15px' }}>
+                    <button
+                        type="button"
+                        onClick={handleOpenServiceDictionaryImport}
+                        className={estilos.botonAgregar}
+                        style={{ width: '100%' }}
+                    >
+                        Importar diccionario JSON
+                    </button>
+                    <p style={{ color: '#aaa', fontSize: '12px', margin: '6px 0 0' }}>
+                        La importación reemplaza el catálogo sólo después de una confirmación explícita.
+                    </p>
+                </div>
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'flex-start' }}>
                     <input
                         type="text"
