@@ -2,6 +2,17 @@
 
 Deliver an explicit JSON dictionary import workflow while keeping ADN free of preloaded special-service names.
 
+## Delivery
+
+Strategy: `feature-branch-chain`, continuing the review-slice policy already selected for `feature/ajustes-adn`.
+
+1. Model and ODD specification: `0bae867`.
+2. Neutral general dictionary template.
+3. Parser, validation, normalization, and empty defaults (T1).
+4. Import preview and confirmation UI (T2).
+5. Global user-catalog persistence and compatibility (T3).
+6. Documentation, verification, and feature closure (T4).
+
 ## Specs
 
 1. **S1** — “los servicios especiales estarán vacíos por defecto, el programa podrá leer un texto plano con una estructura que el sistema interpreta y aplica me entiendes?, esto es para no usar nombres privados de la empresa”
