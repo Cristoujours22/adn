@@ -103,6 +103,35 @@ describe('ServiceDictionaryImport', () => {
     expect(baseProps.onConfirm).not.toHaveBeenCalled();
   });
 
+  test('keeps the dialog open and reports an actionable error when persistence fails', async () => {
+    let rejectConfirmation;
+    const onConfirm = jest.fn(() => new Promise((resolve, reject) => {
+      rejectConfirmation = reject;
+    }));
+
+    render(<ServiceDictionaryImport {...baseProps} onConfirm={onConfirm} />);
+    fireEvent.change(screen.getByLabelText(/archivo JSON del diccionario/i), {
+      target: { files: [createDictionaryFile([service()])] }
+    });
+
+    const confirmButton = await screen.findByRole('button', { name: /confirmar y reemplazar catálogo/i });
+    const cancelButton = screen.getByRole('button', { name: /cancelar importación/i });
+    await waitFor(() => expect(confirmButton).toBeEnabled());
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(confirmButton).toBeDisabled();
+    expect(cancelButton).toBeDisabled();
+    expect(screen.getByLabelText(/archivo JSON del diccionario/i)).toBeDisabled();
+
+    rejectConfirmation(new Error('permission-denied'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo guardar|intentá|reintentá/i);
+    expect(screen.getByRole('heading', { name: /importar diccionario de servicios/i })).toBeInTheDocument();
+    expect(confirmButton).toBeEnabled();
+    expect(cancelButton).toBeEnabled();
+  });
+
   test('makes the empty current catalog explicit', () => {
     render(<ServiceDictionaryImport {...baseProps} />);
 
