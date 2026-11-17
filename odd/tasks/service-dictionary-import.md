@@ -23,7 +23,7 @@ Strategy: `feature-branch-chain`, continuing the review-slice policy already sel
 ## Tasks
 
 - [x] **T1** — S1-S4 — Build and test the JSON dictionary parser, schema validator, service normalization, duplicate/collision reporting, and empty default catalog. Route: delegated writer + independent verifier. Commit: `8e8a4c2`.
-- [ ] **T2** — S1-S4 — Add the import selection, validation preview, review-required state, cancellation, and explicit confirmation workflow to the services UI. Route: inline. Commit: pending.
+- [x] **T2** — S1-S4 — Add the import selection, validation preview, review-required state, cancellation, and explicit confirmation workflow to the services UI. Route: delegated writer. Commit: `56d2e9a`.
 - [ ] **T3** — S1-S4 — Persist confirmed imports as the user’s global catalog, load that catalog for projects without reintroducing bundled defaults, and preserve existing project compatibility. Route: inline. Commit: pending.
 - [ ] **T4** — S1-S4 — Update documentation and run focused service, import, persistence, and production checks. Route: inline. Commit: pending.
 
