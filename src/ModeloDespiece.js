@@ -34,6 +34,7 @@ import {
   ungroupSuperGroup
 } from './utils/superGrouping';
 import { normalizeServiceText, validateServiceAliasCollisions } from './utils/serviceMatching';
+import { resolveServiceCatalog } from './utils/serviceCatalog';
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -157,6 +158,19 @@ const normalizeReglasCantoConfig = (config) => {
 // El catálogo especial comienza vacío y sólo se completa mediante una importación explícita.
 export const DEFAULT_SERVICES = [];
 
+export const persistUserServiceCatalog = async (userId, services) => {
+  if (!userId) {
+    throw new Error('Debes estar autenticado para guardar el catálogo global.');
+  }
+
+  const userServicesRef = doc(db, 'userServices', userId);
+  await setDoc(userServicesRef, {
+    userId,
+    servicios: services,
+    fechaActualizacion: new Date().toLocaleDateString()
+  });
+};
+
 export const normalizeServiceAliases = (value) => (
   String(value || '')
     .split(',')
@@ -252,7 +266,7 @@ const ModeloDespiece = () => {
     try {
       const userServicesRef = doc(db, 'userServices', currentUser.uid);
       const userServicesSnap = await getDoc(userServicesRef);
-      if (userServicesSnap.exists() && userServicesSnap.data()?.servicios) {
+      if (userServicesSnap.exists() && Array.isArray(userServicesSnap.data()?.servicios)) {
         return userServicesSnap.data().servicios;
       }
     } catch (error) {
@@ -268,12 +282,7 @@ const ModeloDespiece = () => {
       return;
     }
     try {
-      const userServicesRef = doc(db, 'userServices', currentUser.uid);
-      await setDoc(userServicesRef, {
-        userId: currentUser.uid,
-        servicios: services,
-        fechaActualizacion: new Date().toLocaleDateString()
-      });
+      await persistUserServiceCatalog(currentUser.uid, services);
       alert('Servicios guardados como tus valores por defecto.');
     } catch (error) {
       console.error('Error al guardar servicios del usuario:', error);
@@ -299,9 +308,7 @@ const ModeloDespiece = () => {
     if (!id) {
       const loadInitialServices = async () => {
         const userServices = await loadUserServices();
-        if (userServices) {
-          setServices(userServices.map(normalizeStoredService));
-        }
+        setServices(resolveServiceCatalog({ globalServices: userServices }).map(normalizeStoredService));
       };
       loadInitialServices();
     }
@@ -656,25 +663,21 @@ const ModeloDespiece = () => {
               setActiveDespieceId(def.id);
           }
           rowIdCounter = maxRowId;
-          // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
-          if (data.serviciosGuardados) {
-            const parsedServices = hydrateDespieceSchema({ filas: [] }, data.serviciosGuardados).services.map(normalizeStoredService);
-            setServices(parsedServices);
-          } else {
-            // Si no hay servicios en el proyecto, cargar servicios del usuario o defaults
-            const userServices = await loadUserServices();
-            if (userServices) {
-              setServices(userServices.map(normalizeStoredService));
-            }
-          }
+          // Priorizar el catálogo global; usar serviciosGuardados sólo como fallback legado.
+          const userServices = await loadUserServices();
+          const resolvedServices = resolveServiceCatalog({
+            globalServices: userServices,
+            projectServices: data.serviciosGuardados
+          });
+          const parsedServices = hydrateDespieceSchema({ filas: [] }, resolvedServices).services.map(normalizeStoredService);
+          setServices(parsedServices);
         }
       } catch (err) {
         alert('Error al cargar el despiece para edición.');
       }
     };
     fetchDespiece();
-    // eslint-disable-next-line
-  }, [id]);
+  }, [id, loadUserServices]);
 
   // Calcular totales (piezas y servicios) sólo de la pestaña activa cada vez que cambien datos o de pestaña
   useEffect(() => {
@@ -834,7 +837,14 @@ const ModeloDespiece = () => {
     setShowNomenclaturesModal(true);
   };
 
-  const handleConfirmServiceDictionaryImport = (importedServices) => {
+  const handleConfirmServiceDictionaryImport = async (importedServices) => {
+    try {
+      await persistUserServiceCatalog(currentUser?.uid, importedServices);
+    } catch (error) {
+      console.error('Error al guardar el catálogo global:', error);
+      throw new Error('No se pudo guardar el catálogo global. Verificá tu conexión y reintentá.');
+    }
+
     setServices(importedServices);
     setShowServiceDictionaryImport(false);
     setShowNomenclaturesModal(true);
