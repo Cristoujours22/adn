@@ -8,18 +8,8 @@ import {
 import { validateServiceAliasCollisions } from './utils/serviceMatching';
 
 describe('service configuration persistence and validation', () => {
-  test('seeds legacy terms on their canonical services without Sencha conflicts', () => {
-    const senchaManual = DEFAULT_SERVICES.find((service) => service.nomenclatura === 'SENCHAMANUAL');
-    const manigaveta = DEFAULT_SERVICES.find((service) => service.nomenclatura === 'MANIGAVETA');
-    const manichaflan = DEFAULT_SERVICES.find((service) => service.nomenclatura === 'MANICHAFLAN');
-    const ranuraFo = DEFAULT_SERVICES.find((service) => service.nomenclatura === 'CSRANUFO');
-    const circulo = DEFAULT_SERVICES.find((service) => service.nomenclatura === 'CSCIRCULO');
-
-    expect(senchaManual.aliases).not.toEqual(expect.arrayContaining(['manigaveta', 'manichaflan']));
-    expect(manigaveta.aliases || []).not.toContain('manigaveta');
-    expect(manichaflan.aliases || []).not.toContain('manichaflan');
-    expect(ranuraFo.aliases).toEqual(expect.arrayContaining(['ranurafos', 'ranufo', 'ranufos']));
-    expect(circulo.aliases).toContain('circulo');
+  test('starts with an empty special-service catalog', () => {
+    expect(DEFAULT_SERVICES).toEqual([]);
   });
   test('round-trips explicit aliases and keeps legacy string services compatible', () => {
     const service = {
