@@ -32,7 +32,7 @@ Los diccionarios son archivos JSON de texto plano con el mismo esquema. El siste
 
 | Diccionario | Ubicación | Propósito | Distribución |
 |---|---|---|---|
-| Códigos Madecentro | `/mnt/c/Users/Cristian/Desktop/adn-private-dictionaries/codigos-madecentro.json` | Migrar proyectos y términos legados | Privado; fuera del producto y del repositorio |
+| Códigos Madecentro | Archivo privado de migración | Migrar proyectos y términos legados | Privado; fuera del producto y del repositorio |
 | Códigos generales | `config/service-dictionaries/codigos-generales.json` | Plantilla neutral opcional sin perfilería de aluminio | Puede distribuirse, pero tiene `autoload: false` |
 
 El diccionario privado conserva códigos y aliases antiguos únicamente para migración. El diccionario general contiene nombres descriptivos; los servicios cuya geometría necesita confirmación permanecen inactivos y marcados con `requiresReview: true`.
