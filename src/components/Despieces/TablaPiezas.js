@@ -98,14 +98,15 @@ const TablaPiezas = ({
     const getModule = (name) => modules.find((module) => String(module.legacyToken || '').toUpperCase() === String(name || '').toUpperCase());
 
     return (
-        <div
-            ref={focusReturnRef}
-            className={estilos.tablaDespiece}
-            style={{ marginTop: '0px' }}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            tabIndex="-1"
-        >
+        <div className={estilos.tablaDespieceViewport}>
+            <div
+                ref={focusReturnRef}
+                className={estilos.tablaDespiece}
+                style={{ marginTop: '0px' }}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                tabIndex="-1"
+            >
             <div className={estilos.filaDespiece} style={{
                 position: 'sticky',
                 top: '49px', // Ajustado a la altura de la topBar
@@ -436,7 +437,6 @@ const TablaPiezas = ({
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                                 <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                             </div>
                         )}
 <div 
@@ -461,9 +461,7 @@ const TablaPiezas = ({
                                 fontWeight: 'bold',
                                 textAlign: 'center',
                                 userSelect: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                verticalAlign: 'middle',
                                 borderRight: `1px solid ${darkMode ? '#444' : '#ddd'}`
                             }}
                             title="Click para seleccionar fila"
@@ -573,6 +571,7 @@ const TablaPiezas = ({
                     </React.Fragment>
                 );
             })}
+            </div>
         </div>
     );
 };

@@ -6,7 +6,7 @@ const {
 const getRowNumberCell = (page, index) => page
   .locator(`#cant-${index}`)
   .locator('xpath=../../..')
-  .locator('div')
+  .locator(':scope > [class*="celdaDespiece"]')
   .first();
 
 const getDetails = (page) => page
@@ -60,7 +60,69 @@ const assertGroupedOrder = async (page) => {
   expect(details[6]).toContain('pieza libre');
 };
 
+const getTableRow = (page, inputId) => page
+  .locator(`#${inputId}`)
+  .locator('xpath=ancestor::div[contains(@class,"filaDespiece")][1]');
+
+const getCellGeometry = (row, cellSelector) => row.locator(cellSelector).evaluateAll((cells) => cells.map((cell) => {
+  const box = cell.getBoundingClientRect();
+  return {
+    text: cell.textContent.trim(),
+    x: box.x,
+    width: box.width,
+    right: box.right
+  };
+}));
+
+const assertPieceTableGeometry = async (page) => {
+  const expectedHeaders = ['#', 'CANT', 'LARGO', 'ANCHO', 'DETALLE', 'ROTAR', 'L1', 'L2', 'A1', 'A2', 'ACCIONES'];
+  const table = page.locator('[class*="tablaDespieceViewport"] > [class*="tablaDespiece"]');
+  const header = table.locator(':scope > [class*="filaDespiece"]').first();
+  const headerCells = header.locator(':scope > [class*="celdaTitulo"]');
+
+  await expect(headerCells).toHaveCount(expectedHeaders.length);
+  await expect.poll(() => headerCells.allTextContents()).toEqual(expectedHeaders);
+
+  const headerGeometry = await getCellGeometry(header, ':scope > [class*="celdaTitulo"]');
+  const ancho = headerGeometry[3];
+  const detalle = headerGeometry[4];
+  const acciones = headerGeometry[10];
+  expect(detalle.width).toBeGreaterThan(ancho.width * 1.5);
+  expect(acciones.width).toBeGreaterThanOrEqual(80);
+  const tableBox = await table.boundingBox();
+  const tableContentRight = Math.max(tableBox.x + tableBox.width, headerGeometry.at(-1).right);
+  expect(acciones.right).toBeLessThanOrEqual(tableContentRight + 1);
+  for (let index = 1; index < headerGeometry.length; index += 1) {
+    expect(headerGeometry[index].x).toBeGreaterThanOrEqual(headerGeometry[index - 1].x);
+  }
+
+  const dataRow = getTableRow(page, 'cant-0');
+  const dataCells = dataRow.locator(':scope > [class*="celdaDespiece"]');
+  await expect(dataCells).toHaveCount(expectedHeaders.length);
+  const dataGeometry = await getCellGeometry(dataRow, ':scope > [class*="celdaDespiece"]');
+  expect(Math.abs(dataGeometry[4].width - detalle.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(dataGeometry[3].width - ancho.width)).toBeLessThanOrEqual(2);
+  for (let index = 0; index < expectedHeaders.length; index += 1) {
+    expect(Math.abs(dataGeometry[index].x - headerGeometry[index].x)).toBeLessThanOrEqual(2);
+  }
+
+  await page.getByTitle('Activar colores de módulos').click();
+  const moduleRow = page.getByText('D1-005', { exact: true })
+    .locator('xpath=ancestor::div[contains(@class,"filaDespiece")][1]');
+  const moduleCells = moduleRow.locator(':scope > [class*="celdaDespiece"]');
+  await expect(moduleCells).toHaveCount(expectedHeaders.length);
+  const moduleGeometry = await getCellGeometry(moduleRow, ':scope > [class*="celdaDespiece"]');
+  for (let index = 0; index < expectedHeaders.length; index += 1) {
+    expect(Math.abs(moduleGeometry[index].x - headerGeometry[index].x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(moduleGeometry[index].width - headerGeometry[index].width)).toBeLessThanOrEqual(2);
+  }
+};
+
 test.describe('ADN browser workflows', () => {
+  test('keeps the piece-table columns aligned at desktop and mobile widths', async ({ authenticatedPage: page }) => {
+    await assertPieceTableGeometry(page);
+  });
+
   test('configures module detection with preview, conflict cancellation, and persistence', async ({ authenticatedPage: page }) => {
     const openSettings = async () => {
       await page.getByRole('button', { name: /Configurar módulos/ }).click();
