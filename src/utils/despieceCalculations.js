@@ -254,7 +254,11 @@ const calculateServiceRowTotal = (service, row, detail, matchResult) => {
         return totalEngnaUnits;
     }
 
-    if (kind.isPerbis || kind.isSanduche || kind.isRanuraFo) {
+    if (kind.isPerbis) {
+        return getMetricForService(service, row);
+    }
+
+    if (kind.isSanduche || kind.isRanuraFo) {
         if (kind.isSanduche) {
             const validCantos = ['3', '4'];
             let cantosSanducheMm = 0;

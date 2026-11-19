@@ -7,7 +7,7 @@ test('retains legacy PERBIS quantity semantics', () => { expect(calculateCanonic
 test.each([0, -1, '', 'invalid'])('ignores services for nonpositive or invalid cant %p', (cant) => { expect(calculateCanonicalServiceTotals([{ filas: [{ cant, detalle: '2L PERBIS', serviceId: 'svc_perbis' }] }], services)).toEqual({ totalPieces: 0, serviceCounts: { svc_perbis: 0, svc_canto: 0 } }); });
 test('retains distinct legacy service matches', () => {
   const rows = [{ cant: 2, detalle: '3L PERBIS' }, { cant: 4, detalle: 'SUPERBISCUIT' }, { cant: 1, detalle: 'PERBIS CANTO' }];
-  expect(calculateCanonicalServiceTotals([{ filas: rows }], services)).toEqual({ totalPieces: 7, serviceCounts: { svc_perbis: 7, svc_canto: 1 } });
+  expect(calculateCanonicalServiceTotals([{ filas: rows }], services)).toEqual({ totalPieces: 7, serviceCounts: { svc_perbis: 3, svc_canto: 1 } });
 });
 test('returns the exact actionable rejection alert', () => { expect(getServiceSelectionAlert({ status: 'unresolved', label: 'PERBIS' })).toBe('Service "PERBIS" could not be resolved. Review the wording or select a canonical service before accepting.'); });
 
