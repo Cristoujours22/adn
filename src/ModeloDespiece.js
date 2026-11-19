@@ -32,6 +32,7 @@ import {
   resolveSelectedModules,
   ungroupSuperGroup
 } from './utils/superGrouping';
+import { normalizeServiceText, validateServiceAliasCollisions } from './utils/serviceMatching';
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -125,26 +126,26 @@ const normalizeReglasCantoConfig = (config) => {
 
 // Lista de servicios por defecto basados en Excel del cliente
 // Estructura: nomenclatura (principal), aliases (array de nombres alternativos), nombreOriginal, tipoCobro
-const DEFAULT_SERVICES = [
+export const DEFAULT_SERVICES = [
   { nomenclatura: 'CSPERALM', nombreOriginal: 'PEGADO MANIJA ALUMINIO', tipoCobro: 'ml_largo_ancho' }, // Usualmente L o A, asumo unidad o ML
   { nomenclatura: 'CSCANTOA', nombreOriginal: 'PEGADO CANTO ALUMINIO', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SRRANUPE', nombreOriginal: 'RANURAPE', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERPERBIS', nombreOriginal: 'PERBIS', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSRANUFO', nombreOriginal: 'RANURAFO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSRANUFO', nombreOriginal: 'RANURAFO', aliases: ['ranurafos', 'ranufo', 'ranufos'], tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'RANULED', nombreOriginal: 'RANULED', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCURVA1', nombreOriginal: 'CURVA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SRNAR000', nombreOriginal: 'NARIZ', aliases: ['nariz', 'nar'], tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSCURVA1', nombreOriginal: 'CURVA', aliases: ['curva', 'curv'], tipoCobro: 'unidad' },
+  { nomenclatura: 'SRNAR000', nombreOriginal: 'NARIZ', aliases: ['nariz', 'nar', 'narices'], tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SRREPEGA', nombreOriginal: 'SANDUCHE CLAVILLO', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERVREME', nombreOriginal: 'SANDUCHE PEGA', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERVIMARCO', nombreOriginal: 'MARCO, ENGRUESE EN MELAMINA', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'CIRCULOS', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'CIRCULOS', aliases: ['circulo'], tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'SERANGUL', nombreOriginal: 'ANGULO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'CSCALADO', nombreOriginal: 'CALADO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'SRCALAEI', nombreOriginal: 'CALADO  INTERNO', tipoCobro: 'escala_60' },
+  { nomenclatura: 'CSCALADO', nombreOriginal: 'CALADO', aliases: ['calado'], tipoCobro: 'escala_60' },
+  { nomenclatura: 'SRCALAEI', nombreOriginal: 'CALADO  INTERNO', aliases: ['calado interno'], tipoCobro: 'escala_60' },
   { nomenclatura: 'SERVIENL', nombreOriginal: 'EN L', tipoCobro: 'unidad' },
   { nomenclatura: 'CSCHAFLA', nombreOriginal: 'CHAFLAN', tipoCobro: 'unidad' },
   { nomenclatura: 'SENCHAMANUAL', nombreOriginal: 'ENCHAPE MANUAL', aliases: ['senchamanual', 'enchape manual', 'enchape a pieza especial'], tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SENCHACURVA', nombreOriginal: 'ENCHAPE CURVO', tipoCobro: 'ml_largo_ancho' },
+  { nomenclatura: 'SENCHACURVA', nombreOriginal: 'ENCHAPE CURVO', aliases: ['sencha curva', 'senchacurva', 'senchcurv'], tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'CSCANTOC2', nombreOriginal: 'Enchape Canto Curvo 2mm. (Rígido)', tipoCobro: 'ml_largo_ancho' },
   { nomenclatura: 'CSINGLES', nombreOriginal: 'CAJA INGLESA', tipoCobro: 'unidad' },
   { nomenclatura: 'SERVICENEFA', nombreOriginal: 'CAJA', aliases: ['caja'], tipoCobro: 'unidad' },
@@ -153,8 +154,42 @@ const DEFAULT_SERVICES = [
   { nomenclatura: 'MANICRUS', nombreOriginal: 'MANIJA DE INCRUSTAR', tipoCobro: 'unidad' },
   { nomenclatura: 'MANIGAVETA', nombreOriginal: 'MANIGAVETA', tipoCobro: 'unidad' },
   { nomenclatura: 'SERCURML', nombreOriginal: 'CURVA MEDIA LUNA', tipoCobro: 'unidad' },
-  { nomenclatura: 'ENGNA', nombreOriginal: 'Engorde Nariz', aliases: ['engna', 'engorde', 'engordenariz'], tipoCobro: 'ml_largo_ancho' }
+  { nomenclatura: 'ENGNA', nombreOriginal: 'Engorde Nariz', aliases: ['engna', 'engorde', 'engordenariz', 'engorde nariz'], tipoCobro: 'ml_largo_ancho' }
 ];
+
+export const normalizeServiceAliases = (value) => (
+  String(value || '')
+    .split(',')
+    .map((alias) => alias.trim())
+    .filter(Boolean)
+);
+
+export const normalizeStoredService = (service) => {
+  if (typeof service === 'string') {
+    return { nombreOriginal: service, nomenclatura: service, tipoCobro: 'unidad' };
+  }
+  if (!service || typeof service !== 'object') return service;
+  return service.tipoCobro ? service : { ...service, tipoCobro: 'unidad' };
+};
+
+export const getServiceCollisionMessage = (collisions) => collisions
+  .map((collision) => collision.message)
+  .join(' ');
+
+export const buildServiceCollection = (services, nextService, editingService = null) => (
+  editingService
+    ? services.map((service) => service.nomenclatura === editingService ? { ...service, ...nextService } : service)
+    : [...services, nextService]
+);
+
+const hasDuplicateCanonicalServiceFields = (services) => (
+  services.some((service, index) => services.slice(index + 1).some((other) => (
+    ['nomenclatura', 'nombreOriginal'].some((field) => {
+      const value = normalizeServiceText(service?.[field]);
+      return value && value === normalizeServiceText(other?.[field]);
+    })
+  )))
+);
 
 const ModeloDespiece = () => {
   const { id } = useParams();
@@ -167,6 +202,7 @@ const ModeloDespiece = () => {
   const [services, setServices] = useState(() => DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) }))); // Initialize with canonical ids
   const [newServiceNombre, setNewServiceNombre] = useState('');
   const [newServiceNomenclatura, setNewServiceNomenclatura] = useState('');
+  const [newServiceAliases, setNewServiceAliases] = useState('');
   const [newServiceTipoCobro, setNewServiceTipoCobro] = useState('unidad');
   const [editingService, setEditingService] = useState(null);
   const [showNomenclaturesModal, setShowNomenclaturesModal] = useState(false);
@@ -263,7 +299,7 @@ const ModeloDespiece = () => {
       const loadInitialServices = async () => {
         const userServices = await loadUserServices();
         if (userServices) {
-          setServices(userServices);
+          setServices(userServices.map(normalizeStoredService));
         }
       };
       loadInitialServices();
@@ -621,13 +657,13 @@ const ModeloDespiece = () => {
           rowIdCounter = maxRowId;
           // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
           if (data.serviciosGuardados) {
-            const parsedServices = hydrateDespieceSchema({ filas: [] }, data.serviciosGuardados).services;
+            const parsedServices = hydrateDespieceSchema({ filas: [] }, data.serviciosGuardados).services.map(normalizeStoredService);
             setServices(parsedServices);
           } else {
             // Si no hay servicios en el proyecto, cargar servicios del usuario o defaults
             const userServices = await loadUserServices();
             if (userServices) {
-              setServices(userServices);
+              setServices(userServices.map(normalizeStoredService));
             }
           }
         }
@@ -650,45 +686,48 @@ const ModeloDespiece = () => {
 
   const handleAddService = (e) => {
     e.preventDefault();
-    if (newServiceNombre.trim() && newServiceNomenclatura.trim()) {
-      if (editingService) {
-         // Update existing
-         const exists = services.find(s => s.nomenclatura !== editingService && (s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase()));
-         if (exists) {
-            alert('Ya existe otro servicio con ese nombre o nomenclatura.');
-            return;
-         }
-         setServices(services.map(s => s.nomenclatura === editingService ? updateServiceDefinition(s, {
-             nombreOriginal: newServiceNombre.trim(),
-             nomenclatura: newServiceNomenclatura.trim(),
-             tipoCobro: newServiceTipoCobro
-          }) : s));
-         setEditingService(null);
-      } else {
-         // Add new
-         const exists = services.find(s => s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase());
-         if (!exists) {
-             setServices([...services, updateServiceDefinition(null, {
-                  nombreOriginal: newServiceNombre.trim(),
-                 nomenclatura: newServiceNomenclatura.trim(),
-                 tipoCobro: newServiceTipoCobro
-             })]);
-         } else {
-            alert('Ya existe un servicio con ese nombre o nomenclatura.');
-            return;
-         }
-      }
-      setNewServiceNombre('');
-      setNewServiceNomenclatura('');
-      setNewServiceTipoCobro('unidad');
-    } else {
-        alert('Debes ingresar el nombre original y la nomenclatura.');
+    const nombreOriginal = newServiceNombre.trim();
+    const nomenclatura = newServiceNomenclatura.trim();
+    const aliases = normalizeServiceAliases(newServiceAliases);
+
+    if (!nombreOriginal || !nomenclatura) {
+      alert('Debes ingresar el nombre original y la nomenclatura.');
+      return;
     }
+
+    const existingService = editingService
+      ? services.find((service) => service.nomenclatura === editingService)
+      : null;
+    const nextService = updateServiceDefinition(existingService, {
+      nombreOriginal,
+      nomenclatura,
+      aliases,
+      tipoCobro: newServiceTipoCobro
+    });
+    const nextServices = buildServiceCollection(services, nextService, editingService);
+    if (hasDuplicateCanonicalServiceFields(nextServices)) {
+      alert('Ya existe otro servicio con ese nombre o nomenclatura.');
+      return;
+    }
+
+    const collisions = validateServiceAliasCollisions(nextServices);
+    if (collisions.length > 0) {
+      alert(getServiceCollisionMessage(collisions));
+      return;
+    }
+
+    setServices(nextServices);
+    setEditingService(null);
+    setNewServiceNombre('');
+    setNewServiceNomenclatura('');
+    setNewServiceAliases('');
+    setNewServiceTipoCobro('unidad');
   };
 
   const handleEditService = (service) => {
       setNewServiceNombre(service.nombreOriginal);
       setNewServiceNomenclatura(service.nomenclatura);
+      setNewServiceAliases(Array.isArray(service.aliases) ? service.aliases.join(', ') : '');
       setNewServiceTipoCobro(service.tipoCobro);
       setEditingService(service.nomenclatura);
   };
@@ -1131,7 +1170,7 @@ const ModeloDespiece = () => {
   const restaurarVersion = (version) => {
     if (window.confirm(`¿Estás seguro que deseas restaurar la versión ${version.version} del ${version.fecha}? Los cambios actuales se perderán.`)) {
       setDespieces(version.datos);
-      setServices(version.serviciosGuardados || DEFAULT_SERVICES);
+      setServices((version.serviciosGuardados || DEFAULT_SERVICES).map(normalizeStoredService));
       setShowHistorialModal(false);
       alert('Versión restaurada exitosamente. No olvides guardar los cambios.');
     }
@@ -1770,6 +1809,15 @@ const ModeloDespiece = () => {
                         className={estilos.controls}
                         style={{ flex: 1, margin: 0, height: '40px' }}
                     />
+                    <input
+                        type="text"
+                        value={newServiceAliases}
+                        onChange={(e) => setNewServiceAliases(e.target.value)}
+                        placeholder="Alias (separados por coma)"
+                        aria-label="Alias del servicio"
+                        className={estilos.controls}
+                        style={{ flex: 1, margin: 0, height: '40px' }}
+                    />
                     <select
                         value={newServiceTipoCobro}
                         onChange={(e) => setNewServiceTipoCobro(e.target.value)}
@@ -1797,6 +1845,7 @@ const ModeloDespiece = () => {
                             onClick={() => {
                                 setNewServiceNombre('');
                                 setNewServiceNomenclatura('');
+                                setNewServiceAliases('');
                                 setNewServiceTipoCobro('unidad');
                                 setEditingService(null);
                             }}
@@ -1850,6 +1899,7 @@ const ModeloDespiece = () => {
                                     <th style={{ padding: '8px', width: '30px', textAlign: 'center' }}>✓</th>
                                     <th style={{ padding: '8px' }}>Nombre</th>
                                     <th style={{ padding: '8px' }}>Nom</th>
+                                    <th style={{ padding: '8px' }}>Alias</th>
                                     <th style={{ padding: '8px' }}>Cobro</th>
                                     <th style={{ padding: '8px', textAlign: 'center' }}>Acción</th>
                                 </tr>
@@ -1867,6 +1917,7 @@ const ModeloDespiece = () => {
                                         </td>
                                         <td style={{ padding: '8px' }}>{s.nombreOriginal}</td>
                                         <td style={{ padding: '8px' }}><strong>{s.nomenclatura}</strong></td>
+                                        <td style={{ padding: '8px', color: '#aaa', fontSize: '12px' }}>{Array.isArray(s.aliases) ? s.aliases.join(', ') : ''}</td>
                                         <td style={{ padding: '8px', color: '#888' }}>
                                             {s.tipoCobro === 'unidad' ? 'Unidad' : 
                                              s.tipoCobro === 'ml_largo' ? 'ML (Largo)' :
