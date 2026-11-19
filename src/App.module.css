@@ -796,19 +796,20 @@ label[for="recordar"] {
 }
 
 .tablaDespiece {
-  display: table;
+  --despiece-grid-template: minmax(28px, 4fr) 6fr 7fr 7fr 34fr 6fr 6fr 6fr 6fr 6fr minmax(96px, 12fr);
+  display: block;
   width: 100%;
-  /* La tabla ocupará el ancho disponible */
-  border-collapse: collapse;
   margin-top: 20px;
-  table-layout: fixed;
-  /* CRUCIAL: Esto hace que los anchos de columna se respeten */
-  padding-top: 50px;
-  /* Espacio entre el encabezado y la tabla */
 }
 
 .filaDespiece {
   display: table-row;
+}
+
+.tablaDespiece > .filaDespiece,
+.tablaDespiece > .superGroupHeader {
+  display: grid;
+  grid-template-columns: var(--despiece-grid-template);
 }
 
 .tablaDespiece > .filaDespiece:first-child {
@@ -816,7 +817,8 @@ label[for="recordar"] {
 }
 
 .celdaTitulo {
-  display: table-cell;
+  display: block;
+  min-width: 0;
   text-align: center;
   font-weight: bold;
   padding: 10px 5px;
@@ -835,96 +837,30 @@ label[for="recordar"] {
   /* Reducir un poco el tamaño de fuente del título si es necesario */
 }
 
-/* --- Definición de anchos para las once columnas de la tabla --- */
-/* Estos porcentajes deben sumar 100% y coincidir con header, labels y data rows. */
-.filaDespiece>.celdaTitulo:nth-child(1) {
-  width: 4%;
+.tablaDespiece > .filaDespiece > .celdaTitulo,
+.tablaDespiece > .filaDespiece > .celdaDespiece {
+  width: auto;
+  min-width: 0;
+}
+
+.tablaDespiece > .filaDespiece > :first-child {
   min-width: 28px;
 }
 
-/* CANT */
-.filaDespiece>.celdaTitulo:nth-child(2) {
-  width: 6%;
-}
-
-/* LARGO */
-.filaDespiece>.celdaTitulo:nth-child(3) {
-  width: 7%;
-}
-
-/* ANCHO */
-.filaDespiece>.celdaTitulo:nth-child(4) {
-  width: 7%;
-}
-
-/* DETALLE */
-.filaDespiece>.celdaTitulo:nth-child(5) {
-  width: 34%;
-}
-
-/* ROTAR */
-.filaDespiece>.celdaTitulo:nth-child(6) {
-  width: 6%;
-}
-
-/* L1 */
-.filaDespiece>.celdaTitulo:nth-child(7) {
-  width: 6%;
-}
-
-/* L2 */
-.filaDespiece>.celdaTitulo:nth-child(8) {
-  width: 6%;
-}
-
-/* A1 */
-.filaDespiece>.celdaTitulo:nth-child(9) {
-  width: 6%;
-}
-
-/* A2 */
-.filaDespiece>.celdaTitulo:nth-child(10) {
-  width: 6%;
-}
-
-/* ACCIONES */
-.filaDespiece>.celdaTitulo:nth-child(11),
-.filaDespiece>.celdaDespiece:nth-child(11) {
-  width: 12%;
+.tablaDespiece > .filaDespiece > :nth-child(11) {
   min-width: 96px;
 }
 
 /* --- Anchos para la tabla de Gestión de Usuarios --- */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(1) {
-  width: 20%;
+.tablaUsuarios {
+  --despiece-grid-template: 20fr 25fr 15fr 20fr 10fr 10fr;
 }
 
-/* Nombre */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(2) {
-  width: 25%;
+.tablaUsuarios > .filaDespiece > .celdaTitulo,
+.tablaUsuarios > .filaDespiece > .celdaDespiece {
+  width: auto;
+  min-width: 0;
 }
-
-/* Email */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(3) {
-  width: 15%;
-}
-
-/* Fecha de Creación */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(4) {
-  width: 20%;
-}
-
-/* Último Ingreso */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(5) {
-  width: 10%;
-}
-
-/* Estado */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(6) {
-  width: 10%;
-}
-
-/* Acciones */
 
 .tablaUsuarios .celdaDespiece {
   word-wrap: break-word;
@@ -973,7 +909,8 @@ label[for="recordar"] {
 }
 
 .celdaDespiece {
-  display: table-cell;
+  display: block;
+  min-width: 0;
   padding: 3px;
   /* Un poco de padding alrededor de los inputs */
   border: 1px solid #e0e0e0;
@@ -1432,7 +1369,8 @@ body.high-contrast .despieceItem p {
   }
 
   .tablaDespiece > .filaDespiece {
-    display: table-row !important;
+    display: grid !important;
+    grid-template-columns: var(--despiece-grid-template);
     flex-wrap: initial !important;
     padding: 0;
     margin-bottom: 0;
@@ -1442,11 +1380,11 @@ body.high-contrast .despieceItem p {
   }
 
   .tablaDespiece > .filaDespiece > .celdaTitulo {
-    display: table-cell !important;
+    display: block !important;
   }
 
   .tablaDespiece > .filaDespiece > .celdaDespiece {
-    display: table-cell !important;
+    display: block !important;
     flex: initial !important;
     margin-bottom: 0;
   }
@@ -1463,6 +1401,20 @@ body.high-contrast .despieceItem p {
 /* Fila con color de módulo */
 .moduleRow {
   background-color: var(--module-color, transparent);
+}
+
+.moduleLabelRow {
+  min-height: 0;
+}
+
+.moduleLabelCell {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 6px 0 8px;
+  border: none;
 }
 
 /* Celda de acciones con fondo blanco */
@@ -1496,12 +1448,18 @@ body.high-contrast .despieceItem p {
 }
 
 .superGroupHeader {
-  display: table-row;
+  display: grid;
+  grid-template-columns: var(--despiece-grid-template);
   position: relative;
 }
 
 .superGroupHeaderCell {
-  display: table-cell;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
   padding: 7px 10px;
   background: linear-gradient(90deg, #45227a, #6f42c1);
   color: #fff;
@@ -1510,26 +1468,32 @@ body.high-contrast .despieceItem p {
 }
 
 .superGroupHeaderCell > div:first-child {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
   gap: 10px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .superGroupHeaderCell h4 {
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
 }
 
 .superGroupHeaderCell span {
+  flex-shrink: 0;
   font-size: 11px;
   opacity: 0.9;
+  white-space: nowrap;
 }
 
 .superGroupHeaderActions {
-  position: absolute;
-  top: 7px;
-  right: 10px;
   display: inline-flex;
+  flex-shrink: 0;
   gap: 6px;
 }
 
@@ -1601,18 +1565,18 @@ body.high-contrast .despieceItem p {
 
 @media (max-width: 768px) {
   .superGroupHeader {
-    display: block;
+    display: grid;
+    grid-template-columns: var(--despiece-grid-template);
     margin: 8px 0;
   }
 
   .superGroupHeaderCell {
-    display: block;
+    display: flex;
     border-radius: 6px;
   }
 
   .superGroupHeaderActions {
-    position: static;
-    margin-top: 8px;
+    margin-top: 0;
   }
 }
 

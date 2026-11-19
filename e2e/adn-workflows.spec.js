@@ -90,6 +90,18 @@ const assertPieceTableGeometry = async (page) => {
   expect(detalle.width).toBeGreaterThan(ancho.width * 1.5);
   expect(acciones.width).toBeGreaterThanOrEqual(80);
   const tableBox = await table.boundingBox();
+  const tableLayout = await table.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const headerBox = element.querySelector(':scope > [class*="filaDespiece"]').getBoundingClientRect();
+    const tableRect = element.getBoundingClientRect();
+    return {
+      paddingTop: style.paddingTop,
+      tableTop: tableRect.top,
+      headerTop: headerBox.top
+    };
+  });
+  expect(tableLayout.paddingTop).toBe('0px');
+  expect(Math.abs(tableLayout.headerTop - tableLayout.tableTop)).toBeLessThanOrEqual(1);
   const tableContentRight = Math.max(tableBox.x + tableBox.width, headerGeometry.at(-1).right);
   expect(acciones.right).toBeLessThanOrEqual(tableContentRight + 1);
   for (let index = 1; index < headerGeometry.length; index += 1) {
@@ -108,14 +120,15 @@ const assertPieceTableGeometry = async (page) => {
 
   await page.getByTitle('Activar colores de módulos').click();
   const moduleRow = page.getByText('D1-005', { exact: true })
-    .locator('xpath=ancestor::div[contains(@class,"filaDespiece")][1]');
-  const moduleCells = moduleRow.locator(':scope > [class*="celdaDespiece"]');
-  await expect(moduleCells).toHaveCount(expectedHeaders.length);
-  const moduleGeometry = await getCellGeometry(moduleRow, ':scope > [class*="celdaDespiece"]');
-  for (let index = 0; index < expectedHeaders.length; index += 1) {
-    expect(Math.abs(moduleGeometry[index].x - headerGeometry[index].x)).toBeLessThanOrEqual(2);
-    expect(Math.abs(moduleGeometry[index].width - headerGeometry[index].width)).toBeLessThanOrEqual(2);
-  }
+    .locator('xpath=ancestor::div[contains(@class,"moduleLabelRow")][1]');
+  const moduleCell = moduleRow.locator(':scope > [class*="moduleLabelCell"]');
+  await expect(moduleCell).toHaveCount(1);
+  const moduleGeometry = await getCellGeometry(moduleRow, ':scope > [class*="moduleLabelCell"]');
+  const moduleBox = await moduleRow.boundingBox();
+  const headerBox = await header.boundingBox();
+  expect(Math.abs(moduleGeometry[0].x - headerGeometry[0].x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(moduleGeometry[0].right - headerGeometry.at(-1).right)).toBeLessThanOrEqual(2);
+  expect(moduleBox.y).toBeGreaterThanOrEqual(headerBox.y + headerBox.height - 1);
 };
 
 test.describe('ADN browser workflows', () => {
@@ -182,7 +195,14 @@ test.describe('ADN browser workflows', () => {
     await expect(dialog).toBeHidden();
     const header = page.getByRole('row', { name: 'Supergrupo D1-005 + D2-010' });
     await expect(header).toBeVisible();
-    await expect(header).toContainText('6 piezas');
+    await expect(header).toContainText('2 módulos · 6 filas');
+    const superGroupCell = header.locator('[class*="superGroupHeaderCell"]');
+    await expect(superGroupCell).toHaveCount(1);
+    const superGroupCellBox = await superGroupCell.boundingBox();
+    const tableBox = await page.locator('[class*="tablaDespieceViewport"] > [class*="tablaDespiece"]').boundingBox();
+    expect(Math.abs(superGroupCellBox.x - tableBox.x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(superGroupCellBox.width - tableBox.width)).toBeLessThanOrEqual(2);
+    await expect(header.locator('h4')).toHaveCSS('white-space', 'nowrap');
     await assertGroupedOrder(page);
     expect(await getTotalPieces(page)).toBe(totalBefore);
 

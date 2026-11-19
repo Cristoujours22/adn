@@ -93,6 +93,35 @@ export const canCreateSuperGroup = (rows = [], rowSelection, configuration) => (
   resolveSelectedModules(rows, getSelectedRowIdsForSuperGrouping(rows, rowSelection), configuration).length >= 2
 );
 
+export const buildVersionSnapshot = (datos = {}, configuration) => ({
+  datos: datos.despieces,
+  serviciosGuardados: datos.servicios,
+  proyecto: datos.proyecto,
+  cliente: datos.cliente,
+  ...buildModuleDetectionMetadata(configuration)
+});
+
+export const restoreVersionSnapshot = (version = {}, fallbackConfiguration) => {
+  const hasSavedConfiguration = Object.prototype.hasOwnProperty.call(version, 'moduleDetectionConfig');
+  const configuration = hasSavedConfiguration
+    ? getProjectModuleDetectionConfig(version)
+    : normalizeModuleDetectionConfig(fallbackConfiguration);
+  const despieces = Array.isArray(version.datos) ? version.datos.map((despiece) => ({
+    ...despiece,
+    superGroups: reconcileSuperGroups(
+      despiece?.filas || [],
+      despiece?.superGroups || [],
+      configuration
+    )
+  })) : [];
+
+  return {
+    despieces,
+    moduleDetectionConfig: configuration,
+    serviciosGuardados: version.serviciosGuardados
+  };
+};
+
 const normalizeStoredCantoValue = (value) => {
   if (value === true) return '1';
   if (value === false || value == null || value === '') return '';
@@ -1135,16 +1164,13 @@ const ModeloDespiece = () => {
     const snapshot = await getDocs(q);
     const numVersion = snapshot.size + 1;
     
-    // Crear nueva versión
+    // Crear nueva versión junto con el parser que interpreta sus módulos.
     await addDoc(historialRef, {
       despieceId,
       version: numVersion,
       fecha: new Date().toLocaleString(),
       usuario: currentUser?.uid || 'anonimo',
-      datos: datos.despieces,
-      serviciosGuardados: datos.servicios,
-      proyecto: datos.proyecto,
-      cliente: datos.cliente
+      ...buildVersionSnapshot(datos, moduleDetectionConfig)
     });
     
     // Mantener solo últimas 5 versiones
@@ -1169,8 +1195,10 @@ const ModeloDespiece = () => {
 
   const restaurarVersion = (version) => {
     if (window.confirm(`¿Estás seguro que deseas restaurar la versión ${version.version} del ${version.fecha}? Los cambios actuales se perderán.`)) {
-      setDespieces(version.datos);
-      setServices((version.serviciosGuardados || DEFAULT_SERVICES).map(normalizeStoredService));
+      const restored = restoreVersionSnapshot(version, moduleDetectionConfig);
+      setDespieces(restored.despieces);
+      setModuleDetectionConfig(restored.moduleDetectionConfig);
+      setServices((restored.serviciosGuardados || DEFAULT_SERVICES).map(normalizeStoredService));
       setShowHistorialModal(false);
       alert('Versión restaurada exitosamente. No olvides guardar los cambios.');
     }
