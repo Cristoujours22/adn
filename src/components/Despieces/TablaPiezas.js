@@ -5,6 +5,42 @@ import { getModuleKey } from '../../utils/moduleDetection';
 import { getRowsForSuperGroup } from '../../utils/superGrouping';
 import { findServiceMatches, getServiceMatchSpans } from '../../utils/serviceMatching';
 
+const parseHexColor = (color) => {
+    if (typeof color !== 'string') return null;
+
+    const normalized = color.trim().replace(/^#/, '');
+    const hex = normalized.length === 3
+        ? normalized.split('').map((value) => value + value).join('')
+        : normalized;
+
+    if (!/^[\da-f]{6}$/i.test(hex)) return null;
+
+    return {
+        red: parseInt(hex.slice(0, 2), 16),
+        green: parseInt(hex.slice(2, 4), 16),
+        blue: parseInt(hex.slice(4, 6), 16)
+    };
+};
+
+export const getContrastingTextColor = (backgroundColor, fallbackColor = '#666') => {
+    const rgb = parseHexColor(backgroundColor);
+    if (!rgb) return fallbackColor;
+
+    const toLinearChannel = (channel) => {
+        const value = channel / 255;
+        return value <= 0.03928
+            ? value / 12.92
+            : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (0.2126 * toLinearChannel(rgb.red))
+        + (0.7152 * toLinearChannel(rgb.green))
+        + (0.0722 * toLinearChannel(rgb.blue));
+    const blackContrast = (luminance + 0.05) / 0.05;
+    const whiteContrast = 1.05 / (luminance + 0.05);
+
+    return whiteContrast > blackContrast ? '#fff' : '#000';
+};
+
 const TablaPiezas = ({
     despieces,
     activeDespieceId,
@@ -389,7 +425,7 @@ const TablaPiezas = ({
                 return (
                     <React.Fragment key={safeRow.id || `row_${index}`}>
                         {superGroupHeader}
-                        {showModuleColors && currentModule && isFirstOfModule && (
+                        {showModuleColors && currentModule && isFirstOfModule && !currentSuperGroup && (
                             <div className={`${estilos.filaDespiece} ${estilos.moduleLabelRow}`}>
                                 <div className={estilos.moduleLabelCell}>
                                     <div
@@ -445,8 +481,10 @@ const TablaPiezas = ({
                             style={{ 
                                 padding: '0 4px',
                                 cursor: 'pointer',
-                                backgroundColor: rowSelection?.has(index) ? (darkMode ? '#1a73e8' : '#1a73e8') : undefined,
-                                color: rowSelection?.has(index) ? '#fff' : (darkMode ? '#888' : '#666'),
+                                backgroundColor: rowSelection?.has(index) ? '#1a73e8' : undefined,
+                                color: rowSelection?.has(index)
+                                    ? '#fff'
+                                    : getContrastingTextColor(moduleColor?.bg, darkMode ? '#888' : '#666'),
                                 fontSize: '11px',
                                 fontWeight: 'bold',
                                 textAlign: 'center',
