@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, query, where, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, query, where, getDocs, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from './credenciales';
 import Menu from './menu';
 import estilos from './App.module.css';
@@ -15,6 +15,15 @@ import ServicesCarousel from './components/Despieces/ServicesCarousel';
 import FindReplaceModal from './components/Despieces/FindReplaceModal';
 import ModuleRenameModal from './components/Despieces/ModuleRenameModal';
 import { persistDespieceSnapshot } from './services/despiecePersistence';
+import {
+  DEFAULT_MODULE_DETECTION_CONFIG,
+  buildModuleDetectionMetadata,
+  getProjectModuleDetectionConfig,
+  getUserModuleDetectionConfig,
+  getModuleKey,
+  normalizeModuleDetectionConfig
+} from './utils/moduleDetection';
+import ModuleDetectionSettingsModal from './components/Despieces/ModuleDetectionSettingsModal';
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -139,6 +148,8 @@ const ModeloDespiece = () => {
   const [newServiceTipoCobro, setNewServiceTipoCobro] = useState('unidad');
   const [editingService, setEditingService] = useState(null);
   const [showNomenclaturesModal, setShowNomenclaturesModal] = useState(false);
+  const [showModuleDetectionSettings, setShowModuleDetectionSettings] = useState(false);
+  const [moduleDetectionConfig, setModuleDetectionConfig] = useState(() => normalizeModuleDetectionConfig(DEFAULT_MODULE_DETECTION_CONFIG));
   const [totalPieces, setTotalPieces] = useState(0);
   const [serviceCounts, setServiceCounts] = useState({});
   const [serviceSelectionAlert, setServiceSelectionAlert] = useState('');
@@ -211,6 +222,19 @@ const ModeloDespiece = () => {
     }
   }, [currentUser, services]);
 
+  const saveUserModuleDetectionDefault = useCallback(async (configuration) => {
+    if (!currentUser?.uid) {
+      throw new Error('Debes estar autenticado para guardar un valor predeterminado.');
+    }
+
+    const userSettingsRef = doc(db, 'userSettings', currentUser.uid);
+    await setDoc(userSettingsRef, {
+      userId: currentUser.uid,
+      moduleDetectionConfig: normalizeModuleDetectionConfig(configuration),
+      fechaActualizacionModuleDetection: new Date().toLocaleDateString()
+    }, { merge: true });
+  }, [currentUser]);
+
   // Cargar servicios del usuario al iniciar (solo si no hay id - nuevo proyecto)
   useEffect(() => {
     if (!id) {
@@ -240,25 +264,25 @@ const ModeloDespiece = () => {
       try {
         const userSettingsRef = doc(db, 'userSettings', currentUser.uid);
         const userSettingsSnap = await getDoc(userSettingsRef);
-        if (userSettingsSnap.exists() && userSettingsSnap.data()?.showModuleColors !== undefined) {
-          setShowModuleColors(userSettingsSnap.data().showModuleColors);
+        const settings = userSettingsSnap.exists() ? userSettingsSnap.data() : {};
+        if (settings.showModuleColors !== undefined) {
+          setShowModuleColors(settings.showModuleColors);
         }
-        if (userSettingsSnap.exists() && userSettingsSnap.data()?.despieceAutoRules) {
-          setReglasCantoPorModo(normalizeReglasCantoConfig(userSettingsSnap.data().despieceAutoRules));
+        if (settings.despieceAutoRules) {
+          setReglasCantoPorModo(normalizeReglasCantoConfig(settings.despieceAutoRules));
+        }
+        if (!id) {
+          setModuleDetectionConfig(getUserModuleDetectionConfig(settings));
         }
       } catch (error) {
         console.error('Error al cargar preferencia de colores:', error);
       }
     };
     loadPreference();
-  }, [currentUser]);
+  }, [currentUser, id]);
 
   // Guardar preferencia de colores de módulos
-  const getModuleNameFromDetalle = (detalle) => {
-    if (!detalle) return null;
-    const match = String(detalle).match(/D\d+-\d+/i);
-    return match ? match[0].toUpperCase() : null;
-  };
+  const getModuleNameFromDetalle = (detalle) => getModuleKey(detalle, moduleDetectionConfig);
 
   const groupRowsByModule = (filas = []) => {
     const groupedRows = [];
@@ -450,6 +474,7 @@ const ModeloDespiece = () => {
         const despieceSnap = await getDoc(despieceRef);
         if (despieceSnap.exists()) {
           const data = despieceSnap.data();
+          setModuleDetectionConfig(getProjectModuleDetectionConfig(data));
           setProjectName(data.proyecto || '');
           setClientName(data.cliente || '');
           setCreationDate(data.fechaCreacion || new Date().toLocaleDateString());
@@ -598,6 +623,7 @@ const ModeloDespiece = () => {
     ultimaModificacionStr: new Date().toLocaleString('es-AR'),
     despieces: candidateDespieces,
     serviciosGuardados: services,
+    ...buildModuleDetectionMetadata(moduleDetectionConfig),
     userId: currentUser?.uid || null
   });
 
@@ -1095,7 +1121,23 @@ const ModeloDespiece = () => {
         console.error('Error al guardar en Firestore:', error.message, error.stack);
         if (!isAutoSave) alert('Hubo un error al guardar el despiece. Revisa la consola para más detalles.');
     }
-  }, [despieces, projectName, clientName, currentUser, services]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [despieces, projectName, clientName, currentUser, services, moduleDetectionConfig]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleModuleDetectionSave = useCallback(async (configuration, { saveAsDefault = false } = {}) => {
+    const normalizedConfig = normalizeModuleDetectionConfig(configuration);
+    const documentId = persistedDocumentId.current || id;
+
+    if (documentId) {
+      const despieceRef = doc(db, 'despieces', documentId);
+      await updateDoc(despieceRef, buildModuleDetectionMetadata(normalizedConfig));
+    }
+
+    if (saveAsDefault) {
+      await saveUserModuleDetectionDefault(normalizedConfig);
+    }
+
+    setModuleDetectionConfig(normalizedConfig);
+  }, [id, saveUserModuleDetectionDefault]);
 
   // -------- SISTEMA DE AUTOGUARDADO ---------
   useEffect(() => {
@@ -1537,10 +1579,24 @@ const ModeloDespiece = () => {
       .catch(err => console.error('Error al copiar al portapapeles:', err));
   };
 
+  const moduleDetectionDetails = useMemo(
+    () => despieces.flatMap((despiece) => (despiece.filas || []).map((row) => row?.detalle)),
+    [despieces]
+  );
+
   return (
     <div className={`${estilos.modeloDespieceContainer} ${darkMode ? estilos.despiecesSectionDark : ''}`} style={{ marginTop: '50px' }}>
       <Menu />
       <h2>Crear Nuevo Despiece</h2>
+
+      <ModuleDetectionSettingsModal
+        isOpen={showModuleDetectionSettings}
+        initialConfig={moduleDetectionConfig}
+        details={moduleDetectionDetails}
+        darkMode={darkMode}
+        onClose={() => setShowModuleDetectionSettings(false)}
+        onSave={handleModuleDetectionSave}
+      />
 
       {/* MODAL DE NOMENCLATURAS */}
       {showNomenclaturesModal && (
@@ -1845,6 +1901,25 @@ const ModeloDespiece = () => {
                   title={showModuleColors ? "Desactivar colores de módulos" : "Activar colores de módulos"}
                 >
                   🎨 Módulos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModuleDetectionSettings(true)}
+                  aria-haspopup="dialog"
+                  aria-controls="module-detection-settings-dialog"
+                  style={{
+                    background: 'transparent',
+                    border: `1px solid ${darkMode ? '#777' : '#999'}`,
+                    color: darkMode ? '#f1f1f1' : '#555',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    height: '28px'
+                  }}
+                >
+                  ⚙ Configurar módulos
                 </button>
               </div>
             </div>
