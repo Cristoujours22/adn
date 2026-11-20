@@ -71,6 +71,15 @@ Si deseas cambiar el puerto en el que se ejecuta la aplicación, sigue estos pas
 * **2** Agrega o modifica la siguiente línea para establecer el puerto que desees:
 
 ## Uso
+
+### Nomenclaturas y servicios
+
+ADN inicia sin servicios especiales configurados. En la pantalla del modelo de despiece, abrí **Nomenclaturas / Servicios** desde el menú para consultar y gestionar el catálogo.
+
+Para importar un diccionario, elegí **Importar diccionario JSON** y seleccioná el archivo. ADN valida la estructura, muestra una vista previa y sólo reemplaza y guarda el catálogo global después de tu confirmación. Si el archivo no se puede leer o contiene errores, informa el problema y mantiene el catálogo actual sin cambios.
+
+El catálogo global vigente se utiliza en vivo para el usuario. **Códigos generales** es una plantilla neutral opcional con el autoload desactivado: sólo se aplica mediante una importación confirmada. ADN no crea, conserva, documenta ni distribuye diccionarios asociados con empresas específicas.
+
 **Diseñador**: Los diseñadores pueden crear despieces, cargar archivos XML, y editar las piezas con detalles como material, medidas y servicios especiales.
 
 **Vendedor**: Los vendedores pueden ver los despieces, pero no tienen acceso para cargar o editar archivos XML.

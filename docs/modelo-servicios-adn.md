@@ -34,7 +34,7 @@ Los diccionarios son archivos JSON de texto plano con el mismo esquema. El siste
 |---|---|---|---|
 | Códigos generales | `config/service-dictionaries/codigos-generales.json` | Plantilla neutral opcional sin perfilería de aluminio | Puede distribuirse, pero tiene `autoload: false` |
 
-El diccionario privado conserva códigos y aliases antiguos únicamente para migración. El diccionario general contiene nombres descriptivos; los servicios cuya geometría necesita confirmación permanecen inactivos y marcados con `requiresReview: true`.
+El producto admite únicamente diccionarios neutrales definidos por el usuario. La plantilla general contiene nombres descriptivos; los servicios cuya geometría necesita confirmación permanecen inactivos y marcados con `requiresReview: true`.
 
 ### Esquema común
 
