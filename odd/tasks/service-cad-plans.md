@@ -10,7 +10,7 @@ Status: active — branch `feat/service-cad-plans`, based on `e86facf`.
 ## Tasks
 
 - **T1** — S1–S2 — Design the neutral service-plan schema and CAD interaction directions. Route: parent design + inline schema tests. Commit: `dc22bbf`.
-- **T2** — S1–S2 — Validate declarative geometry profiles in imported service dictionaries. Route: inline test-first. Commit: pending.
+- **T2** — S1–S2 — Validate declarative geometry profiles in imported service dictionaries. Route: inline test-first. Commit: `e277961`.
 - **T3** — S1–S2 — Create hybrid row/unit plan instances from detected services and quantities. Route: inline test-first. Commit: pending.
 - **T4** — S1 — Add the detail-cell context menu and plan editor workflow. Route: writer candidate after design handoff. Commit: pending.
 - **T5** — S1–S2 — Render neutral CAD primitives with external millimetre dimensions. Route: writer candidate after design handoff. Commit: pending.
@@ -23,3 +23,4 @@ Status: active — branch `feat/service-cad-plans`, based on `e86facf`.
 - **L3** — “perfecto procedamos asi y si algo vamos poco a poco cambiando lo que veamos mal o disfuncional.”
 - **L4** — Design directions created under `design/service-cad-plans/`: `01-cad-workbench.html`, `02-context-drawer.html`, and `03-guided-geometry.html`; `02-context-drawer.html` is the implementation baseline because it preserves the despiece table while exposing the CAD editor.
 - **L5** — Delivery boundary: this feature is stacked on `e86facf` and must be reviewed against that base; each task commit is a separate review slice rather than measuring the inherited chain against `origin/main`.
+- **L6** — T2 verification: `src/utils/serviceDictionary.test.js` passed 7/7 tests and ESLint passed after correcting the invalid test fixture that treated the supported `degrees` unit as invalid.
