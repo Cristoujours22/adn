@@ -1,4 +1,5 @@
 import {
+  applyServicePlanToDespieces,
   canOpenServicePlan,
   createServicePlanSeed,
   mergeIdenticalPlanGroups,
@@ -80,6 +81,20 @@ describe('service plan instances', () => {
     expect(split.groups.map((group) => group.unitIndexes)).toEqual([[1, 2, 3], [4]]);
     split.groups[1].operations[0].parameters.radius = 80;
     expect(split.groups[0].operations[0].parameters).toEqual({});
+  });
+
+  test('persists a plan only on the selected row without mutating other despieces', () => {
+    const original = [
+      { id: 'tab-1', filas: [row(), row({ id: 'row_8', detalle: 'Otra pieza' })] },
+      { id: 'tab-2', filas: [row({ id: 'row_9' })] }
+    ];
+    const plan = createServicePlanSeed(original[0].filas[0], services);
+    const result = applyServicePlanToDespieces(original, 'tab-1', 0, plan);
+
+    expect(result[0].filas[0].servicePlan).toEqual(plan);
+    expect(result[0].filas[1]).toBe(original[0].filas[1]);
+    expect(result[1]).toBe(original[1]);
+    expect(original[0].filas[0].servicePlan).toBeUndefined();
   });
 
   test('merges groups again only when their geometry state is identical', () => {

@@ -26,6 +26,7 @@ import {
 import ModuleDetectionSettingsModal from './components/Despieces/ModuleDetectionSettingsModal';
 import ServiceDictionaryImport from './components/Despieces/ServiceDictionaryImport';
 import SuperGroupDialog from './components/Despieces/SuperGroupDialog';
+import ServicePlanEditor from './components/Despieces/ServicePlanEditor';
 import {
   applySuperGroupPreview,
   createSuperGroupPreview,
@@ -35,6 +36,7 @@ import {
 } from './utils/superGrouping';
 import { normalizeServiceText, validateServiceAliasCollisions } from './utils/serviceMatching';
 import { resolveServiceCatalog } from './utils/serviceCatalog';
+import { applyServicePlanToDespieces, createServicePlanSeed } from './utils/servicePlans';
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -319,6 +321,7 @@ const ModeloDespiece = () => {
   const [pieceSearchAncho, setPieceSearchAncho] = useState('');
   const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
   const [cobroExtraModal, setCobroExtraModal] = useState({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
+  const [servicePlanEditor, setServicePlanEditor] = useState(null);
   const [showModuleColors, setShowModuleColors] = useState(false);
   const editingValueRef = useRef({}); // Guarda el valor original cuando se entra en edición { "0_largo": "790", "1_cant": "2" }
   const { darkMode } = useTheme();
@@ -514,6 +517,23 @@ const ModeloDespiece = () => {
         return newHistory;
     });
   }, [despieces]);
+
+  const handleOpenServicePlan = useCallback((row, rowIndex) => {
+    const plan = row?.servicePlan || createServicePlanSeed(row, services);
+    setServicePlanEditor({ row, rowIndex, plan });
+  }, [services]);
+
+  const handleApplyServicePlan = useCallback((plan) => {
+    if (!servicePlanEditor) return;
+    saveToHistory();
+    setDespieces((previous) => applyServicePlanToDespieces(
+      previous,
+      activeDespieceId,
+      servicePlanEditor.rowIndex,
+      plan
+    ));
+    setServicePlanEditor(null);
+  }, [activeDespieceId, saveToHistory, servicePlanEditor]);
 
   const undo = useCallback(() => {
     setHistory(prev => {
@@ -2227,6 +2247,18 @@ const ModeloDespiece = () => {
               focusReturnRef={superGroupTableRef}
               superGroups={activeDespieceForGrouping?.superGroups || []}
               onUngroupSuperGroup={handleUngroupSuperGroup}
+              onOpenServicePlan={handleOpenServicePlan}
+              onConfigureServicePlan={handleOpenServicePlan}
+              onApplyServicePlanToAll={handleOpenServicePlan}
+              onSplitServicePlanUnits={handleOpenServicePlan}
+            />
+
+            <ServicePlanEditor
+              isOpen={Boolean(servicePlanEditor)}
+              plan={servicePlanEditor?.plan}
+              row={servicePlanEditor?.row}
+              onApply={handleApplyServicePlan}
+              onClose={() => setServicePlanEditor(null)}
             />
 
           </form>

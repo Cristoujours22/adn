@@ -113,6 +113,21 @@ export const splitPlanUnits = (plan, selectedUnitIndexes = []) => {
   return { ...nextPlan, groups: nextGroups };
 };
 
+export const applyServicePlanToDespieces = (
+  despieces = [],
+  activeDespieceId,
+  rowIndex,
+  plan
+) => despieces.map((despiece) => {
+  if (despiece?.id !== activeDespieceId) return despiece;
+  return {
+    ...despiece,
+    filas: (despiece.filas || []).map((row, currentRowIndex) => (
+      currentRowIndex === rowIndex ? { ...row, servicePlan: cloneValue(plan) } : row
+    ))
+  };
+});
+
 const getOperationsSignature = (group) => JSON.stringify(group?.operations || []);
 
 export const mergeIdenticalPlanGroups = (plan) => {
