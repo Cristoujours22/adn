@@ -4,6 +4,8 @@ import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
 import { getModuleKey } from '../../utils/moduleDetection';
 import { getRowsForSuperGroup } from '../../utils/superGrouping';
 import { findServiceMatches, getServiceMatchSpans } from '../../utils/serviceMatching';
+import { canOpenServicePlan } from '../../utils/servicePlans';
+import ServicePlanContextMenu from './ServicePlanContextMenu';
 
 const parseHexColor = (color) => {
     if (typeof color !== 'string') return null;
@@ -72,7 +74,11 @@ const TablaPiezas = ({
     moduleDetectionConfig,
     focusReturnRef,
     superGroups = [],
-    onUngroupSuperGroup
+    onUngroupSuperGroup,
+    onOpenServicePlan,
+    onConfigureServicePlan,
+    onApplyServicePlanToAll,
+    onSplitServicePlanUnits
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -84,6 +90,7 @@ const TablaPiezas = ({
 
     const [collapsedModules, setCollapsedModules] = useState({});
     const [collapsedSuperGroups, setCollapsedSuperGroups] = useState({});
+    const [servicePlanMenu, setServicePlanMenu] = useState(null);
     
     const moduleColors = [
         { bg: '#4285f4', border: '#3367d6' },   // Azul vivo
@@ -395,6 +402,21 @@ const TablaPiezas = ({
                                     onClick={(e) => handleCellClick(index, field, e)}
                                     onDoubleClick={() => handleCellDoubleClick(index, field)}
                                     onKeyDown={(e) => handleKeyDown(e, index, field)}
+                                    onContextMenu={field === 'detalle' ? (event) => {
+                                        if (!canOpenServicePlan(safeRow, services || [])) return;
+                                        event.preventDefault();
+                                        const matchResult = findServiceMatches(safeRow.detalle || '', services || []);
+                                        const detectedServiceCount = new Set(
+                                            matchResult.matches.map((match) => match.serviceId)
+                                        ).size;
+                                        setServicePlanMenu({
+                                            row: safeRow,
+                                            rowIndex: index,
+                                            detectedServiceCount,
+                                            position: { x: event.clientX, y: event.clientY },
+                                            triggerRef: { current: event.currentTarget }
+                                        });
+                                    } : undefined}
                                     readOnly={!isActive || !isEditing} // Strict readOnly when not editing prevents caret showing
                                     style={inputStyle}
                                 />
@@ -600,6 +622,19 @@ const TablaPiezas = ({
                 );
             })}
             </div>
+            {servicePlanMenu && (
+                <ServicePlanContextMenu
+                    position={servicePlanMenu.position}
+                    detectedServiceCount={servicePlanMenu.detectedServiceCount}
+                    pieceQuantity={servicePlanMenu.row?.cant}
+                    triggerRef={servicePlanMenu.triggerRef}
+                    onOpenPlan={() => onOpenServicePlan?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
+                    onConfigure={() => onConfigureServicePlan?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
+                    onApplyToAll={() => onApplyServicePlanToAll?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
+                    onSplitUnits={() => onSplitServicePlanUnits?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
+                    onClose={() => setServicePlanMenu(null)}
+                />
+            )}
         </div>
     );
 };
