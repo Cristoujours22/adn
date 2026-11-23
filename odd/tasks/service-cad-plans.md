@@ -1,5 +1,5 @@
 # Service CAD Plans
-Status: active — branch `feat/service-cad-plans`, based on `e86facf`.
+Status: complete — branch `feat/service-cad-plans`, based on `e86facf`.
 
 ## Specs
 
@@ -14,7 +14,7 @@ Status: active — branch `feat/service-cad-plans`, based on `e86facf`.
 - **T3** — S1–S2 — Create hybrid row/unit plan instances from detected services and quantities. Route: inline test-first. Commit: `a73714e`.
 - **T4** — S1 — Add the detail-cell context menu and plan editor workflow. Route: writer candidate after design handoff. Commits: `a9140c9`, `d93560f`, `4ff39f9`.
 - **T5** — S1–S2 — Render neutral CAD primitives with external millimetre dimensions. Route: writer candidate after design handoff. Commit: `6cf3a85`.
-- **T6** — S1–S3 — Persist plans, document the format, and verify the complete workflow. Route: inline integration and verification. Commit: pending.
+- **T6** — S1–S3 — Persist plans, document the format, and verify the complete workflow. Route: inline integration and verification. Commit: `ace7bb7`.
 
 ## Log
 
@@ -29,3 +29,4 @@ Status: active — branch `feat/service-cad-plans`, based on `e86facf`.
 - **L9** — Combined UI verification passed 6 suites / 30 tests plus ESLint before slicing the menu/editor integration commits.
 - **L10** — T4 was split into reviewable responsibilities: context-menu/table integration `a9140c9` (431 lines), editor/styles/tests `d93560f` (612 lines), and row-state integration `4ff39f9` (62 lines). The two larger slices each contain one cohesive UI component with its focused tests.
 - **L11** — Final verification passed 33/33 suites and 188/188 tests; the production build passed. The only output warning is the pre-existing stale Browserslist database notice.
+- **L12** — T6 landed in `ace7bb7`; all six tasks are complete. Delivery remains separate: the branch has not been pushed, merged, or deployed.
