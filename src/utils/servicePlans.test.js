@@ -1,9 +1,11 @@
 import {
   applyServicePlanToDespieces,
   canOpenServicePlan,
+  cloneServicePlan,
   createServicePlanSeed,
   mergeIdenticalPlanGroups,
-  splitPlanUnits
+  splitPlanUnits,
+  synchronizeServicePlanWithRow
 } from './servicePlans';
 
 const services = [
@@ -81,6 +83,50 @@ describe('service plan instances', () => {
     expect(split.groups.map((group) => group.unitIndexes)).toEqual([[1, 2, 3], [4]]);
     split.groups[1].operations[0].parameters.radius = 80;
     expect(split.groups[0].operations[0].parameters).toEqual({});
+  });
+
+  test('synchronizes piece dimensions and quantity while preserving configured geometry', () => {
+    const existing = createServicePlanSeed(row({ cant: '2', detalle: 'Divisor curva' }), services);
+    existing.groups[0].operations[0].geometryId = 'rounded-corners';
+    existing.groups[0].operations[0].parameters.radius = 80;
+
+    const synchronized = synchronizeServicePlanWithRow(
+      existing,
+      row({ cant: '4', largo: '800', ancho: '500', detalle: 'Divisor curva' }),
+      services
+    );
+
+    expect(synchronized.piece).toMatchObject({ quantity: 4, lengthMm: 800, widthMm: 500 });
+    expect(synchronized.groups[0].unitIndexes).toEqual([1, 2, 3, 4]);
+    expect(synchronized.groups[0].operations[0]).toMatchObject({
+      serviceId: 'CURVE',
+      geometryId: 'rounded-corners',
+      parameters: { radius: 80 }
+    });
+  });
+
+  test('removes stale units and service operations when the source row changes', () => {
+    const existing = splitPlanUnits(createServicePlanSeed(row(), services), [4]);
+    existing.groups[1].operations[0].geometryId = 'rounded-corners';
+
+    const synchronized = synchronizeServicePlanWithRow(
+      existing,
+      row({ cant: '2', detalle: 'Divisor perforaciones x2' }),
+      services
+    );
+
+    expect(synchronized.groups.map((group) => group.unitIndexes)).toEqual([[1, 2]]);
+    expect(synchronized.groups[0].operations).toEqual([
+      expect.objectContaining({ serviceId: 'HOLE', detectedQuantity: 2 })
+    ]);
+  });
+
+  test('clones copied plans so later edits cannot mutate the source row', () => {
+    const source = createServicePlanSeed(row(), services);
+    const copy = cloneServicePlan(source);
+
+    copy.groups[0].operations[0].parameters.radius = 90;
+    expect(source.groups[0].operations[0].parameters).toEqual({});
   });
 
   test('persists a plan only on the selected row without mutating other despieces', () => {

@@ -12,7 +12,7 @@ Status: active — branch `feat/service-cad-plans`, based on `e86facf`.
 - **T1** — S1–S2 — Design the neutral service-plan schema and CAD interaction directions. Route: parent design + inline schema tests. Commit: `dc22bbf`.
 - **T2** — S1–S2 — Validate declarative geometry profiles in imported service dictionaries. Route: inline test-first. Commit: `e277961`.
 - **T3** — S1–S2 — Create hybrid row/unit plan instances from detected services and quantities. Route: inline test-first. Commit: `a73714e`.
-- **T4** — S1 — Add the detail-cell context menu and plan editor workflow. Route: writer candidate after design handoff. Commit: pending.
+- **T4** — S1 — Add the detail-cell context menu and plan editor workflow. Route: writer candidate after design handoff. Commits: `a9140c9`, `d93560f`, `4ff39f9`.
 - **T5** — S1–S2 — Render neutral CAD primitives with external millimetre dimensions. Route: writer candidate after design handoff. Commit: `6cf3a85`.
 - **T6** — S1–S3 — Persist plans, document the format, and verify the complete workflow. Route: inline integration and verification. Commit: pending.
 
@@ -27,3 +27,5 @@ Status: active — branch `feat/service-cad-plans`, based on `e86facf`.
 - **L7** — T3 verification: `src/utils/servicePlans.test.js` passed 4/4 tests and ESLint passed; explicit service quantities use single-token ownership, so examples use unambiguous grammar such as `curva y perforaciones x2`.
 - **L8** — T5 renderer commit `6cf3a85` is an isolated review slice despite its 586 authored lines: it contains one SVG renderer, styles, and focused tests for neutral primitives, external millimetre dimensions, circular outer-contour validation, and safe states.
 - **L9** — Combined UI verification passed 6 suites / 30 tests plus ESLint before slicing the menu/editor integration commits.
+- **L10** — T4 was split into reviewable responsibilities: context-menu/table integration `a9140c9` (431 lines), editor/styles/tests `d93560f` (612 lines), and row-state integration `4ff39f9` (62 lines). The two larger slices each contain one cohesive UI component with its focused tests.
+- **L11** — Final verification passed 33/33 suites and 188/188 tests; the production build passed. The only output warning is the pre-existing stale Browserslist database notice.
