@@ -36,7 +36,12 @@ import {
 } from './utils/superGrouping';
 import { normalizeServiceText, validateServiceAliasCollisions } from './utils/serviceMatching';
 import { resolveServiceCatalog } from './utils/serviceCatalog';
-import { applyServicePlanToDespieces, createServicePlanSeed } from './utils/servicePlans';
+import {
+  applyServicePlanToDespieces,
+  cloneServicePlan,
+  createServicePlanSeed,
+  synchronizeServicePlanWithRow
+} from './utils/servicePlans';
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -519,7 +524,9 @@ const ModeloDespiece = () => {
   }, [despieces]);
 
   const handleOpenServicePlan = useCallback((row, rowIndex) => {
-    const plan = row?.servicePlan || createServicePlanSeed(row, services);
+    const plan = row?.servicePlan
+      ? synchronizeServicePlanWithRow(row.servicePlan, row, services)
+      : createServicePlanSeed(row, services);
     setServicePlanEditor({ row, rowIndex, plan });
   }, [services]);
 
@@ -1000,6 +1007,7 @@ const ModeloDespiece = () => {
         l2: row.l2 || '',
         a1: row.a1 || '',
         a2: row.a2 || '',
+        ...(row.servicePlan ? { servicePlan: cloneServicePlan(row.servicePlan) } : {})
       }));
       filas.splice(insertIndex + 1, 0, ...newRows);
       return {

@@ -17,6 +17,8 @@ const cloneValue = (value) => {
   return JSON.parse(JSON.stringify(value));
 };
 
+export const cloneServicePlan = (plan) => cloneValue(plan);
+
 const createUnitIndexes = (quantity) => Array.from({ length: quantity }, (_, index) => index + 1);
 
 const createDetectedOperations = (detail, services) => {
@@ -111,6 +113,57 @@ export const splitPlanUnits = (plan, selectedUnitIndexes = []) => {
   });
 
   return { ...nextPlan, groups: nextGroups };
+};
+
+const reconcileOperation = (freshOperation, existingOperation) => {
+  if (!existingOperation) return freshOperation;
+  const availableGeometryIds = new Set(
+    (freshOperation.planProfile?.geometries || []).map((geometry) => geometry.id)
+  );
+  const canPreserveGeometry = existingOperation.geometryId
+    && availableGeometryIds.has(existingOperation.geometryId);
+
+  return {
+    ...freshOperation,
+    id: existingOperation.id || freshOperation.id,
+    geometryId: canPreserveGeometry ? existingOperation.geometryId : null,
+    parameters: canPreserveGeometry ? cloneValue(existingOperation.parameters || {}) : {}
+  };
+};
+
+export const synchronizeServicePlanWithRow = (existingPlan, row, services = []) => {
+  const freshPlan = createServicePlanSeed(row, services);
+  if (!existingPlan?.groups?.length) return freshPlan;
+
+  const quantity = freshPlan.piece.quantity;
+  const validUnitIndexes = new Set(createUnitIndexes(quantity));
+  const freshOperations = freshPlan.groups[0].operations;
+  const synchronizedGroups = existingPlan.groups
+    .map((group) => ({
+      ...cloneValue(group),
+      unitIndexes: (group.unitIndexes || []).filter((unitIndex) => validUnitIndexes.has(unitIndex)),
+      operations: freshOperations.map((freshOperation) => reconcileOperation(
+        freshOperation,
+        (group.operations || []).find((operation) => operation.serviceId === freshOperation.serviceId)
+      ))
+    }))
+    .filter((group) => group.unitIndexes.length > 0);
+
+  if (synchronizedGroups.length === 0) return freshPlan;
+
+  const coveredUnits = new Set(synchronizedGroups.flatMap((group) => group.unitIndexes));
+  const missingUnits = createUnitIndexes(quantity).filter((unitIndex) => !coveredUnits.has(unitIndex));
+  synchronizedGroups[0].unitIndexes = Array.from(new Set([
+    ...synchronizedGroups[0].unitIndexes,
+    ...missingUnits
+  ])).sort((first, second) => first - second);
+
+  return mergeIdenticalPlanGroups({
+    version: SERVICE_PLAN_VERSION,
+    rowId: row?.id || existingPlan.rowId || null,
+    piece: freshPlan.piece,
+    groups: synchronizedGroups
+  });
 };
 
 export const applyServicePlanToDespieces = (
