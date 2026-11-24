@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import TablaPiezas from './TablaPiezas';
 
 const services = [
@@ -36,12 +36,23 @@ const services = [
     nombreOriginal: 'CIRCULOS',
     aliases: ['circulo'],
     tipoCobro: 'ml_largo_ancho'
+  },
+  {
+    nomenclatura: 'GEN_CURVE',
+    nombreOriginal: 'Curva',
+    aliases: ['curva'],
+    tipoCobro: 'unidad',
+    planProfile: {
+      scope: 'outer-contour',
+      mode: 'selectable',
+      geometries: []
+    }
   }
 ];
 
-const renderTable = (detalle) => render(
+const renderTable = (detalle, overrides = {}) => render(
   <TablaPiezas
-    despieces={[{ id: 'tab-1', filas: [{ id: 'r1', cant: '1', largo: '600', ancho: '400', detalle }] }]}
+    despieces={[{ id: 'tab-1', filas: [{ id: 'r1', cant: overrides.cant || '1', largo: '600', ancho: '400', detalle }] }]}
     activeDespieceId="tab-1"
     pieceSearchTerm=""
     pieceSearchLargo=""
@@ -67,6 +78,7 @@ const renderTable = (detalle) => render(
     showModuleColors={false}
     services={services}
     moduleDetectionConfig={{ designPrefixes: ['D'], groupIdPosition: 'afterDesign' }}
+    onOpenServicePlan={overrides.onOpenServicePlan}
   />
 );
 
@@ -88,6 +100,32 @@ describe('TablaPiezas service actions', () => {
     renderTable('enchape manual circulo');
 
     expect(screen.queryByTitle('Cobrar Enchape')).not.toBeInTheDocument();
+  });
+
+  test('opens the service-plan menu from the detail cell and sends the selected row', () => {
+    const onOpenServicePlan = jest.fn();
+    renderTable('Divisor curva', { onOpenServicePlan });
+
+    fireEvent.contextMenu(screen.getByDisplayValue('Divisor curva'), { clientX: 120, clientY: 180 });
+    fireEvent.click(screen.getByRole('menuitem', { name: /abrir plano de servicios/i }));
+
+    expect(onOpenServicePlan).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1' }), 0);
+  });
+
+  test('enables the service-plan menu for multiple pieces even without a detected service', () => {
+    renderTable('Divisor', { cant: '2', onOpenServicePlan: jest.fn() });
+
+    fireEvent.contextMenu(screen.getByDisplayValue('Divisor'), { clientX: 120, clientY: 180 });
+
+    expect(screen.getByRole('menuitem', { name: /abrir plano de servicios/i })).toBeInTheDocument();
+  });
+
+  test('does not open the service-plan menu for one piece without a detected service', () => {
+    renderTable('Divisor', { onOpenServicePlan: jest.fn() });
+
+    fireEvent.contextMenu(screen.getByDisplayValue('Divisor'), { clientX: 120, clientY: 180 });
+
+    expect(screen.queryByRole('menuitem', { name: /abrir plano de servicios/i })).not.toBeInTheDocument();
   });
 
   test('uses matcher ownership for Enchape and Nariz actions', () => {
