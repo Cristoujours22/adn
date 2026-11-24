@@ -171,15 +171,21 @@ export const applyServicePlanToDespieces = (
   activeDespieceId,
   rowIndex,
   plan
-) => despieces.map((despiece) => {
-  if (despiece?.id !== activeDespieceId) return despiece;
-  return {
-    ...despiece,
-    filas: (despiece.filas || []).map((row, currentRowIndex) => (
-      currentRowIndex === rowIndex ? { ...row, servicePlan: cloneValue(plan) } : row
-    ))
-  };
-});
+) => {
+  const targetRowId = plan?.rowId;
+  return despieces.map((despiece) => {
+    if (despiece?.id !== activeDespieceId) return despiece;
+    return {
+      ...despiece,
+      filas: (despiece.filas || []).map((row, currentRowIndex) => {
+        const isTargetRow = targetRowId != null
+          ? row?.id === targetRowId
+          : currentRowIndex === rowIndex;
+        return isTargetRow ? { ...row, servicePlan: cloneValue(plan) } : row;
+      })
+    };
+  });
+};
 
 const getOperationsSignature = (group) => JSON.stringify(group?.operations || []);
 

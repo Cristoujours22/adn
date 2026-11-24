@@ -129,18 +129,19 @@ describe('service plan instances', () => {
     expect(source.groups[0].operations[0].parameters).toEqual({});
   });
 
-  test('persists a plan only on the selected row without mutating other despieces', () => {
+  test('persists by stable row id when row positions change while the editor is open', () => {
+    const targetRow = row();
     const original = [
-      { id: 'tab-1', filas: [row(), row({ id: 'row_8', detalle: 'Otra pieza' })] },
+      { id: 'tab-1', filas: [row({ id: 'row_8', detalle: 'Fila insertada' }), targetRow] },
       { id: 'tab-2', filas: [row({ id: 'row_9' })] }
     ];
-    const plan = createServicePlanSeed(original[0].filas[0], services);
+    const plan = createServicePlanSeed(targetRow, services);
     const result = applyServicePlanToDespieces(original, 'tab-1', 0, plan);
 
-    expect(result[0].filas[0].servicePlan).toEqual(plan);
-    expect(result[0].filas[1]).toBe(original[0].filas[1]);
+    expect(result[0].filas[0]).toBe(original[0].filas[0]);
+    expect(result[0].filas[1].servicePlan).toEqual(plan);
     expect(result[1]).toBe(original[1]);
-    expect(original[0].filas[0].servicePlan).toBeUndefined();
+    expect(targetRow.servicePlan).toBeUndefined();
   });
 
   test('merges groups again only when their geometry state is identical', () => {
