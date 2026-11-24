@@ -30,6 +30,23 @@ test.each([
   expect(totals.serviceCounts.svc_work).toBeCloseTo(expected);
 });
 
+test.each([
+  ['CALADO', 'CALADO'],
+  ['CALADOINTERNO', 'CALADO INTERNO']
+])('applies escala_60 billing to %s services', (nomenclatura, nombreOriginal) => {
+  const service = { serviceId: `svc_${nomenclatura.toLowerCase()}`, nomenclatura, nombreOriginal, tipoCobro: 'escala_60' };
+  const totals = calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: nombreOriginal, largo: 1200, ancho: 500 }] }], [service]);
+
+  expect(totals.serviceCounts[service.serviceId]).toBe(2);
+});
+
+test('retains explicit unit quantities for CALADO', () => {
+  const service = { serviceId: 'svc_calado', nomenclatura: 'CALADO', nombreOriginal: 'CALADO', tipoCobro: 'unidad' };
+  const totals = calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: '2L CALADO', largo: 1200, ancho: 500 }] }], [service]);
+
+  expect(totals.serviceCounts.svc_calado).toBe(2);
+});
+
 test('legacy services without ids remain distinct', () => {
   const legacy = [{ nomenclatura: 'ONE', nombreOriginal: 'ONE', tipoCobro: 'unidad' }, { nomenclatura: 'TWO', nombreOriginal: 'TWO', tipoCobro: 'unidad' }];
   expect(calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: 'ONE' }] }], legacy).serviceCounts).toEqual({ ONE: 1, TWO: 0 });
