@@ -1,0 +1,89 @@
+.menu {
+  position: fixed;
+  z-index: 1000;
+  width: min(280px, calc(100vw - 16px));
+  padding: 8px;
+  border: 1px solid #26334d;
+  border-radius: 9px;
+  background: #172033;
+  box-shadow: 0 20px 50px rgb(23 32 51 / 27%);
+  color: #fff;
+}
+
+.context {
+  padding: 7px 10px 8px;
+  color: #b7c0d0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item:focus-visible {
+  background: #315efb;
+}
+
+.item:focus-visible {
+  outline: 3px solid #f79009;
+  outline-offset: 2px;
+}
+
+.itemLabel,
+.itemDescription {
+  display: block;
+}
+
+.itemLabel {
+  font-weight: 750;
+}
+
+.itemDescription {
+  margin-top: 2px;
+  color: #b7c0d0;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.item:hover .itemDescription,
+.item:focus-visible .itemDescription {
+  color: #fff;
+}
+
+@media (forced-colors: active) {
+  .menu {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .context,
+  .itemDescription {
+    color: CanvasText;
+  }
+
+  .item {
+    color: CanvasText;
+  }
+
+  .item:hover,
+  .item:focus-visible {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .item:hover .itemDescription,
+  .item:focus-visible .itemDescription {
+    color: HighlightText;
+  }
+}
