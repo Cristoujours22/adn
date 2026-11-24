@@ -772,7 +772,7 @@ const ModeloDespiece = () => {
     validatePersistenceIdentity(projectName, clientName);
     const snapshot = snapshotFor(candidateDespieces, documentId);
     const history = includeSecondary && documentId ? () => guardarVersion(documentId, { despieces: candidateDespieces, servicios: services, proyecto: projectName, cliente: clientName }) : null;
-    const defaults = includeSecondary && currentUser?.uid ? () => setDoc(doc(db, 'userServices', currentUser.uid), { userId: currentUser.uid, servicios: services, fechaActualizacion: new Date().toLocaleDateString() }) : null;
+    const defaults = null;
     const result = await coordinateSnapshotPersistence(snapshot, (value, options) => persistDespieceSnapshot(value, { db, collection, doc, writeBatch }, options), {
       history,
       defaults,

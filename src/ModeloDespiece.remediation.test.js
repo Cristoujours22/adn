@@ -104,6 +104,7 @@ test('manual save after only service definitions change persists current service
   fireEvent.click(screen.getByRole('button', { name: /guardar despiece/i }));
   await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalled());
   expect(mockPersistDespieceSnapshot.mock.calls[0][0].serviciosGuardados).toEqual(expect.arrayContaining([expect.objectContaining({ serviceId: 'svc_custom', nomenclatura: 'CUSTOM' })]));
+  expect(mockPersistDespieceSnapshot.mock.calls[0][2].defaults).toBeNull();
 });
 
 test('capability writes wait for required document identity', async () => {
