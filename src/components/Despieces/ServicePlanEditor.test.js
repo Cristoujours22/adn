@@ -78,6 +78,29 @@ describe('ServicePlanEditor', () => {
     }));
   });
 
+  test('blocks apply until every required geometry parameter has a value', () => {
+    const onApply = jest.fn();
+    render(
+      <ServicePlanEditor
+        isOpen
+        plan={plan}
+        row={{ detalle: 'Divisor curva' }}
+        onApply={onApply}
+        onClose={jest.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Geometría' }), { target: { value: 'rounded-corners' } });
+    const applyButton = screen.getByRole('button', { name: /aplicar plano/i });
+
+    expect(applyButton).toBeDisabled();
+    fireEvent.click(applyButton);
+    expect(onApply).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Radio (mm)'), { target: { value: '80' } });
+    expect(applyButton).toBeEnabled();
+  });
+
   test('splits selected physical units while retaining the shared group', () => {
     const onApply = jest.fn();
     render(
@@ -91,6 +114,7 @@ describe('ServicePlanEditor', () => {
     );
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Geometría' }), { target: { value: 'rounded-corners' } });
+    fireEvent.change(screen.getByLabelText('Radio (mm)'), { target: { value: '80' } });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Pieza 4' }));
     fireEvent.click(screen.getByRole('button', { name: /separar seleccionadas/i }));
 

@@ -26,6 +26,23 @@ const getSelectedOperation = (group, operationId) => (
   || null
 );
 
+const hasRequiredParameterValue = (value) => (
+  value !== ''
+  && value !== null
+  && value !== undefined
+  && (typeof value !== 'number' || Number.isFinite(value))
+);
+
+const operationHasMissingRequiredParameter = (operation) => {
+  const geometry = operation?.planProfile?.geometries?.find(
+    (candidate) => candidate.id === operation.geometryId
+  );
+  return Boolean(geometry?.parameters?.some(
+    (parameter) => parameter.required
+      && !hasRequiredParameterValue(operation.parameters?.[parameter.id])
+  ));
+};
+
 const updateOperation = (plan, groupId, operationId, updater) => ({
   ...plan,
   groups: plan.groups.map((group) => (
@@ -72,15 +89,19 @@ const ServicePlanEditor = ({
     (geometry) => geometry.id === selectedOperation?.geometryId
   ) || null;
   const hasPendingProfile = Boolean(
-    selectedGroup?.operations?.some((operation) => !operation.planProfile)
+    draft?.groups?.some((group) => group.operations?.some((operation) => !operation.planProfile))
   );
   const hasUnconfiguredGeometry = Boolean(
-    selectedGroup?.operations?.some((operation) => (
+    draft?.groups?.some((group) => group.operations?.some((operation) => (
       operation.planProfile && !operation.geometryId
-    ))
+    )))
+  );
+  const hasMissingRequiredParameters = Boolean(
+    draft?.groups?.some((group) => group.operations?.some(operationHasMissingRequiredParameter))
   );
   const applyDisabled = Boolean(
-    selectedGroup?.operations?.length > 0 && (hasPendingProfile || hasUnconfiguredGeometry)
+    draft?.groups?.some((group) => group.operations?.length > 0)
+    && (hasPendingProfile || hasUnconfiguredGeometry || hasMissingRequiredParameters)
   );
 
   const title = useMemo(() => {
@@ -267,6 +288,11 @@ const ServicePlanEditor = ({
                   />
                 </label>
               ))}
+              {hasMissingRequiredParameters && (
+                <p className={styles.status} role="status">
+                  Completá los parámetros obligatorios antes de aplicar el plano.
+                </p>
+              )}
             </>
           )}
         </section>
