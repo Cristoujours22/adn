@@ -59,11 +59,42 @@ El producto admite únicamente diccionarios neutrales definidos por el usuario. 
       "chargeType": "unidad",
       "measurementBasis": "unit",
       "active": true,
-      "requiresReview": false
+      "requiresReview": false,
+      "planProfile": {
+        "scope": "outer-contour",
+        "mode": "selectable",
+        "geometries": [
+          {
+            "id": "rounded-corners",
+            "label": "Esquinas redondeadas",
+            "primitive": "rounded-corners",
+            "parameters": [
+              {
+                "id": "radius",
+                "label": "Radio",
+                "kind": "radius",
+                "unit": "mm",
+                "required": true
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
 ```
+
+### Perfil geométrico neutral
+
+`planProfile` es opcional para mantener compatibilidad con diccionarios existentes. Cuando está presente, vincula el `serviceId` con una receta geométrica declarativa, no con una condición escrita en el código.
+
+- `scope`: `outer-contour`, `internal-contour`, `surface`, `edge` o `internal-edge`.
+- `mode`: `fixed`, `selectable` o `custom`.
+- `primitive`: `point`, `line`, `circle`, `arc`, `rounded-corners`, `chamfer`, `slot`, `pocket`, `path` o `edge-treatment`.
+- Los parámetros usan magnitudes neutrales como radio, diámetro, profundidad, ángulo, posición, cantidad o separación.
+
+Una fila puede representar varias piezas. Todas comparten inicialmente el mismo plano; las unidades que requieran otra geometría se separan en grupos independientes. El plano se guarda en `fila.servicePlan` y conserva sólo identificadores estables, geometría seleccionada, parámetros y unidades representadas.
 
 ### Proceso de importación
 

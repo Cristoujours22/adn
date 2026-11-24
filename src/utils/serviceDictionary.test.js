@@ -4,6 +4,29 @@ import {
   validateServiceDictionary
 } from './serviceDictionary';
 
+const geometry = (overrides = {}) => ({
+  id: 'rounded-corners',
+  label: 'Esquinas redondeadas',
+  primitive: 'rounded-corners',
+  parameters: [
+    {
+      id: 'radius',
+      label: 'Radio',
+      kind: 'radius',
+      unit: 'mm',
+      required: true
+    }
+  ],
+  ...overrides
+});
+
+const planProfile = (overrides = {}) => ({
+  scope: 'outer-contour',
+  mode: 'selectable',
+  geometries: [geometry()],
+  ...overrides
+});
+
 const service = (overrides = {}) => ({
   code: 'GEN_CORTE',
   name: 'Corte curvo',
@@ -76,6 +99,79 @@ describe('service dictionary parser and validator', () => {
       'autoload-required'
     ]));
     expect(result.valid).toBe(false);
+  });
+
+  test('accepts and normalizes a declarative geometry profile without service-name rules', () => {
+    const profile = planProfile({
+      geometries: [
+        geometry(),
+        geometry({
+          id: 'full-circle',
+          label: 'Círculo completo',
+          primitive: 'circle',
+          parameters: [
+            { id: 'diameter', label: 'Diámetro', kind: 'diameter', unit: 'mm', required: true }
+          ]
+        })
+      ]
+    });
+
+    const result = parseServiceDictionary(dictionary({
+      services: [service({ planProfile: profile })]
+    }));
+
+    expect(result.valid).toBe(true);
+    expect(result.services[0].planProfile).toEqual(profile);
+  });
+
+  test('rejects unsupported geometry vocabulary and duplicate geometry identifiers', () => {
+    const result = validateServiceDictionary(dictionary({
+      services: [service({
+        planProfile: planProfile({
+          scope: 'company-operation',
+          mode: 'automatic-by-name',
+          geometries: [
+            geometry({ primitive: 'proprietary-curve' }),
+            geometry()
+          ]
+        })
+      })]
+    }));
+
+    expect(result.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'invalid-value', path: 'services[0].planProfile.scope' }),
+      expect.objectContaining({ code: 'invalid-value', path: 'services[0].planProfile.mode' }),
+      expect.objectContaining({ code: 'invalid-value', path: 'services[0].planProfile.geometries[0].primitive' }),
+      expect.objectContaining({ code: 'duplicate-geometry-id', path: 'services[0].planProfile.geometries' })
+    ]));
+  });
+
+  test('requires one geometry for fixed profiles and validates neutral parameter metadata', () => {
+    const result = validateServiceDictionary(dictionary({
+      services: [service({
+        planProfile: planProfile({
+          mode: 'fixed',
+          geometries: [
+            geometry(),
+            geometry({
+              id: 'angle-cut',
+              primitive: 'chamfer',
+              parameters: [
+                { id: 'angle', label: '', kind: 'company-angle', unit: 'company-unit', required: 'yes' }
+              ]
+            })
+          ]
+        })
+      })]
+    }));
+
+    expect(result.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'invalid-geometry-count', path: 'services[0].planProfile.geometries' }),
+      expect.objectContaining({ code: 'missing-field', path: 'services[0].planProfile.geometries[1].parameters[0].label' }),
+      expect.objectContaining({ code: 'invalid-value', path: 'services[0].planProfile.geometries[1].parameters[0].kind' }),
+      expect.objectContaining({ code: 'invalid-value', path: 'services[0].planProfile.geometries[1].parameters[0].unit' }),
+      expect.objectContaining({ code: 'invalid-type', path: 'services[0].planProfile.geometries[1].parameters[0].required' })
+    ]));
   });
 
   test('accepts the defined general dictionary without enabling autoload', () => {
