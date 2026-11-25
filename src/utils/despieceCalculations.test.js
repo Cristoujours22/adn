@@ -47,6 +47,13 @@ test('retains explicit unit quantities for CALADO', () => {
   expect(totals.serviceCounts.svc_calado).toBe(2);
 });
 
+test('does not bill inactive imported services', () => {
+  const inactive = { serviceId: 'svc_inactive', nomenclatura: 'INACTIVE', nombreOriginal: 'Inactive service', tipoCobro: 'unidad', activo: false };
+  const totals = calculateCanonicalServiceTotals([{ filas: [{ cant: 3, detalle: 'INACTIVE' }] }], [inactive]);
+
+  expect(totals.serviceCounts.svc_inactive).toBe(0);
+});
+
 test('legacy services without ids remain distinct', () => {
   const legacy = [{ nomenclatura: 'ONE', nombreOriginal: 'ONE', tipoCobro: 'unidad' }, { nomenclatura: 'TWO', nombreOriginal: 'TWO', tipoCobro: 'unidad' }];
   expect(calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: 'ONE' }] }], legacy).serviceCounts).toEqual({ ONE: 1, TWO: 0 });
