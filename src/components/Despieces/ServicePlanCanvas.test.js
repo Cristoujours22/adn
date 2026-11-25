@@ -24,6 +24,21 @@ describe('ServicePlanCanvas', () => {
     expect(canvas).not.toHaveTextContent('A company-specific service name');
   });
 
+  test('keeps internal circle geometry finite for extreme aspect ratios', () => {
+    render(
+      <ServicePlanCanvas
+        piece={{ lengthMm: 2400, widthMm: 10 }}
+        operation={{ primitive: 'circle', parameters: { diameter: 8 } }}
+      />
+    );
+
+    const circle = screen.getByTestId('service-plan-geometry-circle');
+    ['cx', 'cy', 'r'].forEach((attribute) => {
+      expect(Number(circle.getAttribute(attribute))).toBeGreaterThan(0);
+      expect(Number.isFinite(Number(circle.getAttribute(attribute)))).toBe(true);
+    });
+  });
+
   test.each(['circle', 'rounded-corners', 'chamfer'])(
     'renders the neutral %s primitive without service-name rules',
     (primitive) => {

@@ -188,7 +188,16 @@ const renderGeometry = (primitive, scope, parameters, piece, scale, x, y, width,
   if (primitive === 'circle') {
     const diameterMm = firstPositiveNumber(parameters?.diameter, parameters?.size)
       || minimumDimensionMm / 3;
-    const radiusPx = clamp((diameterMm * scale) / 2, 4, minimumDimensionPx / 2 - 3);
+    const maximumRadiusPx = Math.max(
+      minimumDimensionPx / 2 - 1,
+      minimumDimensionPx / 4,
+      0.01
+    );
+    const radiusPx = clamp(
+      (diameterMm * scale) / 2,
+      Math.min(4, maximumRadiusPx),
+      maximumRadiusPx
+    );
     const centerX = x + clamp(
       firstPositiveNumber(parameters?.centerX, parameters?.positionX) * scale || width / 2,
       radiusPx,
