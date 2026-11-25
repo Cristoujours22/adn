@@ -54,7 +54,10 @@ const ServiceDictionaryImport = ({
     setIsSaving(false);
   }, [isOpen]);
 
-  const importedServices = parseResult?.normalizedServices || [];
+  const importedServices = useMemo(
+    () => parseResult?.normalizedServices || [],
+    [parseResult?.normalizedServices]
+  );
   const activeServices = useMemo(
     () => importedServices.filter((service) => service.activo !== false),
     [importedServices]
