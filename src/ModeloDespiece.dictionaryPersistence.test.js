@@ -13,13 +13,20 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 import { doc, setDoc } from 'firebase/firestore';
-import { persistUserServiceCatalog } from './ModeloDespiece';
+import { persistUserServiceCatalog, shouldApplyHydratedServiceCatalog } from './ModeloDespiece';
 
 const services = [{
   nomenclatura: 'COR',
   nombreOriginal: 'Corte',
   tipoCobro: 'unidad'
 }];
+
+describe('service catalog persistence ordering', () => {
+  test('rejects a stale hydration result after a newer confirmed import', () => {
+    expect(shouldApplyHydratedServiceCatalog(0, 1)).toBe(false);
+    expect(shouldApplyHydratedServiceCatalog(1, 1)).toBe(true);
+  });
+});
 
 describe('persistUserServiceCatalog', () => {
   beforeEach(() => {

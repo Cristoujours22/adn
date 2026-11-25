@@ -43,6 +43,10 @@ import {
   synchronizeServicePlanWithRow
 } from './utils/servicePlans';
 
+export const shouldApplyHydratedServiceCatalog = (loadVersion, currentVersion) => (
+  loadVersion === currentVersion
+);
+
 export const resolveServicePlanDespieceId = (editorState, activeDespieceId) => (
   editorState?.despieceId || activeDespieceId
 );
@@ -225,6 +229,7 @@ const ModeloDespiece = () => {
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
   const [services, setServices] = useState(() => DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) }))); // Initialize with canonical ids
+  const serviceCatalogVersionRef = useRef(0);
   const [newServiceNombre, setNewServiceNombre] = useState('');
   const [newServiceNomenclatura, setNewServiceNomenclatura] = useState('');
   const [newServiceAliases, setNewServiceAliases] = useState('');
@@ -318,7 +323,9 @@ const ModeloDespiece = () => {
   useEffect(() => {
     if (!id) {
       const loadInitialServices = async () => {
+        const loadVersion = serviceCatalogVersionRef.current;
         const userServices = await loadUserServices();
+        if (!shouldApplyHydratedServiceCatalog(loadVersion, serviceCatalogVersionRef.current)) return;
         setServices(resolveServiceCatalog({ globalServices: userServices }).map(normalizeStoredService));
       };
       loadInitialServices();
@@ -695,13 +702,16 @@ const ModeloDespiece = () => {
           }
           rowIdCounter = maxRowId;
           // Priorizar el catálogo global; usar serviciosGuardados sólo como fallback legado.
+          const loadVersion = serviceCatalogVersionRef.current;
           const userServices = await loadUserServices();
-          const resolvedServices = resolveServiceCatalog({
-            globalServices: userServices,
-            projectServices: data.serviciosGuardados
-          });
-          const parsedServices = hydrateDespieceSchema({ filas: [] }, resolvedServices).services.map(normalizeStoredService);
-          setServices(parsedServices);
+          if (shouldApplyHydratedServiceCatalog(loadVersion, serviceCatalogVersionRef.current)) {
+            const resolvedServices = resolveServiceCatalog({
+              globalServices: userServices,
+              projectServices: data.serviciosGuardados
+            });
+            const parsedServices = hydrateDespieceSchema({ filas: [] }, resolvedServices).services.map(normalizeStoredService);
+            setServices(parsedServices);
+          }
         }
       } catch (err) {
         alert('Error al cargar el despiece para edición.');
@@ -876,6 +886,7 @@ const ModeloDespiece = () => {
       throw new Error('No se pudo guardar el catálogo global. Verificá tu conexión y reintentá.');
     }
 
+    serviceCatalogVersionRef.current += 1;
     setServices(importedServices);
     setShowServiceDictionaryImport(false);
     setShowNomenclaturesModal(true);
