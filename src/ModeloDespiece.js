@@ -2271,9 +2271,6 @@ const ModeloDespiece = () => {
               superGroups={activeDespieceForGrouping?.superGroups || []}
               onUngroupSuperGroup={handleUngroupSuperGroup}
               onOpenServicePlan={handleOpenServicePlan}
-              onConfigureServicePlan={handleOpenServicePlan}
-              onApplyServicePlanToAll={handleOpenServicePlan}
-              onSplitServicePlanUnits={handleOpenServicePlan}
             />
 
             <ServicePlanEditor

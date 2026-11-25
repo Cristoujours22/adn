@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import ServicePlanContextMenu from './ServicePlanContextMenu';
+import ServicePlanContextMenu, { clampMenuPosition } from './ServicePlanContextMenu';
 
 const actions = () => ({
   onOpenPlan: jest.fn(),
@@ -53,6 +53,31 @@ test('renders a positioned menu with service and piece context', () => {
   expect(screen.getByRole('menuitem', { name: /configurar servicios/i })).toBeInTheDocument();
   expect(screen.getByRole('menuitem', { name: /aplicar.*4 piezas/i })).toBeInTheDocument();
   expect(screen.getByRole('menuitem', { name: /separar unidades/i })).toBeInTheDocument();
+});
+
+test('hides menu actions that do not have distinct handlers', () => {
+  render(
+    <ServicePlanContextMenu
+      isOpen
+      position={{ x: 10, y: 20 }}
+      detectedServiceCount={1}
+      pieceQuantity={4}
+      onOpenPlan={jest.fn()}
+      onClose={jest.fn()}
+    />
+  );
+
+  expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+  expect(screen.getByRole('menuitem', { name: /abrir plano de servicios/i })).toBeInTheDocument();
+  expect(screen.queryByRole('menuitem', { name: /separar unidades/i })).not.toBeInTheDocument();
+});
+
+test('clamps bottom-right menu placement inside the viewport', () => {
+  expect(clampMenuPosition(
+    { left: 790, top: 590 },
+    { width: 220, height: 180 },
+    { width: 800, height: 600 }
+  )).toEqual({ left: 572, top: 412 });
 });
 
 test('supports arrow-key navigation and Escape restores focus to the trigger', () => {

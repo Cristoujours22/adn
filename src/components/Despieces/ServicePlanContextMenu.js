@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styles from './ServicePlanContextMenu.module.css';
 
 const asCount = (value, fallback = 0) => {
@@ -11,6 +11,15 @@ const formatCount = (value, singular, plural) => `${value} ${value === 1 ? singu
 const toCssPosition = (value) => (
   typeof value === 'number' ? `${value}px` : String(value ?? 0).replace(/(;|\s)/g, '')
 );
+
+export const clampMenuPosition = (position, menuSize, viewport, padding = 8) => {
+  const maximumLeft = Math.max(padding, viewport.width - menuSize.width - padding);
+  const maximumTop = Math.max(padding, viewport.height - menuSize.height - padding);
+  return {
+    left: Math.min(Math.max(position.left, padding), maximumLeft),
+    top: Math.min(Math.max(position.top, padding), maximumTop)
+  };
+};
 
 const ServicePlanContextMenu = ({
   isOpen = true,
@@ -43,6 +52,17 @@ const ServicePlanContextMenu = ({
   const point = screenPosition || position || {};
   const left = point.x ?? point.left ?? 0;
   const top = point.y ?? point.top ?? 0;
+  const [menuPosition, setMenuPosition] = useState({ left, top });
+
+  useLayoutEffect(() => {
+    if (!isOpen || !menuRef.current) return;
+    const bounds = menuRef.current.getBoundingClientRect();
+    setMenuPosition(clampMenuPosition(
+      { left, top },
+      { width: bounds.width, height: bounds.height },
+      { width: window.innerWidth, height: window.innerHeight }
+    ));
+  }, [isOpen, left, top]);
 
   const focusTrigger = useCallback(() => {
     const possibleTriggers = [triggerRef, openerRef, restoreFocusRef];
@@ -92,7 +112,7 @@ const ServicePlanContextMenu = ({
       description: 'Crear grupos de plano independientes',
       action: splitAction
     }
-  ];
+  ].filter((item) => typeof item.action === 'function');
 
   const runAction = (action) => {
     action?.();
@@ -127,7 +147,7 @@ const ServicePlanContextMenu = ({
       role="menu"
       aria-label="Acciones de plano"
       aria-orientation="vertical"
-      style={{ left: toCssPosition(left), top: toCssPosition(top) }}
+      style={{ left: toCssPosition(menuPosition.left), top: toCssPosition(menuPosition.top) }}
       onKeyDown={handleKeyDown}
     >
       <div className={styles.context} role="status" aria-live="polite">
