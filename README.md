@@ -80,6 +80,14 @@ Para importar un diccionario, elegí **Importar diccionario JSON** y seleccioná
 
 El catálogo global vigente se utiliza en vivo para el usuario. **Códigos generales** es una plantilla neutral opcional con el autoload desactivado: sólo se aplica mediante una importación confirmada. ADN no crea, conserva, documenta ni distribuye diccionarios asociados con empresas específicas.
 
+### Planos de servicios
+
+Un servicio importado puede declarar un `planProfile` neutral con su alcance, modo, geometrías permitidas y parámetros físicos. El motor sólo interpreta primitivas CAD genéricas; nunca activa comportamientos a partir del nombre comercial o visible del servicio.
+
+En la grilla de despiece, hacé clic derecho sobre **Detalle** cuando la fila contenga un servicio detectado o represente más de una pieza. Desde el menú podés abrir el plano, elegir una geometría, ingresar medidas en milímetros y separar unidades que necesiten configuraciones diferentes. Las piezas idénticas comparten inicialmente un solo plano.
+
+Las cotas generales se dibujan por fuera de la pieza. Los planos quedan guardados dentro de la fila del despiece y se sincronizan con sus dimensiones, cantidad y servicios cuando se vuelven a abrir.
+
 **Diseñador**: Los diseñadores pueden crear despieces, cargar archivos XML, y editar las piezas con detalles como material, medidas y servicios especiales.
 
 **Vendedor**: Los vendedores pueden ver los despieces, pero no tienen acceso para cargar o editar archivos XML.

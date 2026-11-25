@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAD workbench — Planos de servicios</title>
+<style>
+:root{color-scheme:dark;--bg:#111827;--panel:#182235;--panel2:#202c40;--line:#34435c;--text:#eef4ff;--muted:#9fb0c8;--accent:#42d3a5;--blue:#57a8ff;--warning:#ffc857;--danger:#ff7485}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}.app{height:900px;display:grid;grid-template-rows:58px 74px 1fr}
+header{display:flex;align-items:center;gap:18px;padding:0 22px;border-bottom:1px solid var(--line);background:#111a29}
+.brand{font-weight:800;letter-spacing:.08em}.crumb{color:var(--muted)}.spacer{flex:1}.status{color:var(--accent);font-weight:700}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 14px;border-radius:8px}.btn.primary{background:var(--accent);color:#07231b;border-color:transparent;font-weight:800}
+.source{display:grid;grid-template-columns:80px 100px 100px 1fr repeat(4,64px);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.cell{background:var(--panel);padding:10px 12px}.cell b{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}.cell strong{display:block;margin-top:5px}.detail{position:relative;outline:2px solid var(--accent);outline-offset:-2px}
+.menu{position:absolute;z-index:4;top:58px;left:20px;width:250px;padding:7px;background:#f8fbff;color:#172238;border-radius:10px;box-shadow:0 18px 50px #0008}.menu button{display:block;width:100%;border:0;background:none;text-align:left;padding:10px;border-radius:7px;color:inherit}.menu button:hover,.menu button:focus{background:#e8f1ff;outline:2px solid #276db5}.menu hr{border:0;border-top:1px solid #d7e0ec}
+.workspace{display:grid;grid-template-columns:178px minmax(560px,1fr) 330px;min-height:0}
+.tools{border-right:1px solid var(--line);background:#131d2d;padding:15px}.tools h2,.inspector h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px}.tool{width:100%;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid transparent;background:transparent;color:var(--text);border-radius:8px;text-align:left}.tool.active{border-color:var(--accent);background:#193a35}.ico{width:24px;height:24px;display:grid;place-items:center;border:1px solid var(--line);border-radius:5px}
+.canvas{position:relative;overflow:hidden;background-color:#0b1320;background-image:linear-gradient(#182a3d 1px,transparent 1px),linear-gradient(90deg,#182a3d 1px,transparent 1px);background-size:20px 20px}
+.canvas-top{position:absolute;z-index:2;top:14px;left:14px;right:14px;display:flex;gap:8px}.chip{background:#101c2ccc;border:1px solid var(--line);border-radius:7px;padding:7px 10px;color:var(--muted)}.chip strong{color:var(--text)}
+svg{width:100%;height:100%}.piece{fill:#dce8f0;stroke:#f7fbff;stroke-width:2}.cut{fill:#0b1320;stroke:var(--accent);stroke-width:3}.dim{stroke:var(--blue);stroke-width:1.5;fill:none}.ext{stroke:#5881a9;stroke-width:1}.dimtext{fill:#8bc3ff;font-size:16px;font-weight:700}.note{fill:#ffc857;font-size:14px}.corner{fill:none;stroke:var(--accent);stroke-width:4}
+.inspector{border-left:1px solid var(--line);background:var(--panel);padding:18px;overflow:auto}.group{border-top:1px solid var(--line);padding:16px 0}.group:first-of-type{border:0;padding-top:0}.label{display:block;color:var(--muted);font-size:12px;margin:10px 0 6px}.input{width:100%;background:#101a29;color:var(--text);border:1px solid var(--line);padding:9px 10px;border-radius:7px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.units{display:flex;gap:5px}.units button{flex:1;border:1px solid var(--line);background:#101a29;color:var(--muted);padding:8px;border-radius:6px}.units .selected{border-color:var(--accent);color:var(--accent)}.hint{color:var(--muted);font-size:12px}.footer-actions{display:flex;gap:8px;position:sticky;bottom:0;padding-top:14px;background:linear-gradient(transparent,var(--panel) 20%)}
+:focus-visible{outline:3px solid var(--warning);outline-offset:2px}@media(max-width:900px){.workspace{grid-template-columns:1fr}.tools{display:none}.inspector{position:absolute;right:0;top:132px;bottom:0;width:min(360px,92vw);z-index:5}.source{grid-template-columns:70px 80px 80px 1fr}.source .edge{display:none}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style></head>
+<body>
+<main class="app">
+<header><div class="brand">ADN · PLANOS</div><div class="crumb">Despiece / Divisor D1 / Servicio curvo</div><div class="spacer"></div><span class="status">Guardado localmente</span><button class="btn">Cerrar</button><button class="btn primary">Confirmar plano</button></header>
+<section class="source" aria-label="Fila de despiece de origen">
+<div class="cell"><b>Cant.</b><strong>4</strong></div><div class="cell"><b>Largo</b><strong>600 mm</strong></div><div class="cell"><b>Ancho</b><strong>600 mm</strong></div>
+<div class="cell detail"><b>Detalle</b><strong>Divisor · curva</strong><div class="menu" role="menu" aria-label="Acciones de planos"><button role="menuitem">Abrir planos de servicios</button><button role="menuitem">Configurar servicios detectados</button><button role="menuitem">Separar piezas seleccionadas…</button><hr><button role="menuitem">Aplicar plano a las 4 piezas</button></div></div>
+<div class="cell edge"><b>L1</b><strong>1</strong></div><div class="cell edge"><b>L2</b><strong>1</strong></div><div class="cell edge"><b>A1</b><strong>1</strong></div><div class="cell edge"><b>A2</b><strong>1</strong></div>
+</section>
+<section class="workspace">
+<nav class="tools" aria-label="Herramientas CAD"><h2>Geometría</h2>
+<button class="tool active"><span class="ico">◜</span>Esquinas curvas</button><button class="tool"><span class="ico">○</span>Círculo completo</button><button class="tool"><span class="ico">∠</span>Corte angular</button><button class="tool"><span class="ico">▭</span>Contorno interno</button><button class="tool"><span class="ico">⌁</span>Ruta libre</button>
+<h2 style="margin-top:24px">Vista</h2><button class="tool"><span class="ico">＋</span>Acercar</button><button class="tool"><span class="ico">□</span>Ajustar pieza</button></nav>
+<section class="canvas" aria-label="Vista previa CAD de la pieza">
+<div class="canvas-top"><span class="chip"><strong>4 piezas</strong> comparten este plano</span><span class="chip">Cara frontal</span><span class="chip">Unidades: mm</span></div>
+<svg viewBox="0 0 850 650" role="img" aria-label="Pieza de seiscientos por seiscientos milímetros con cuatro esquinas de radio cincuenta">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8 0 0 4 8 8" fill="none" stroke="#57a8ff"/></marker></defs>
+<path class="piece" d="M260 165 H590 A55 55 0 0 1 645 220 V430 A55 55 0 0 1 590 485 H260 A55 55 0 0 1 205 430 V220 A55 55 0 0 1 260 165Z"/>
+<path class="corner" d="M205 220 A55 55 0 0 1 260 165"/>
+<line class="ext" x1="205" y1="500" x2="205" y2="555"/><line class="ext" x1="645" y1="500" x2="645" y2="555"/>
+<line class="dim" x1="210" y1="540" x2="640" y2="540" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text class="dimtext" x="425" y="530" text-anchor="middle">600 mm</text>
+<line class="ext" x1="665" y1="165" x2="725" y2="165"/><line class="ext" x1="665" y1="485" x2="725" y2="485"/>
+<line class="dim" x1="710" y1="170" x2="710" y2="480" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text class="dimtext" x="728" y="325" transform="rotate(90 728 325)" text-anchor="middle">600 mm</text>
+<line class="dim" x1="214" y1="208" x2="256" y2="174" marker-end="url(#arrow)"/><text class="dimtext" x="130" y="205">R 50 mm</text>
+<text class="note" x="205" y="590">Plano compartido · piezas 1–4 · Escala ajustada a pantalla</text>
+</svg></section>
+<aside class="inspector"><h2>Servicio detectado</h2><div class="group"><strong>Curva</strong><p class="hint">El diccionario permite varias geometrías. Elegí cómo se aplica en esta fila.</p>
+<label class="label" for="variant">Geometría</label><select class="input" id="variant"><option>Esquinas redondeadas</option><option>Círculo completo</option><option>Corte curvo</option></select></div>
+<div class="group"><h2>Aplicación</h2><div class="units"><button class="selected">1–4</button><button>Separar…</button></div><p class="hint">Las cuatro piezas comparten el plano mientras sus medidas coincidan.</p></div>
+<div class="group"><h2>Parámetros</h2><div class="row2"><label><span class="label">Radio</span><input class="input" value="50 mm"></label><label><span class="label">Esquinas</span><select class="input"><option>Las cuatro</option></select></label></div>
+<label class="label">Referencia</label><select class="input"><option>Contorno exterior</option></select></div>
+<div class="group"><h2>Validación</h2><p class="hint" style="color:var(--accent)">✓ El radio cabe dentro de la pieza.<br>✓ Todas las cotas están expresadas en mm.</p></div>
+<div class="footer-actions"><button class="btn">Descartar</button><button class="btn primary">Aplicar geometría</button></div></aside>
+</section></main></body></html>
