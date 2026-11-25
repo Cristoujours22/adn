@@ -26,12 +26,11 @@ const getSelectedOperation = (group, operationId) => (
   || null
 );
 
-const hasRequiredParameterValue = (value) => (
-  value !== ''
-  && value !== null
-  && value !== undefined
-  && (typeof value !== 'number' || Number.isFinite(value))
-);
+const hasRequiredParameterValue = (value) => {
+  if (value === '' || value === null || value === undefined) return false;
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue >= 0;
+};
 
 const operationHasMissingRequiredParameter = (operation) => {
   const geometry = operation?.planProfile?.geometries?.find(
@@ -290,7 +289,7 @@ const ServicePlanEditor = ({
               ))}
               {hasMissingRequiredParameters && (
                 <p className={styles.status} role="status">
-                  Completá los parámetros obligatorios antes de aplicar el plano.
+                  Completá los parámetros obligatorios con valores válidos no negativos antes de aplicar el plano.
                 </p>
               )}
             </>

@@ -101,6 +101,30 @@ describe('ServicePlanEditor', () => {
     expect(applyButton).toBeEnabled();
   });
 
+  test('rejects negative required geometry parameters before applying', () => {
+    const onApply = jest.fn();
+    render(
+      <ServicePlanEditor
+        isOpen
+        plan={plan}
+        row={{ detalle: 'Divisor curva' }}
+        onApply={onApply}
+        onClose={jest.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Geometría' }), { target: { value: 'rounded-corners' } });
+    fireEvent.change(screen.getByLabelText('Radio (mm)'), { target: { value: '-5' } });
+    const applyButton = screen.getByRole('button', { name: /aplicar plano/i });
+
+    expect(applyButton).toBeDisabled();
+    fireEvent.click(applyButton);
+    expect(onApply).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Radio (mm)'), { target: { value: '0' } });
+    expect(applyButton).toBeEnabled();
+  });
+
   test('splits selected physical units while retaining the shared group', () => {
     const onApply = jest.fn();
     render(
