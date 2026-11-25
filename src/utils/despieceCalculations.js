@@ -169,7 +169,7 @@ const calculateServiceRowTotal = (service, row, detail, matchResult) => {
         return Math.min(mentionQuantity, 4);
     }
 
-    if (kind.isCalado) {
+    if (kind.isCalado && service.tipoCobro === 'unidad') {
         return mentionQuantity;
     }
 
