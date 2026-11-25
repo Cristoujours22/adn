@@ -628,10 +628,18 @@ const TablaPiezas = ({
                     detectedServiceCount={servicePlanMenu.detectedServiceCount}
                     pieceQuantity={servicePlanMenu.row?.cant}
                     triggerRef={servicePlanMenu.triggerRef}
-                    onOpenPlan={() => onOpenServicePlan?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
-                    onConfigure={() => onConfigureServicePlan?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
-                    onApplyToAll={() => onApplyServicePlanToAll?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
-                    onSplitUnits={() => onSplitServicePlanUnits?.(servicePlanMenu.row, servicePlanMenu.rowIndex)}
+                    onOpenPlan={onOpenServicePlan
+                      ? () => onOpenServicePlan(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onConfigure={onConfigureServicePlan
+                      ? () => onConfigureServicePlan(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onApplyToAll={onApplyServicePlanToAll
+                      ? () => onApplyServicePlanToAll(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onSplitUnits={onSplitServicePlanUnits
+                      ? () => onSplitServicePlanUnits(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
                     onClose={() => setServicePlanMenu(null)}
                 />
             )}

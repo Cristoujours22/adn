@@ -107,8 +107,13 @@ describe('TablaPiezas service actions', () => {
     renderTable('Divisor curva', { onOpenServicePlan });
 
     fireEvent.contextMenu(screen.getByDisplayValue('Divisor curva'), { clientX: 120, clientY: 180 });
-    fireEvent.click(screen.getByRole('menuitem', { name: /abrir plano de servicios/i }));
 
+    expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+    expect(screen.queryByRole('menuitem', { name: /configurar servicios/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /aplicar el mismo plano/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /separar unidades/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /abrir plano de servicios/i }));
     expect(onOpenServicePlan).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1' }), 0);
   });
 
