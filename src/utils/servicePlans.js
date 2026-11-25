@@ -29,6 +29,7 @@ const createDetectedOperations = (detail, services) => {
     const current = detectedByService.get(match.serviceId);
     if (current) {
       current.detectedQuantity += match.quantity || 1;
+      current.hasExplicitQuantity = current.hasExplicitQuantity || Boolean(match.hasExplicitQuantity);
       return;
     }
 
@@ -36,6 +37,7 @@ const createDetectedOperations = (detail, services) => {
       id: `operation-${detectedByService.size + 1}`,
       serviceId: match.serviceId,
       detectedQuantity: match.quantity || 1,
+      hasExplicitQuantity: Boolean(match.hasExplicitQuantity),
       geometryId: null,
       parameters: {},
       planProfile: cloneValue(match.service?.planProfile) || null
@@ -51,8 +53,36 @@ export const canOpenServicePlan = (row, services = []) => {
   return findServiceMatches(row?.detalle, services).matches.length > 0;
 };
 
+const groupUnitsByOperations = (quantity, getOperationsForUnit) => {
+  const groupsBySignature = new Map();
+
+  createUnitIndexes(quantity).forEach((unitIndex) => {
+    const operations = cloneValue(getOperationsForUnit(unitIndex) || []);
+    const signature = JSON.stringify(operations);
+    const existing = groupsBySignature.get(signature);
+    if (existing) {
+      existing.unitIndexes.push(unitIndex);
+      return;
+    }
+    groupsBySignature.set(signature, { unitIndexes: [unitIndex], operations });
+  });
+
+  return Array.from(groupsBySignature.values()).map((group, index) => ({
+    id: `group-${index + 1}`,
+    ...group
+  }));
+};
+
+const createOperationGroups = (quantity, operations) => groupUnitsByOperations(
+  quantity,
+  (unitIndex) => operations.filter((operation) => (
+    !operation.hasExplicitQuantity || unitIndex <= operation.detectedQuantity
+  ))
+);
+
 export const createServicePlanSeed = (row, services = []) => {
   const quantity = asPositiveInteger(row?.cant, 1);
+  const operations = createDetectedOperations(row?.detalle, services);
 
   return {
     version: SERVICE_PLAN_VERSION,
@@ -68,13 +98,7 @@ export const createServicePlanSeed = (row, services = []) => {
         a2: row?.a2 == null ? '' : String(row.a2)
       }
     },
-    groups: [
-      {
-        id: 'group-1',
-        unitIndexes: createUnitIndexes(quantity),
-        operations: createDetectedOperations(row?.detalle, services)
-      }
-    ]
+    groups: createOperationGroups(quantity, operations)
   };
 };
 
@@ -135,35 +159,43 @@ export const synchronizeServicePlanWithRow = (existingPlan, row, services = []) 
   const freshPlan = createServicePlanSeed(row, services);
   if (!existingPlan?.groups?.length) return freshPlan;
 
-  const quantity = freshPlan.piece.quantity;
-  const validUnitIndexes = new Set(createUnitIndexes(quantity));
-  const freshOperations = freshPlan.groups[0].operations;
-  const synchronizedGroups = existingPlan.groups
-    .map((group) => ({
-      ...cloneValue(group),
-      unitIndexes: (group.unitIndexes || []).filter((unitIndex) => validUnitIndexes.has(unitIndex)),
-      operations: freshOperations.map((freshOperation) => reconcileOperation(
-        freshOperation,
-        (group.operations || []).find((operation) => operation.serviceId === freshOperation.serviceId)
-      ))
-    }))
-    .filter((group) => group.unitIndexes.length > 0);
+  const existingOperationsByUnit = new Map();
+  const existingOperationsByService = new Map();
+  existingPlan.groups.forEach((group) => {
+    (group.operations || []).forEach((operation) => {
+      if (!existingOperationsByService.has(operation.serviceId)) {
+        existingOperationsByService.set(operation.serviceId, operation);
+      }
+    });
+    (group.unitIndexes || []).forEach((unitIndex) => {
+      existingOperationsByUnit.set(unitIndex, group.operations || []);
+    });
+  });
 
-  if (synchronizedGroups.length === 0) return freshPlan;
+  const freshOperationsByUnit = new Map();
+  freshPlan.groups.forEach((group) => {
+    group.unitIndexes.forEach((unitIndex) => {
+      freshOperationsByUnit.set(unitIndex, group.operations || []);
+    });
+  });
 
-  const coveredUnits = new Set(synchronizedGroups.flatMap((group) => group.unitIndexes));
-  const missingUnits = createUnitIndexes(quantity).filter((unitIndex) => !coveredUnits.has(unitIndex));
-  synchronizedGroups[0].unitIndexes = Array.from(new Set([
-    ...synchronizedGroups[0].unitIndexes,
-    ...missingUnits
-  ])).sort((first, second) => first - second);
+  const synchronizedGroups = groupUnitsByOperations(
+    freshPlan.piece.quantity,
+    (unitIndex) => (freshOperationsByUnit.get(unitIndex) || []).map((freshOperation) => {
+      const unitOperations = existingOperationsByUnit.get(unitIndex) || [];
+      const existingOperation = unitOperations.find(
+        (operation) => operation.serviceId === freshOperation.serviceId
+      ) || existingOperationsByService.get(freshOperation.serviceId);
+      return reconcileOperation(freshOperation, existingOperation);
+    })
+  );
 
-  return mergeIdenticalPlanGroups({
+  return {
     version: SERVICE_PLAN_VERSION,
     rowId: row?.id || existingPlan.rowId || null,
     piece: freshPlan.piece,
     groups: synchronizedGroups
-  });
+  };
 };
 
 export const applyServicePlanToDespieces = (

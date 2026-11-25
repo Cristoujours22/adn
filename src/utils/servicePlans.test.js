@@ -53,7 +53,7 @@ describe('service plan instances', () => {
     expect(canOpenServicePlan(row({ cant: 1, detalle: 'Divisor' }), services)).toBe(false);
   });
 
-  test('creates one shared hybrid plan group from row dimensions and detected services', () => {
+  test('assigns explicitly quantified services to the matching physical units', () => {
     const plan = createServicePlanSeed(row(), services);
 
     expect(plan).toMatchObject({
@@ -66,11 +66,13 @@ describe('service plan instances', () => {
         edges: { l1: '1', l2: '1', a1: '1', a2: '1' }
       }
     });
-    expect(plan.groups).toHaveLength(1);
-    expect(plan.groups[0].unitIndexes).toEqual([1, 2, 3, 4]);
+    expect(plan.groups.map((group) => group.unitIndexes)).toEqual([[1, 2], [3, 4]]);
     expect(plan.groups[0].operations).toEqual([
       expect.objectContaining({ serviceId: 'CURVE', detectedQuantity: 1, geometryId: null }),
       expect.objectContaining({ serviceId: 'HOLE', detectedQuantity: 2, geometryId: null })
+    ]);
+    expect(plan.groups[1].operations).toEqual([
+      expect.objectContaining({ serviceId: 'CURVE', detectedQuantity: 1, geometryId: null })
     ]);
     expect(plan.groups[0].operations[0].planProfile).toEqual(services[0].planProfile);
     expect(plan.groups[0].operations[1].planProfile).toBeNull();
@@ -80,9 +82,9 @@ describe('service plan instances', () => {
     const original = createServicePlanSeed(row(), services);
     const split = splitPlanUnits(original, [4]);
 
-    expect(split.groups.map((group) => group.unitIndexes)).toEqual([[1, 2, 3], [4]]);
-    split.groups[1].operations[0].parameters.radius = 80;
-    expect(split.groups[0].operations[0].parameters).toEqual({});
+    expect(split.groups.map((group) => group.unitIndexes)).toEqual([[1, 2], [3], [4]]);
+    split.groups[2].operations[0].parameters.radius = 80;
+    expect(split.groups[1].operations[0].parameters).toEqual({});
   });
 
   test('synchronizes piece dimensions and quantity while preserving configured geometry', () => {
@@ -103,6 +105,22 @@ describe('service plan instances', () => {
       geometryId: 'rounded-corners',
       parameters: { radius: 80 }
     });
+  });
+
+  test('keeps explicit service ownership when synchronizing a saved plan', () => {
+    const synchronized = synchronizeServicePlanWithRow(
+      createServicePlanSeed(row(), services),
+      row(),
+      services
+    );
+
+    expect(synchronized.groups.map((group) => ({
+      units: group.unitIndexes,
+      services: group.operations.map((operation) => operation.serviceId)
+    }))).toEqual([
+      { units: [1, 2], services: ['CURVE', 'HOLE'] },
+      { units: [3, 4], services: ['CURVE'] }
+    ]);
   });
 
   test('removes stale units and service operations when the source row changes', () => {
@@ -145,12 +163,12 @@ describe('service plan instances', () => {
   });
 
   test('merges groups again only when their geometry state is identical', () => {
-    const split = splitPlanUnits(createServicePlanSeed(row(), services), [4]);
+    const split = splitPlanUnits(createServicePlanSeed(row({ detalle: 'Divisor curva' }), services), [4]);
     expect(mergeIdenticalPlanGroups(split).groups.map((group) => group.unitIndexes)).toEqual([
       [1, 2, 3, 4]
     ]);
 
-    const changed = splitPlanUnits(createServicePlanSeed(row(), services), [4]);
+    const changed = splitPlanUnits(createServicePlanSeed(row({ detalle: 'Divisor curva' }), services), [4]);
     changed.groups[1].operations[0].geometryId = 'rounded-corners';
     changed.groups[1].operations[0].parameters.radius = 80;
 
