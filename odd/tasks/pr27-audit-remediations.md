@@ -16,7 +16,7 @@ Fresh audit findings must be reproduced and corrected before PR #27 can be consi
 - **T6** — S1 — Give context-menu actions honest, distinct behavior and clamp the menu to the viewport. Route: inline test-first. Commits: `3057a22`, `633e0bf`.
 - **T7** — S1 — Keep CAD geometry valid for extreme aspect ratios. Route: inline test-first. Commit: `28867bd`.
 - **T8** — S1 — Stabilize imported-service memo dependencies so the production build passes with CI warnings-as-errors. Route: inline build-failure correction. Commit: `dbca13f`.
-- **T9** — S1 — Run consolidated verification and independent re-audit. Route: high-risk independent verification. Commit: closing documentation commit (recorded below).
+- **T9** — S1 — Run consolidated verification and independent re-audit. Route: high-risk independent verification. Commit: `919cd9a`.
 
 ## Log
 
