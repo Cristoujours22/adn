@@ -43,6 +43,10 @@ import {
   synchronizeServicePlanWithRow
 } from './utils/servicePlans';
 
+export const resolveServicePlanDespieceId = (editorState, activeDespieceId) => (
+  editorState?.despieceId || activeDespieceId
+);
+
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
   if (result.status !== 'valid' || result.serviceId !== selection?.serviceId || !selection?.accepted) {
@@ -527,15 +531,15 @@ const ModeloDespiece = () => {
     const plan = row?.servicePlan
       ? synchronizeServicePlanWithRow(row.servicePlan, row, services)
       : createServicePlanSeed(row, services);
-    setServicePlanEditor({ row, rowIndex, plan });
-  }, [services]);
+    setServicePlanEditor({ row, rowIndex, plan, despieceId: activeDespieceId });
+  }, [activeDespieceId, services]);
 
   const handleApplyServicePlan = useCallback((plan) => {
     if (!servicePlanEditor) return;
     saveToHistory();
     setDespieces((previous) => applyServicePlanToDespieces(
       previous,
-      activeDespieceId,
+      resolveServicePlanDespieceId(servicePlanEditor, activeDespieceId),
       servicePlanEditor.rowIndex,
       plan
     ));
