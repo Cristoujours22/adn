@@ -33,13 +33,14 @@ const countServiceMatches = (detail, service) => {
 
 export const detectServiceOccurrences = (filas = [], services = [], selectedServiceId) => {
     if (!filas.length) return { status: 'empty', rowIds: [], count: 0 };
-    if (!services.length) return { status: 'empty', rowIds: [], count: 0 };
-    const matches = services.flatMap((service) => filas.flatMap((row) => {
+    const activeServices = services.filter((service) => service?.activo !== false);
+    if (!activeServices.length) return { status: 'empty', rowIds: [], count: 0 };
+    const matches = activeServices.flatMap((service) => filas.flatMap((row) => {
         const count = countServiceMatches(row?.detalle, service);
         return count ? [{ service, rowId: row.id, count }] : [];
     }));
     if (!matches.length) {
-        const hasRejectedSubstring = filas.some((row) => services.some((service) => {
+        const hasRejectedSubstring = filas.some((row) => activeServices.some((service) => {
             const terms = [service?.nombreOriginal, service?.nomenclatura, ...(service?.aliases || [])].filter(Boolean);
             return terms.some((term) => String(row?.detalle || '').toLowerCase().includes(String(term).toLowerCase()));
         }));

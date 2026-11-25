@@ -19,6 +19,16 @@ test('selected service detection keeps same-row ambiguity unresolved', () => {
   expect(detectServiceOccurrences([{ id: 'r1', detalle: 'PERBIS CANTO ALUMINIO' }], services, 'svc_perbis').status).toBe('unresolved');
 });
 
+test('inactive services cannot create ambiguity in legacy service detection', () => {
+  const catalog = [services[0], { ...services[1], activo: false }];
+
+  expect(detectServiceOccurrences(
+    [{ id: 'r1', detalle: 'PERBIS CANTO ALUMINIO' }],
+    catalog,
+    'svc_perbis'
+  )).toEqual({ status: 'valid', serviceId: 'svc_perbis', rowIds: ['r1'], count: 1 });
+});
+
 test.each([
   ['ml_largo', { largo: 1200, ancho: 500 }, 1.2],
   ['ml_perimetro', { largo: 1200, ancho: 500 }, 3.4],
