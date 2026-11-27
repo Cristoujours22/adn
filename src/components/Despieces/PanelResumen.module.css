@@ -1,0 +1,86 @@
+.serviceListRegion {
+  max-height: min(50vh, 32rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.serviceListRegionLight {
+  color-scheme: light;
+  scrollbar-color: #6c757d #f8f9fa;
+}
+
+.serviceListRegionDark {
+  color-scheme: dark;
+  scrollbar-color: #9aa4b2 #1c1f26;
+}
+
+.serviceListRegion:focus-visible {
+  outline: 3px solid #1a73e8;
+  outline-offset: 3px;
+}
+
+.serviceList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.serviceRow {
+  padding: 8px;
+}
+
+.serviceDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.serviceName,
+.serviceCount {
+  font-size: 13px;
+}
+
+.serviceNomenclature {
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .summaryPanel {
+    position: static !important;
+  }
+
+  .serviceListRegion {
+    max-height: min(34vh, 20rem);
+  }
+}
+
+@media (forced-colors: active) {
+  .serviceListRegion {
+    border: 1px solid CanvasText;
+    scrollbar-color: CanvasText Canvas;
+  }
+
+  .serviceListRegion:focus-visible {
+    outline: 3px solid Highlight;
+  }
+
+  .serviceRow {
+    background: Canvas !important;
+    border-bottom-color: CanvasText !important;
+    color: CanvasText;
+  }
+
+  .serviceName,
+  .serviceNomenclature {
+    color: CanvasText !important;
+  }
+
+  .serviceCount {
+    background: Highlight !important;
+    color: HighlightText !important;
+    border: 1px solid HighlightText;
+  }
+}
