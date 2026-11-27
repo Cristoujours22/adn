@@ -40,6 +40,48 @@ const SUPPORTED_MEASUREMENT_BASES = [
   'max-dimension-600'
 ];
 
+export const SUPPORTED_PLAN_SCOPES = [
+  'outer-contour',
+  'internal-contour',
+  'surface',
+  'edge',
+  'internal-edge'
+];
+
+export const SUPPORTED_PLAN_MODES = ['fixed', 'selectable', 'custom'];
+
+export const SUPPORTED_GEOMETRY_PRIMITIVES = [
+  'point',
+  'line',
+  'circle',
+  'arc',
+  'rounded-corners',
+  'chamfer',
+  'slot',
+  'pocket',
+  'path',
+  'edge-treatment'
+];
+
+export const SUPPORTED_GEOMETRY_PARAMETER_KINDS = [
+  'length',
+  'width',
+  'depth',
+  'radius',
+  'diameter',
+  'angle',
+  'count',
+  'spacing',
+  'position-x',
+  'position-y',
+  'edge',
+  'face',
+  'direction',
+  'path'
+];
+
+export const SUPPORTED_GEOMETRY_UNITS = ['mm', 'degrees', 'count', 'none'];
+
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
@@ -73,6 +115,156 @@ const validateBooleanField = (value, field, path, errors) => {
   if (typeof value[field] !== 'boolean') {
     addError(errors, 'invalid-type', path, `El campo "${path}" debe ser booleano.`);
   }
+};
+
+const validateAllowedValue = (value, path, allowedValues, errors) => {
+  if (typeof value !== 'string' || !allowedValues.includes(value)) {
+    addError(
+      errors,
+      'invalid-value',
+      path,
+      `El valor de "${path}" no está soportado.`,
+      { allowedValues }
+    );
+  }
+};
+
+const addDuplicateNestedIdErrors = (items, path, code, errors) => {
+  const ids = new Map();
+  items.forEach((item, index) => {
+    const normalizedId = normalizeServiceText(item?.id);
+    if (!normalizedId) return;
+    const indexes = ids.get(normalizedId) || [];
+    indexes.push(index);
+    ids.set(normalizedId, indexes);
+  });
+
+  ids.forEach((indexes, normalizedId) => {
+    if (indexes.length < 2) return;
+    addError(
+      errors,
+      code,
+      path,
+      `El identificador "${normalizedId}" está duplicado en "${path}".`,
+      { normalizedValue: normalizedId, indexes }
+    );
+  });
+};
+
+const validateGeometryParameter = (parameter, parameterIndex, geometryPath, errors) => {
+  const path = `${geometryPath}.parameters[${parameterIndex}]`;
+  if (!isRecord(parameter)) {
+    addError(errors, 'invalid-schema', path, `El elemento "${path}" debe ser un objeto.`);
+    return;
+  }
+
+  ['id', 'label', 'kind', 'unit'].forEach((field) => {
+    validateStringField(parameter, field, `${path}.${field}`, errors);
+  });
+  validateBooleanField(parameter, 'required', `${path}.required`, errors);
+
+  if (typeof parameter.kind === 'string') {
+    validateAllowedValue(
+      parameter.kind,
+      `${path}.kind`,
+      SUPPORTED_GEOMETRY_PARAMETER_KINDS,
+      errors
+    );
+  }
+  if (typeof parameter.unit === 'string') {
+    validateAllowedValue(parameter.unit, `${path}.unit`, SUPPORTED_GEOMETRY_UNITS, errors);
+  }
+};
+
+const validateGeometry = (geometry, geometryIndex, profilePath, errors) => {
+  const path = `${profilePath}.geometries[${geometryIndex}]`;
+  if (!isRecord(geometry)) {
+    addError(errors, 'invalid-schema', path, `El elemento "${path}" debe ser un objeto.`);
+    return;
+  }
+
+  ['id', 'label', 'primitive'].forEach((field) => {
+    validateStringField(geometry, field, `${path}.${field}`, errors);
+  });
+
+  if (typeof geometry.primitive === 'string') {
+    validateAllowedValue(
+      geometry.primitive,
+      `${path}.primitive`,
+      SUPPORTED_GEOMETRY_PRIMITIVES,
+      errors
+    );
+  }
+
+  if (!hasOwn(geometry, 'parameters')) {
+    addError(errors, 'missing-field', `${path}.parameters`, `Falta el campo requerido "${path}.parameters".`);
+  } else if (!Array.isArray(geometry.parameters)) {
+    addError(errors, 'invalid-type', `${path}.parameters`, `El campo "${path}.parameters" debe ser un arreglo.`);
+  } else {
+    geometry.parameters.forEach((parameter, parameterIndex) => {
+      validateGeometryParameter(parameter, parameterIndex, path, errors);
+    });
+    addDuplicateNestedIdErrors(
+      geometry.parameters,
+      `${path}.parameters`,
+      'duplicate-parameter-id',
+      errors
+    );
+  }
+};
+
+const validatePlanProfile = (profile, servicePath, errors) => {
+  const path = `${servicePath}.planProfile`;
+  if (!isRecord(profile)) {
+    addError(errors, 'invalid-schema', path, `El campo "${path}" debe ser un objeto.`);
+    return;
+  }
+
+  validateStringField(profile, 'scope', `${path}.scope`, errors);
+  validateStringField(profile, 'mode', `${path}.mode`, errors);
+
+  if (typeof profile.scope === 'string') {
+    validateAllowedValue(profile.scope, `${path}.scope`, SUPPORTED_PLAN_SCOPES, errors);
+  }
+  if (typeof profile.mode === 'string') {
+    validateAllowedValue(profile.mode, `${path}.mode`, SUPPORTED_PLAN_MODES, errors);
+  }
+
+  if (!hasOwn(profile, 'geometries')) {
+    addError(errors, 'missing-field', `${path}.geometries`, `Falta el campo requerido "${path}.geometries".`);
+    return;
+  }
+  if (!Array.isArray(profile.geometries)) {
+    addError(errors, 'invalid-type', `${path}.geometries`, `El campo "${path}.geometries" debe ser un arreglo.`);
+    return;
+  }
+
+  if (profile.geometries.length === 0) {
+    addError(
+      errors,
+      'invalid-geometry-count',
+      `${path}.geometries`,
+      'El perfil de plano debe declarar al menos una geometría.'
+    );
+  }
+  if (profile.mode === 'fixed' && profile.geometries.length !== 1) {
+    addError(
+      errors,
+      'invalid-geometry-count',
+      `${path}.geometries`,
+      'Un perfil fijo debe declarar exactamente una geometría.'
+    );
+  }
+
+  profile.geometries.forEach((geometry, geometryIndex) => {
+    validateGeometry(geometry, geometryIndex, path, errors);
+  });
+  addDuplicateNestedIdErrors(
+    profile.geometries,
+    `${path}.geometries`,
+    'duplicate-geometry-id',
+    errors
+  );
 };
 
 const validateAliases = (service, path, errors) => {
@@ -121,6 +313,10 @@ const validateService = (service, serviceIndex, errors) => {
       `El tipo de cobro "${service.chargeType}" no está soportado.`,
       { allowedValues: SUPPORTED_CHARGE_TYPES }
     );
+  }
+
+  if (hasOwn(service, 'planProfile')) {
+    validatePlanProfile(service.planProfile, path, errors);
   }
 
   if (
@@ -221,6 +417,27 @@ const findTermCollisions = (services) => {
     .filter(Boolean);
 };
 
+const normalizePlanProfile = (profile) => ({
+  scope: profile.scope,
+  mode: profile.mode,
+  geometries: Array.isArray(profile.geometries)
+    ? profile.geometries.map((geometry) => ({
+      id: geometry.id,
+      label: geometry.label,
+      primitive: geometry.primitive,
+      parameters: Array.isArray(geometry.parameters)
+        ? geometry.parameters.map((parameter) => ({
+          id: parameter.id,
+          label: parameter.label,
+          kind: parameter.kind,
+          unit: parameter.unit,
+          required: parameter.required
+        }))
+        : []
+    }))
+    : []
+});
+
 export const normalizeDictionaryService = (service) => {
   if (!isRecord(service)) return service;
 
@@ -236,7 +453,8 @@ export const normalizeDictionaryService = (service) => {
     activo: service.active,
     description: service.description,
     measurementBasis: service.measurementBasis,
-    requiresReview: service.requiresReview
+    requiresReview: service.requiresReview,
+    ...(isRecord(service.planProfile) ? { planProfile: normalizePlanProfile(service.planProfile) } : {})
   };
 };
 
