@@ -152,6 +152,7 @@ export const findServiceMatches = (detail, services = []) => {
   const candidates = [];
 
   (Array.isArray(services) ? services : []).forEach((service, serviceIndex) => {
+    if (service?.activo === false) return;
     getServiceTerms(service).forEach((term) => {
       candidates.push(...buildCandidate(rawDetail, normalizedDetail, service, term, serviceIndex));
     });

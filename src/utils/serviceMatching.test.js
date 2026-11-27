@@ -59,6 +59,16 @@ describe('service matching', () => {
     expect(countFor('2 lcurva', services[1])).toBe(0);
   });
 
+  test('excludes inactive services from detected matches', () => {
+    const result = findServiceMatches('curva nariz', [
+      { ...services[1], activo: false },
+      services[2]
+    ]);
+
+    expect(result.matches.map((match) => match.serviceId)).toEqual(['SRNAR000']);
+    expect(getServiceMatchCount(result, 'CSCURVA1')).toBe(0);
+  });
+
   test('enforces token boundaries for short aliases', () => {
     expect(countFor('curvado', services[1])).toBe(0);
     expect(countFor('naranja', services[2])).toBe(0);
