@@ -1,0 +1,28 @@
+{
+  "title": "Service CAD plans",
+  "brief": "Configure neutral service geometry from a despiece row, with hybrid quantity handling and external millimetre dimensions.",
+  "feature": "odd/tasks/service-cad-plans.md",
+  "artboards": [
+    {
+      "file": "01-cad-workbench.html",
+      "title": "CAD workbench",
+      "tradeoff": "Maximum drawing precision and density; steeper learning curve",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-context-drawer.html",
+      "title": "Context drawer",
+      "tradeoff": "Keeps the despiece table visible; gives the drawing less space",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-guided-geometry.html",
+      "title": "Guided geometry",
+      "tradeoff": "Easiest for occasional users; slower for expert repetitive work",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

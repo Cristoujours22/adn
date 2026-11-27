@@ -26,6 +26,7 @@ import {
 import ModuleDetectionSettingsModal from './components/Despieces/ModuleDetectionSettingsModal';
 import ServiceDictionaryImport from './components/Despieces/ServiceDictionaryImport';
 import SuperGroupDialog from './components/Despieces/SuperGroupDialog';
+import ServicePlanEditor from './components/Despieces/ServicePlanEditor';
 import {
   applySuperGroupPreview,
   createSuperGroupPreview,
@@ -34,6 +35,21 @@ import {
   ungroupSuperGroup
 } from './utils/superGrouping';
 import { normalizeServiceText, validateServiceAliasCollisions } from './utils/serviceMatching';
+import { resolveServiceCatalog } from './utils/serviceCatalog';
+import {
+  applyServicePlanToDespieces,
+  cloneServicePlan,
+  createServicePlanSeed,
+  synchronizeServicePlanWithRow
+} from './utils/servicePlans';
+
+export const shouldApplyHydratedServiceCatalog = (loadVersion, currentVersion) => (
+  loadVersion === currentVersion
+);
+
+export const resolveServicePlanDespieceId = (editorState, activeDespieceId) => (
+  editorState?.despieceId || activeDespieceId
+);
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -157,6 +173,19 @@ const normalizeReglasCantoConfig = (config) => {
 // El catálogo especial comienza vacío y sólo se completa mediante una importación explícita.
 export const DEFAULT_SERVICES = [];
 
+export const persistUserServiceCatalog = async (userId, services) => {
+  if (!userId) {
+    throw new Error('Debes estar autenticado para guardar el catálogo global.');
+  }
+
+  const userServicesRef = doc(db, 'userServices', userId);
+  await setDoc(userServicesRef, {
+    userId,
+    servicios: services,
+    fechaActualizacion: new Date().toLocaleDateString()
+  });
+};
+
 export const normalizeServiceAliases = (value) => (
   String(value || '')
     .split(',')
@@ -200,6 +229,7 @@ const ModeloDespiece = () => {
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
   const [services, setServices] = useState(() => DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) }))); // Initialize with canonical ids
+  const serviceCatalogVersionRef = useRef(0);
   const [newServiceNombre, setNewServiceNombre] = useState('');
   const [newServiceNomenclatura, setNewServiceNomenclatura] = useState('');
   const [newServiceAliases, setNewServiceAliases] = useState('');
@@ -252,7 +282,7 @@ const ModeloDespiece = () => {
     try {
       const userServicesRef = doc(db, 'userServices', currentUser.uid);
       const userServicesSnap = await getDoc(userServicesRef);
-      if (userServicesSnap.exists() && userServicesSnap.data()?.servicios) {
+      if (userServicesSnap.exists() && Array.isArray(userServicesSnap.data()?.servicios)) {
         return userServicesSnap.data().servicios;
       }
     } catch (error) {
@@ -268,12 +298,7 @@ const ModeloDespiece = () => {
       return;
     }
     try {
-      const userServicesRef = doc(db, 'userServices', currentUser.uid);
-      await setDoc(userServicesRef, {
-        userId: currentUser.uid,
-        servicios: services,
-        fechaActualizacion: new Date().toLocaleDateString()
-      });
+      await persistUserServiceCatalog(currentUser.uid, services);
       alert('Servicios guardados como tus valores por defecto.');
     } catch (error) {
       console.error('Error al guardar servicios del usuario:', error);
@@ -298,10 +323,10 @@ const ModeloDespiece = () => {
   useEffect(() => {
     if (!id) {
       const loadInitialServices = async () => {
+        const loadVersion = serviceCatalogVersionRef.current;
         const userServices = await loadUserServices();
-        if (userServices) {
-          setServices(userServices.map(normalizeStoredService));
-        }
+        if (!shouldApplyHydratedServiceCatalog(loadVersion, serviceCatalogVersionRef.current)) return;
+        setServices(resolveServiceCatalog({ globalServices: userServices }).map(normalizeStoredService));
       };
       loadInitialServices();
     }
@@ -312,6 +337,7 @@ const ModeloDespiece = () => {
   const [pieceSearchAncho, setPieceSearchAncho] = useState('');
   const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
   const [cobroExtraModal, setCobroExtraModal] = useState({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
+  const [servicePlanEditor, setServicePlanEditor] = useState(null);
   const [showModuleColors, setShowModuleColors] = useState(false);
   const editingValueRef = useRef({}); // Guarda el valor original cuando se entra en edición { "0_largo": "790", "1_cant": "2" }
   const { darkMode } = useTheme();
@@ -508,6 +534,25 @@ const ModeloDespiece = () => {
     });
   }, [despieces]);
 
+  const handleOpenServicePlan = useCallback((row, rowIndex) => {
+    const plan = row?.servicePlan
+      ? synchronizeServicePlanWithRow(row.servicePlan, row, services)
+      : createServicePlanSeed(row, services);
+    setServicePlanEditor({ row, rowIndex, plan, despieceId: activeDespieceId });
+  }, [activeDespieceId, services]);
+
+  const handleApplyServicePlan = useCallback((plan) => {
+    if (!servicePlanEditor) return;
+    saveToHistory();
+    setDespieces((previous) => applyServicePlanToDespieces(
+      previous,
+      resolveServicePlanDespieceId(servicePlanEditor, activeDespieceId),
+      servicePlanEditor.rowIndex,
+      plan
+    ));
+    setServicePlanEditor(null);
+  }, [activeDespieceId, saveToHistory, servicePlanEditor]);
+
   const undo = useCallback(() => {
     setHistory(prev => {
         if (prev.length === 0) return prev;
@@ -656,16 +701,16 @@ const ModeloDespiece = () => {
               setActiveDespieceId(def.id);
           }
           rowIdCounter = maxRowId;
-          // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
-          if (data.serviciosGuardados) {
-            const parsedServices = hydrateDespieceSchema({ filas: [] }, data.serviciosGuardados).services.map(normalizeStoredService);
+          // Priorizar el catálogo global; usar serviciosGuardados sólo como fallback legado.
+          const loadVersion = serviceCatalogVersionRef.current;
+          const userServices = await loadUserServices();
+          if (shouldApplyHydratedServiceCatalog(loadVersion, serviceCatalogVersionRef.current)) {
+            const resolvedServices = resolveServiceCatalog({
+              globalServices: userServices,
+              projectServices: data.serviciosGuardados
+            });
+            const parsedServices = hydrateDespieceSchema({ filas: [] }, resolvedServices).services.map(normalizeStoredService);
             setServices(parsedServices);
-          } else {
-            // Si no hay servicios en el proyecto, cargar servicios del usuario o defaults
-            const userServices = await loadUserServices();
-            if (userServices) {
-              setServices(userServices.map(normalizeStoredService));
-            }
           }
         }
       } catch (err) {
@@ -673,8 +718,7 @@ const ModeloDespiece = () => {
       }
     };
     fetchDespiece();
-    // eslint-disable-next-line
-  }, [id]);
+  }, [id, loadUserServices]);
 
   // Calcular totales (piezas y servicios) sólo de la pestaña activa cada vez que cambien datos o de pestaña
   useEffect(() => {
@@ -769,7 +813,7 @@ const ModeloDespiece = () => {
     validatePersistenceIdentity(projectName, clientName);
     const snapshot = snapshotFor(candidateDespieces, documentId);
     const history = includeSecondary && documentId ? () => guardarVersion(documentId, { despieces: candidateDespieces, servicios: services, proyecto: projectName, cliente: clientName }) : null;
-    const defaults = includeSecondary && currentUser?.uid ? () => setDoc(doc(db, 'userServices', currentUser.uid), { userId: currentUser.uid, servicios: services, fechaActualizacion: new Date().toLocaleDateString() }) : null;
+    const defaults = null;
     const result = await coordinateSnapshotPersistence(snapshot, (value, options) => persistDespieceSnapshot(value, { db, collection, doc, writeBatch }, options), {
       history,
       defaults,
@@ -834,7 +878,15 @@ const ModeloDespiece = () => {
     setShowNomenclaturesModal(true);
   };
 
-  const handleConfirmServiceDictionaryImport = (importedServices) => {
+  const handleConfirmServiceDictionaryImport = async (importedServices) => {
+    try {
+      await persistUserServiceCatalog(currentUser?.uid, importedServices);
+    } catch (error) {
+      console.error('Error al guardar el catálogo global:', error);
+      throw new Error('No se pudo guardar el catálogo global. Verificá tu conexión y reintentá.');
+    }
+
+    serviceCatalogVersionRef.current += 1;
     setServices(importedServices);
     setShowServiceDictionaryImport(false);
     setShowNomenclaturesModal(true);
@@ -970,6 +1022,7 @@ const ModeloDespiece = () => {
         l2: row.l2 || '',
         a1: row.a1 || '',
         a2: row.a2 || '',
+        ...(row.servicePlan ? { servicePlan: cloneServicePlan(row.servicePlan) } : {})
       }));
       filas.splice(insertIndex + 1, 0, ...newRows);
       return {
@@ -2217,6 +2270,15 @@ const ModeloDespiece = () => {
               focusReturnRef={superGroupTableRef}
               superGroups={activeDespieceForGrouping?.superGroups || []}
               onUngroupSuperGroup={handleUngroupSuperGroup}
+              onOpenServicePlan={handleOpenServicePlan}
+            />
+
+            <ServicePlanEditor
+              isOpen={Boolean(servicePlanEditor)}
+              plan={servicePlanEditor?.plan}
+              row={servicePlanEditor?.row}
+              onApply={handleApplyServicePlan}
+              onClose={() => setServicePlanEditor(null)}
             />
 
           </form>

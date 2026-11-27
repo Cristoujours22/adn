@@ -40,17 +40,24 @@ const ServiceDictionaryImport = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [parseResult, setParseResult] = useState(null);
   const [readError, setReadError] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [isReading, setIsReading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setSelectedFile(null);
     setParseResult(null);
     setReadError('');
+    setSaveError('');
     setIsReading(false);
+    setIsSaving(false);
   }, [isOpen]);
 
-  const importedServices = parseResult?.normalizedServices || [];
+  const importedServices = useMemo(
+    () => parseResult?.normalizedServices || [],
+    [parseResult?.normalizedServices]
+  );
   const activeServices = useMemo(
     () => importedServices.filter((service) => service.activo !== false),
     [importedServices]
@@ -61,7 +68,7 @@ const ServiceDictionaryImport = ({
   );
   const errors = parseResult?.errors || [];
   const collisions = parseResult?.collisions || [];
-  const canConfirm = Boolean(parseResult?.valid && !isReading && !readError);
+  const canConfirm = Boolean(parseResult?.valid && !isReading && !isSaving && !readError);
 
   if (!isOpen) return null;
 
@@ -70,6 +77,7 @@ const ServiceDictionaryImport = ({
     setSelectedFile(file);
     setParseResult(null);
     setReadError('');
+    setSaveError('');
 
     if (!file) return;
 
@@ -84,9 +92,24 @@ const ServiceDictionaryImport = ({
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!canConfirm) return;
-    onConfirm(importedServices);
+
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      await onConfirm(importedServices);
+    } catch (error) {
+      const fallback = 'No se pudo guardar el catálogo global. Verificá tu conexión y reintentá.';
+      const message = error?.message || '';
+      setSaveError(
+        message.startsWith('No se pudo guardar el catálogo global')
+          ? message
+          : `${fallback}${message ? ` (${message})` : ''}`
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -114,11 +137,13 @@ const ServiceDictionaryImport = ({
           type="file"
           accept=".json,application/json"
           onChange={handleFileChange}
-          disabled={isReading}
+          disabled={isReading || isSaving}
         />
         {selectedFile && <p>Archivo seleccionado: {selectedFile.name}</p>}
         {isReading && <p role="status" aria-live="polite">Leyendo archivo…</p>}
+        {isSaving && <p role="status" aria-live="polite">Guardando catálogo global…</p>}
         {readError && <p role="alert">{readError}</p>}
+        {saveError && <p role="alert">{saveError}</p>}
 
         {parseResult && (
           <section aria-labelledby="service-dictionary-preview-title">
@@ -163,7 +188,7 @@ const ServiceDictionaryImport = ({
           <button type="button" onClick={handleConfirm} disabled={!canConfirm}>
             Confirmar y reemplazar catálogo
           </button>
-          <button type="button" onClick={onCancel}>
+          <button type="button" onClick={onCancel} disabled={isSaving}>
             Cancelar importación
           </button>
         </div>
