@@ -1,0 +1,284 @@
+{
+  "schemaVersion": "1.0",
+  "dictionary": {
+    "id": "codigos-generales",
+    "name": "Códigos generales",
+    "kind": "optional-general-template",
+    "language": "es",
+    "autoload": false,
+    "visibility": "product",
+    "description": "Plantilla neutral y opcional. ADN inicia sin servicios especiales y sólo carga este diccionario mediante una importación explícita."
+  },
+  "services": [
+    {
+      "code": "GEN_RANURA_PERFIL",
+      "name": "Ranura para perfil",
+      "description": "Canal mecanizado para alojar un perfil cuya geometría debe especificarse.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-dimension",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_PERFORACION_BISAGRA_CAZOLETA",
+      "name": "Perforación para bisagra de cazoleta",
+      "description": "Perforación circular para instalar una bisagra oculta de cazoleta.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_RANURA_FONDO",
+      "name": "Ranura para fondo",
+      "description": "Canal destinado a encajar el fondo de un mueble o cajón.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-dimension",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_RANURA_PERFIL_LED",
+      "name": "Ranura para perfil LED",
+      "description": "Canal destinado a alojar un perfil o sistema de iluminación LED.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-dimension",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CORTE_CURVO",
+      "name": "Corte curvo",
+      "description": "Corte que produce un contorno curvo en la pieza.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_PERFIL_REDONDEADO_CANTO",
+      "name": "Perfil redondeado de canto",
+      "description": "Mecanizado que redondea uno o varios bordes de la pieza.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-sides",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_PANEL_ENGROSADO_CLAVILLOS",
+      "name": "Panel engrosado con clavillos",
+      "description": "Unión de piezas mediante clavillos para aumentar el espesor del panel.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-dimension",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_PANEL_ENGROSADO_ADHESIVO",
+      "name": "Panel engrosado mediante adhesivo",
+      "description": "Unión de piezas mediante adhesivo para aumentar el espesor del panel.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-dimension",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_ENGROSADO_PERIMETRAL_MELAMINA",
+      "name": "Engrosado perimetral con melamina",
+      "description": "Construcción de un marco perimetral para aumentar el grosor visible de la pieza.",
+      "aliases": [],
+      "chargeType": "ml_perimetro",
+      "measurementBasis": "perimeter",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_CORTE_CIRCULAR",
+      "name": "Corte circular",
+      "description": "Corte exterior que produce una pieza con contorno circular.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_CALADO_CIRCULAR",
+      "name": "Calado circular",
+      "description": "Abertura circular que atraviesa la pieza.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_CORTE_ANGULO",
+      "name": "Corte en ángulo",
+      "description": "Corte realizado con una inclinación diferente de 90 grados.",
+      "aliases": [],
+      "chargeType": "escala_60",
+      "measurementBasis": "max-dimension-600",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CALADO_PASANTE",
+      "name": "Calado pasante",
+      "description": "Abertura que atraviesa completamente la pieza.",
+      "aliases": [],
+      "chargeType": "escala_60",
+      "measurementBasis": "max-dimension-600",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CALADO_INTERIOR",
+      "name": "Calado interior",
+      "description": "Abertura realizada dentro del contorno exterior de la pieza.",
+      "aliases": [],
+      "chargeType": "escala_60",
+      "measurementBasis": "max-dimension-600",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CORTE_L",
+      "name": "Corte o calado en L",
+      "description": "Mecanizado que produce un contorno o abertura con forma de L.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_CHAFLANADO_CANTO",
+      "name": "Chaflanado de canto",
+      "description": "Corte inclinado que elimina la esquina recta de un borde.",
+      "aliases": ["chaflán", "chaflan"],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CANTEADO_MANUAL",
+      "name": "Canteado manual",
+      "description": "Aplicación manual del material de acabado sobre un borde.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-sides",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CANTEADO_CURVO",
+      "name": "Canteado curvo",
+      "description": "Aplicación de material de canto sobre un borde curvo.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-sides",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CANTEADO_CURVO_RIGIDO_2MM",
+      "name": "Canteado curvo con banda rígida de 2 mm",
+      "description": "Aplicación de una banda rígida de 2 mm sobre un borde curvo.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-sides",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_RANURA_ENSAMBLE",
+      "name": "Ranura de ensamble",
+      "description": "Canal utilizado para encajar otra pieza durante el armado.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_CAJEADO",
+      "name": "Cajeado",
+      "description": "Extracción localizada de material sin atravesar completamente la pieza.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_PERFORACION_PASACABLES",
+      "name": "Perforación pasacables",
+      "description": "Abertura destinada al paso y organización de cables.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_TIRADOR_CHAFLAN",
+      "name": "Tirador integrado mediante chaflán",
+      "description": "Borde cortado en ángulo para permitir la apertura sin una manija adicional.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CAJEADO_TIRADOR_EMBUTIDO",
+      "name": "Cajeado para tirador embutido",
+      "description": "Rebaje preparado para instalar un tirador dentro de la pieza.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_TIRADOR_V",
+      "name": "Tirador integrado en V",
+      "description": "Corte angular en forma de V que permite abrir una puerta o un cajón.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": true,
+      "requiresReview": false
+    },
+    {
+      "code": "GEN_CALADO_SEMICIRCULAR",
+      "name": "Calado semicircular",
+      "description": "Abertura en forma de media luna, normalmente utilizada como agarre.",
+      "aliases": [],
+      "chargeType": "unidad",
+      "measurementBasis": "unit",
+      "active": false,
+      "requiresReview": true
+    },
+    {
+      "code": "GEN_ENGROSADO_PERFIL_REDONDEADO",
+      "name": "Engrosado para perfil redondeado",
+      "description": "Aumento de espesor necesario para formar posteriormente un borde redondeado.",
+      "aliases": [],
+      "chargeType": "ml_largo_ancho",
+      "measurementBasis": "selected-sides",
+      "active": false,
+      "requiresReview": true
+    }
+  ]
+}

@@ -7,7 +7,7 @@ test('retains legacy PERBIS quantity semantics', () => { expect(calculateCanonic
 test.each([0, -1, '', 'invalid'])('ignores services for nonpositive or invalid cant %p', (cant) => { expect(calculateCanonicalServiceTotals([{ filas: [{ cant, detalle: '2L PERBIS', serviceId: 'svc_perbis' }] }], services)).toEqual({ totalPieces: 0, serviceCounts: { svc_perbis: 0, svc_canto: 0 } }); });
 test('retains distinct legacy service matches', () => {
   const rows = [{ cant: 2, detalle: '3L PERBIS' }, { cant: 4, detalle: 'SUPERBISCUIT' }, { cant: 1, detalle: 'PERBIS CANTO' }];
-  expect(calculateCanonicalServiceTotals([{ filas: rows }], services)).toEqual({ totalPieces: 7, serviceCounts: { svc_perbis: 7, svc_canto: 1 } });
+  expect(calculateCanonicalServiceTotals([{ filas: rows }], services)).toEqual({ totalPieces: 7, serviceCounts: { svc_perbis: 3, svc_canto: 1 } });
 });
 test('returns the exact actionable rejection alert', () => { expect(getServiceSelectionAlert({ status: 'unresolved', label: 'PERBIS' })).toBe('Service "PERBIS" could not be resolved. Review the wording or select a canonical service before accepting.'); });
 
@@ -19,6 +19,16 @@ test('selected service detection keeps same-row ambiguity unresolved', () => {
   expect(detectServiceOccurrences([{ id: 'r1', detalle: 'PERBIS CANTO ALUMINIO' }], services, 'svc_perbis').status).toBe('unresolved');
 });
 
+test('inactive services cannot create ambiguity in legacy service detection', () => {
+  const catalog = [services[0], { ...services[1], activo: false }];
+
+  expect(detectServiceOccurrences(
+    [{ id: 'r1', detalle: 'PERBIS CANTO ALUMINIO' }],
+    catalog,
+    'svc_perbis'
+  )).toEqual({ status: 'valid', serviceId: 'svc_perbis', rowIds: ['r1'], count: 1 });
+});
+
 test.each([
   ['ml_largo', { largo: 1200, ancho: 500 }, 1.2],
   ['ml_perimetro', { largo: 1200, ancho: 500 }, 3.4],
@@ -28,6 +38,30 @@ test.each([
   const service = { serviceId: 'svc_work', nomenclatura: 'WORK', nombreOriginal: 'WORK', tipoCobro };
   const totals = calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: 'WORK', ...dimensions }] }], [service]);
   expect(totals.serviceCounts.svc_work).toBeCloseTo(expected);
+});
+
+test.each([
+  ['CALADO', 'CALADO'],
+  ['CALADOINTERNO', 'CALADO INTERNO']
+])('applies escala_60 billing to %s services', (nomenclatura, nombreOriginal) => {
+  const service = { serviceId: `svc_${nomenclatura.toLowerCase()}`, nomenclatura, nombreOriginal, tipoCobro: 'escala_60' };
+  const totals = calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: nombreOriginal, largo: 1200, ancho: 500 }] }], [service]);
+
+  expect(totals.serviceCounts[service.serviceId]).toBe(2);
+});
+
+test('retains explicit unit quantities for CALADO', () => {
+  const service = { serviceId: 'svc_calado', nomenclatura: 'CALADO', nombreOriginal: 'CALADO', tipoCobro: 'unidad' };
+  const totals = calculateCanonicalServiceTotals([{ filas: [{ cant: 1, detalle: '2L CALADO', largo: 1200, ancho: 500 }] }], [service]);
+
+  expect(totals.serviceCounts.svc_calado).toBe(2);
+});
+
+test('does not bill inactive imported services', () => {
+  const inactive = { serviceId: 'svc_inactive', nomenclatura: 'INACTIVE', nombreOriginal: 'Inactive service', tipoCobro: 'unidad', activo: false };
+  const totals = calculateCanonicalServiceTotals([{ filas: [{ cant: 3, detalle: 'INACTIVE' }] }], [inactive]);
+
+  expect(totals.serviceCounts.svc_inactive).toBe(0);
 });
 
 test('legacy services without ids remain distinct', () => {
