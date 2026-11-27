@@ -9,6 +9,7 @@ import {
 } from './superGrouping';
 
 const configuration = { designPrefixes: ['D'], groupIdPosition: 'afterDesign' };
+const suffixConfiguration = { designPrefixes: ['D'], groupIdPosition: 'beforeDesign' };
 
 const makeRows = () => [
   { id: 'r1', detalle: 'pieza D1-005', cant: '1' },
@@ -21,6 +22,57 @@ const makeRows = () => [
 ];
 
 describe('super-group module resolution and previews', () => {
+  test('expands interleaved suffix-format selections to every matching row', () => {
+    const rows = [
+      { id: 'suffix-013-a', detalle: '1041-Lat_der-013-D1', cant: '1' },
+      { id: 'suffix-013-b', detalle: '1059-Lat_der-013-D1', cant: '1' },
+      { id: 'unrelated', detalle: 'fila sin módulo', cant: '1' },
+      { id: 'suffix-003', detalle: '1055-Lat_der-003-D1', cant: '1' },
+      { id: 'suffix-013-c', detalle: '1062-Lat_der-013-D1', cant: '1' },
+      { id: 'unrelated-2', detalle: 'otra fila', cant: '1' }
+    ];
+    const selectedRowIds = ['suffix-013-b', 'suffix-003'];
+    const selectedModules = resolveSelectedModules(rows, selectedRowIds, suffixConfiguration);
+
+    expect(selectedModules).toEqual([
+      expect.objectContaining({
+        moduleKey: 'D1-013',
+        pieceCount: 3,
+        rowIds: ['suffix-013-a', 'suffix-013-b', 'suffix-013-c']
+      }),
+      expect.objectContaining({
+        moduleKey: 'D1-003',
+        pieceCount: 1,
+        rowIds: ['suffix-003']
+      })
+    ]);
+
+    const preview = createSuperGroupPreview(rows, selectedRowIds, suffixConfiguration, {
+      groupId: 'suffix-group'
+    });
+    expect(preview.modules.map((module) => ({
+      moduleKey: module.moduleKey,
+      rowIds: module.rowIds,
+      pieceCount: module.pieceCount
+    }))).toEqual([
+      { moduleKey: 'D1-013', rowIds: ['suffix-013-a', 'suffix-013-b', 'suffix-013-c'], pieceCount: 3 },
+      { moduleKey: 'D1-003', rowIds: ['suffix-003'], pieceCount: 1 }
+    ]);
+
+    const result = applySuperGroupPreview(rows, preview, { configuration: suffixConfiguration });
+    expect(result.rows.map((row) => row.id)).toEqual([
+      'suffix-013-a', 'suffix-013-b', 'suffix-013-c', 'suffix-003', 'unrelated', 'unrelated-2'
+    ]);
+    expect(result.superGroups).toEqual([{
+      id: 'suffix-group',
+      label: 'D1-013 + D1-003',
+      moduleKeys: ['D1-013', 'D1-003']
+    }]);
+    expect(getRowsForSuperGroup(result.rows, result.superGroups[0], suffixConfiguration)
+      .map((row) => row.id))
+      .toEqual(['suffix-013-a', 'suffix-013-b', 'suffix-013-c', 'suffix-003']);
+  });
+
   test('expands one selected row to its complete distinct module', () => {
     const modules = resolveSelectedModules(makeRows(), ['r5'], configuration);
 

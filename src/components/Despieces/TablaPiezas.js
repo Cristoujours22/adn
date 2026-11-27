@@ -4,6 +4,44 @@ import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
 import { getModuleKey } from '../../utils/moduleDetection';
 import { getRowsForSuperGroup } from '../../utils/superGrouping';
 import { findServiceMatches, getServiceMatchSpans } from '../../utils/serviceMatching';
+import { canOpenServicePlan } from '../../utils/servicePlans';
+import ServicePlanContextMenu from './ServicePlanContextMenu';
+
+const parseHexColor = (color) => {
+    if (typeof color !== 'string') return null;
+
+    const normalized = color.trim().replace(/^#/, '');
+    const hex = normalized.length === 3
+        ? normalized.split('').map((value) => value + value).join('')
+        : normalized;
+
+    if (!/^[\da-f]{6}$/i.test(hex)) return null;
+
+    return {
+        red: parseInt(hex.slice(0, 2), 16),
+        green: parseInt(hex.slice(2, 4), 16),
+        blue: parseInt(hex.slice(4, 6), 16)
+    };
+};
+
+export const getContrastingTextColor = (backgroundColor, fallbackColor = '#666') => {
+    const rgb = parseHexColor(backgroundColor);
+    if (!rgb) return fallbackColor;
+
+    const toLinearChannel = (channel) => {
+        const value = channel / 255;
+        return value <= 0.03928
+            ? value / 12.92
+            : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (0.2126 * toLinearChannel(rgb.red))
+        + (0.7152 * toLinearChannel(rgb.green))
+        + (0.0722 * toLinearChannel(rgb.blue));
+    const blackContrast = (luminance + 0.05) / 0.05;
+    const whiteContrast = 1.05 / (luminance + 0.05);
+
+    return whiteContrast > blackContrast ? '#fff' : '#000';
+};
 
 const TablaPiezas = ({
     despieces,
@@ -36,7 +74,11 @@ const TablaPiezas = ({
     moduleDetectionConfig,
     focusReturnRef,
     superGroups = [],
-    onUngroupSuperGroup
+    onUngroupSuperGroup,
+    onOpenServicePlan,
+    onConfigureServicePlan,
+    onApplyServicePlanToAll,
+    onSplitServicePlanUnits
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -48,6 +90,7 @@ const TablaPiezas = ({
 
     const [collapsedModules, setCollapsedModules] = useState({});
     const [collapsedSuperGroups, setCollapsedSuperGroups] = useState({});
+    const [servicePlanMenu, setServicePlanMenu] = useState(null);
     
     const moduleColors = [
         { bg: '#4285f4', border: '#3367d6' },   // Azul vivo
@@ -98,23 +141,21 @@ const TablaPiezas = ({
     const getModule = (name) => modules.find((module) => String(module.legacyToken || '').toUpperCase() === String(name || '').toUpperCase());
 
     return (
-        <div
-            ref={focusReturnRef}
-            className={estilos.tablaDespiece}
-            style={{ marginTop: '0px' }}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            tabIndex="-1"
-        >
+        <div className={estilos.tablaDespieceViewport}>
+            <div
+                ref={focusReturnRef}
+                className={estilos.tablaDespiece}
+                style={{ marginTop: '0px' }}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                tabIndex="-1"
+            >
             <div className={estilos.filaDespiece} style={{
-                position: 'sticky',
-                top: '49px', // Ajustado a la altura de la topBar
-                zIndex: 10,
                 backgroundColor: darkMode ? '#222' : '#f4f6f8',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 paddingBottom: '5px'
             }}>
-                <div className={estilos.celdaTitulo} style={{ width: '28px', minWidth: '28px', padding: '0 4px', fontSize: '10px' }}>#</div>
+                <div className={estilos.celdaTitulo} style={{ padding: '0 4px', fontSize: '10px' }}>#</div>
                 <div className={estilos.celdaTitulo}>CANT</div>
                 <div className={estilos.celdaTitulo}>LARGO</div>
                 <div className={estilos.celdaTitulo}>ANCHO</div>
@@ -164,7 +205,8 @@ const TablaPiezas = ({
                 );
                 if (isFirstOfSuperGroup) renderedSuperGroups.add(superGroupKey);
                 const superGroupLabel = currentSuperGroup ? getSuperGroupLabel(currentSuperGroup) : '';
-                const superGroupPieceCount = currentSuperGroup
+                const superGroupModuleCount = currentSuperGroup?.moduleKeys?.length || 0;
+                const superGroupRowCount = currentSuperGroup
                     ? getRowsForSuperGroup(activeRows, currentSuperGroup, moduleDetectionConfig).length
                     : 0;
                 const isSuperGroupCollapsed = Boolean(
@@ -177,10 +219,14 @@ const TablaPiezas = ({
                         role="row"
                         aria-label={`Supergrupo ${superGroupLabel}`}
                     >
-                        <div className={estilos.superGroupHeaderCell} role="gridcell">
+                        <div className={estilos.superGroupHeaderCell} role="gridcell" aria-colspan="11">
                             <div>
                                 <h4>{superGroupLabel}</h4>
-                                <span>{superGroupPieceCount} {superGroupPieceCount === 1 ? 'pieza' : 'piezas'}</span>
+                                <span>
+                                    {superGroupModuleCount} {superGroupModuleCount === 1 ? 'módulo' : 'módulos'}
+                                    {' · '}
+                                    {superGroupRowCount} {superGroupRowCount === 1 ? 'fila' : 'filas'}
+                                </span>
                             </div>
                             <div className={estilos.superGroupHeaderActions}>
                                 <button
@@ -356,6 +402,21 @@ const TablaPiezas = ({
                                     onClick={(e) => handleCellClick(index, field, e)}
                                     onDoubleClick={() => handleCellDoubleClick(index, field)}
                                     onKeyDown={(e) => handleKeyDown(e, index, field)}
+                                    onContextMenu={field === 'detalle' ? (event) => {
+                                        if (!canOpenServicePlan(safeRow, services || [])) return;
+                                        event.preventDefault();
+                                        const matchResult = findServiceMatches(safeRow.detalle || '', services || []);
+                                        const detectedServiceCount = new Set(
+                                            matchResult.matches.map((match) => match.serviceId)
+                                        ).size;
+                                        setServicePlanMenu({
+                                            row: safeRow,
+                                            rowIndex: index,
+                                            detectedServiceCount,
+                                            position: { x: event.clientX, y: event.clientY },
+                                            triggerRef: { current: event.currentTarget }
+                                        });
+                                    } : undefined}
                                     readOnly={!isActive || !isEditing} // Strict readOnly when not editing prevents caret showing
                                     style={inputStyle}
                                 />
@@ -386,20 +447,27 @@ const TablaPiezas = ({
                 return (
                     <React.Fragment key={safeRow.id || `row_${index}`}>
                         {superGroupHeader}
-{showModuleColors && currentModule && isFirstOfModule && (
-                            <div className={estilos.filaDespiece}>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: '6px 0 8px 0' }}>
+                        {showModuleColors && currentModule && isFirstOfModule && !currentSuperGroup && (
+                            <div className={`${estilos.filaDespiece} ${estilos.moduleLabelRow}`}>
+                                <div className={estilos.moduleLabelCell}>
                                     <div
                                         style={{
-                                            width: '100%',
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center'
+                                            minWidth: '120px',
+                                            maxWidth: '220px',
+                                            padding: '8px 18px',
+                                            borderRadius: '999px',
+                                            background: moduleColor ? moduleColor.bg : (darkMode ? '#2c3e50' : '#e9ecef'),
+                                            border: `1px solid ${moduleColor ? moduleColor.border : (darkMode ? '#4a5568' : '#ced4da')}`,
+                                            color: darkMode ? '#fff' : '#212529',
+                                            fontSize: '13px',
+                                            fontWeight: '700',
+                                            letterSpacing: '0.8px',
+                                            textTransform: 'uppercase',
+                                            textAlign: 'center',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
                                         }}
                                     >
                                         <button
@@ -407,22 +475,10 @@ const TablaPiezas = ({
                                             onDoubleClick={(event) => onRenameModule?.(getModule(currentModule), event)}
                                             onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onRenameModule?.(getModule(currentModule), event); }}
                                             style={{
-                                                minWidth: '120px',
-                                                maxWidth: '220px',
-                                                padding: '8px 18px',
-                                                borderRadius: '999px',
-                                                background: moduleColor ? moduleColor.bg : (darkMode ? '#2c3e50' : '#e9ecef'),
-                                                border: `1px solid ${moduleColor ? moduleColor.border : (darkMode ? '#4a5568' : '#ced4da')}`,
-                                                color: darkMode ? '#fff' : '#212529',
-                                                fontSize: '13px',
-                                                fontWeight: '700',
-                                                letterSpacing: '0.8px',
-                                                textTransform: 'uppercase',
-                                                textAlign: 'center',
-                                                boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis'
+                                                all: 'unset',
+                                                display: 'block',
+                                                width: '100%',
+                                                cursor: 'pointer'
                                             }}
                                             aria-label={`Rename module ${getModule(currentModule)?.displayName || currentModule}`}
                                             title="Double-click to rename module"
@@ -431,12 +487,6 @@ const TablaPiezas = ({
                                         </button>
                                     </div>
                                 </div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
-                                <div className={estilos.celdaDespiece} style={{ border: 'none', background: 'transparent', padding: 0 }}></div>
                             </div>
                         )}
 <div 
@@ -451,19 +501,17 @@ const TablaPiezas = ({
                             className={estilos.celdaDespiece}
                             onClick={(e) => handleRowClick?.(index, e)}
                             style={{ 
-                                width: '28px', 
-                                minWidth: '28px', 
                                 padding: '0 4px',
                                 cursor: 'pointer',
-                                backgroundColor: rowSelection?.has(index) ? (darkMode ? '#1a73e8' : '#1a73e8') : undefined,
-                                color: rowSelection?.has(index) ? '#fff' : (darkMode ? '#888' : '#666'),
+                                backgroundColor: rowSelection?.has(index) ? '#1a73e8' : undefined,
+                                color: rowSelection?.has(index)
+                                    ? '#fff'
+                                    : getContrastingTextColor(moduleColor?.bg, darkMode ? '#888' : '#666'),
                                 fontSize: '11px',
                                 fontWeight: 'bold',
                                 textAlign: 'center',
                                 userSelect: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                verticalAlign: 'middle',
                                 borderRight: `1px solid ${darkMode ? '#444' : '#ddd'}`
                             }}
                             title="Click para seleccionar fila"
@@ -573,6 +621,28 @@ const TablaPiezas = ({
                     </React.Fragment>
                 );
             })}
+            </div>
+            {servicePlanMenu && (
+                <ServicePlanContextMenu
+                    position={servicePlanMenu.position}
+                    detectedServiceCount={servicePlanMenu.detectedServiceCount}
+                    pieceQuantity={servicePlanMenu.row?.cant}
+                    triggerRef={servicePlanMenu.triggerRef}
+                    onOpenPlan={onOpenServicePlan
+                      ? () => onOpenServicePlan(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onConfigure={onConfigureServicePlan
+                      ? () => onConfigureServicePlan(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onApplyToAll={onApplyServicePlanToAll
+                      ? () => onApplyServicePlanToAll(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onSplitUnits={onSplitServicePlanUnits
+                      ? () => onSplitServicePlanUnits(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onClose={() => setServicePlanMenu(null)}
+                />
+            )}
         </div>
     );
 };

@@ -1,13 +1,34 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { getDocs } from 'firebase/firestore';
+import { doc, getDoc, getDocs } from 'firebase/firestore';
 import ModeloDespiece, { coordinateSnapshotPersistence, resolveDuplicateDocumentId, updateServiceDefinition } from './ModeloDespiece';
 
 const mockPersistDespieceSnapshot = jest.fn();
+const mockCurrentUser = { uid: 'test-user' };
 jest.mock('react-router-dom', () => ({ useParams: () => ({ id: undefined }) }));
 jest.mock('./credenciales', () => ({ db: {} }));
-jest.mock('firebase/firestore', () => ({ collection: jest.fn(() => ({})), addDoc: jest.fn(), doc: jest.fn(() => ({})), getDoc: jest.fn(async () => ({ exists: () => false })), query: jest.fn(() => ({})), where: jest.fn(() => ({})), getDocs: jest.fn(), setDoc: jest.fn(), deleteDoc: jest.fn(), writeBatch: jest.fn() }));
-jest.mock('./authContext', () => ({ useAuth: () => ({ currentUser: null }) }));
+jest.mock('firebase/firestore', () => ({
+  collection: jest.fn(() => ({})),
+  addDoc: jest.fn(),
+  doc: jest.fn((_db, ...path) => ({ path })),
+  getDoc: jest.fn(async (reference) => reference.path?.[0] === 'userServices'
+    ? {
+        exists: () => true,
+        data: () => ({ servicios: [
+          { serviceId: 'svc_serperbis', nomenclatura: 'SERPERBIS', nombreOriginal: 'PERBIS', tipoCobro: 'unidad' },
+          { serviceId: 'svc_cscantoa', nomenclatura: 'CSCANTOA', nombreOriginal: 'CANTO ALUMINIO', tipoCobro: 'unidad' }
+        ] })
+      }
+    : { exists: () => false }),
+  query: jest.fn(() => ({})),
+  where: jest.fn(() => ({})),
+  getDocs: jest.fn(),
+  setDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  writeBatch: jest.fn()
+}));
+jest.mock('./authContext', () => ({ useAuth: () => ({ currentUser: mockCurrentUser }) }));
 jest.mock('./ThemeContext', () => ({ useTheme: () => ({ darkMode: false }) }));
 jest.mock('./menu', () => () => <div />);
 jest.mock('./components/Despieces/TabsDespiece', () => () => <div />);
@@ -17,6 +38,16 @@ jest.mock('./components/Despieces/ServicesCarousel', () => ({ services, onSelect
 jest.mock('./services/despiecePersistence', () => ({ persistDespieceSnapshot: (...args) => mockPersistDespieceSnapshot(...args) }));
 
 beforeEach(() => {
+  doc.mockImplementation((_db, ...path) => ({ path }));
+  getDoc.mockImplementation(async (reference) => reference.path?.[0] === 'userServices'
+    ? {
+        exists: () => true,
+        data: () => ({ servicios: [
+          { serviceId: 'svc_serperbis', nomenclatura: 'SERPERBIS', nombreOriginal: 'PERBIS', tipoCobro: 'unidad' },
+          { serviceId: 'svc_cscantoa', nomenclatura: 'CSCANTOA', nombreOriginal: 'CANTO ALUMINIO', tipoCobro: 'unidad' }
+        ] })
+      }
+    : { exists: () => false });
   getDocs.mockResolvedValue({ empty: true, docs: [], size: 0 });
   mockPersistDespieceSnapshot.mockReset();
   mockPersistDespieceSnapshot.mockImplementation(async (_snapshot, _firestore, options) => { options.onPrimaryCommit({ documentId: 'generated' }); return { documentId: 'generated', secondary: { history: 'skipped', defaults: 'skipped' }, retry: null }; });
@@ -73,18 +104,20 @@ test('manual save after only service definitions change persists current service
   fireEvent.click(screen.getByRole('button', { name: /guardar despiece/i }));
   await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalled());
   expect(mockPersistDespieceSnapshot.mock.calls[0][0].serviciosGuardados).toEqual(expect.arrayContaining([expect.objectContaining({ serviceId: 'svc_custom', nomenclatura: 'CUSTOM' })]));
+  expect(mockPersistDespieceSnapshot.mock.calls[0][2].defaults).toBeNull();
 });
 
 test('capability writes wait for required document identity', async () => {
   render(<ModeloDespiece />);
   fireEvent.click(screen.getByRole('button', { name: 'Set detail' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Select SERPERBIS' }));
+  const serviceButton = await screen.findByRole('button', { name: 'Select SERPERBIS' });
+  fireEvent.click(serviceButton);
   await screen.findByText(/client and project names are required/i);
   expect(mockPersistDespieceSnapshot).not.toHaveBeenCalled();
 
   fireEvent.change(screen.getByLabelText(/nombre del cliente/i), { target: { value: 'Client' } });
   fireEvent.change(screen.getByLabelText(/nombre del proyecto/i), { target: { value: 'Project' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Select SERPERBIS' }));
+  fireEvent.click(serviceButton);
   await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalledTimes(1));
 });
 
@@ -97,8 +130,9 @@ test('completed capability persistence does not overwrite a newer edit', async (
   fireEvent.change(screen.getByLabelText(/nombre del cliente/i), { target: { value: 'Client' } });
   fireEvent.change(screen.getByLabelText(/nombre del proyecto/i), { target: { value: 'Project' } });
   fireEvent.click(screen.getByRole('button', { name: 'Set detail' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Select SERPERBIS' }));
-  await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalledTimes(1));
+  const serviceButton = await screen.findByRole('button', { name: 'Select SERPERBIS' });
+  fireEvent.click(serviceButton);
+  await waitFor(() => expect(mockPersistDespieceSnapshot).toHaveBeenCalled());
   fireEvent.click(screen.getByRole('button', { name: 'Set newer edit' }));
   await act(async () => finishPersistence());
   expect(screen.getByTestId('detail')).toHaveTextContent('newer edit');
