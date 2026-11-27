@@ -789,24 +789,36 @@ label[for="recordar"] {
 }
 
 /* Estilos para la tabla de despiece */
-.tablaDespiece {
-  display: table;
+.tablaDespieceViewport {
   width: 100%;
-  /* La tabla ocupará el ancho disponible */
-  border-collapse: collapse;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tablaDespiece {
+  --despiece-grid-template: minmax(28px, 4fr) 6fr 7fr 7fr 34fr 6fr 6fr 6fr 6fr 6fr minmax(96px, 12fr);
+  display: block;
+  width: 100%;
   margin-top: 20px;
-  table-layout: fixed;
-  /* CRUCIAL: Esto hace que los anchos de columna se respeten */
-  padding-top: 50px;
-  /* Espacio entre el encabezado y la tabla */
 }
 
 .filaDespiece {
   display: table-row;
 }
 
+.tablaDespiece > .filaDespiece,
+.tablaDespiece > .superGroupHeader {
+  display: grid;
+  grid-template-columns: var(--despiece-grid-template);
+}
+
+.tablaDespiece > .filaDespiece:first-child {
+  pointer-events: none;
+}
+
 .celdaTitulo {
-  display: table-cell;
+  display: block;
+  min-width: 0;
   text-align: center;
   font-weight: bold;
   padding: 10px 5px;
@@ -825,96 +837,30 @@ label[for="recordar"] {
   /* Reducir un poco el tamaño de fuente del título si es necesario */
 }
 
-/* --- Definición de anchos para cada columna del encabezado --- */
-/* 11 columnas: # (selección fila) + CANT + LARGO + ANCHO + DETALLE + ROTAR + L1 + L2 + A1 + A2 + ACCIONES */
-/* Los porcentajes de datos suman 100% con DETALLE 40% y ACCIONES 12% */
-
-/* # (columna de selección de fila estilo Excel) */
-.filaDespiece>.celdaTitulo:nth-child(1) {
-  width: 28px;
+.tablaDespiece > .filaDespiece > .celdaTitulo,
+.tablaDespiece > .filaDespiece > .celdaDespiece {
+  width: auto;
+  min-width: 0;
 }
 
-/* CANT */
-.filaDespiece>.celdaTitulo:nth-child(2) {
-  width: 6%;
+.tablaDespiece > .filaDespiece > :first-child {
+  min-width: 28px;
 }
 
-/* LARGO */
-.filaDespiece>.celdaTitulo:nth-child(3) {
-  width: 6%;
-}
-
-/* ANCHO */
-.filaDespiece>.celdaTitulo:nth-child(4) {
-  width: 6%;
-}
-
-/* DETALLE */
-.filaDespiece>.celdaTitulo:nth-child(5) {
-  width: 40%;
-}
-
-/* ROTAR */
-.filaDespiece>.celdaTitulo:nth-child(6) {
-  width: 6%;
-}
-
-/* L1 */
-.filaDespiece>.celdaTitulo:nth-child(7) {
-  width: 6%;
-}
-
-/* L2 */
-.filaDespiece>.celdaTitulo:nth-child(8) {
-  width: 6%;
-}
-
-/* A1 */
-.filaDespiece>.celdaTitulo:nth-child(9) {
-  width: 6%;
-}
-
-/* A2 */
-.filaDespiece>.celdaTitulo:nth-child(10) {
-  width: 6%;
-}
-
-/* ACCIONES */
-.filaDespiece>.celdaTitulo:nth-child(11) {
-  width: 12%;
+.tablaDespiece > .filaDespiece > :nth-child(11) {
+  min-width: 96px;
 }
 
 /* --- Anchos para la tabla de Gestión de Usuarios --- */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(1) {
-  width: 20%;
+.tablaUsuarios {
+  --despiece-grid-template: 20fr 25fr 15fr 20fr 10fr 10fr;
 }
 
-/* Nombre */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(2) {
-  width: 25%;
+.tablaUsuarios > .filaDespiece > .celdaTitulo,
+.tablaUsuarios > .filaDespiece > .celdaDespiece {
+  width: auto;
+  min-width: 0;
 }
-
-/* Email */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(3) {
-  width: 15%;
-}
-
-/* Fecha de Creación */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(4) {
-  width: 20%;
-}
-
-/* Último Ingreso */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(5) {
-  width: 10%;
-}
-
-/* Estado */
-.tablaUsuarios .filaDespiece>.celdaTitulo:nth-child(6) {
-  width: 10%;
-}
-
-/* Acciones */
 
 .tablaUsuarios .celdaDespiece {
   word-wrap: break-word;
@@ -963,7 +909,8 @@ label[for="recordar"] {
 }
 
 .celdaDespiece {
-  display: table-cell;
+  display: block;
+  min-width: 0;
   padding: 3px;
   /* Un poco de padding alrededor de los inputs */
   border: 1px solid #e0e0e0;
@@ -1411,6 +1358,40 @@ body.high-contrast .despieceItem p {
     font-size: 16px;
     /* Evitar zoom en iOS */
   }
+
+  /* Mantener la misma rejilla de once columnas; el viewport puede desplazarla horizontalmente. */
+  .tablaDespiece {
+    min-width: 960px;
+  }
+
+  .modalOverlay {
+    width: 100vw;
+  }
+
+  .tablaDespiece > .filaDespiece {
+    display: grid !important;
+    grid-template-columns: var(--despiece-grid-template);
+    flex-wrap: initial !important;
+    padding: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .tablaDespiece > .filaDespiece > .celdaTitulo {
+    display: block !important;
+  }
+
+  .tablaDespiece > .filaDespiece > .celdaDespiece {
+    display: block !important;
+    flex: initial !important;
+    margin-bottom: 0;
+  }
+
+  .tablaDespiece > .filaDespiece > .celdaDespiece::before {
+    content: none !important;
+  }
 }
 
 /* =========================================================
@@ -1420,6 +1401,20 @@ body.high-contrast .despieceItem p {
 /* Fila con color de módulo */
 .moduleRow {
   background-color: var(--module-color, transparent);
+}
+
+.moduleLabelRow {
+  min-height: 0;
+}
+
+.moduleLabelCell {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 6px 0 8px;
+  border: none;
 }
 
 /* Celda de acciones con fondo blanco */
@@ -1450,6 +1445,139 @@ body.high-contrast .despieceItem p {
   padding: 2px 6px;
   border-radius: 3px;
   color: #fff;
+}
+
+.superGroupHeader {
+  display: grid;
+  grid-template-columns: var(--despiece-grid-template);
+  position: relative;
+}
+
+.superGroupHeaderCell {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 7px 10px;
+  background: linear-gradient(90deg, #45227a, #6f42c1);
+  color: #fff;
+  border: 1px solid #3d1d6f;
+  font-size: 12px;
+}
+
+.superGroupHeaderCell > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.superGroupHeaderCell h4 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.superGroupHeaderCell span {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.superGroupHeaderActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.superGroupHeaderActions button {
+  padding: 2px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.superGroupHeaderActions button:focus-visible,
+.superGroupDialog button:focus-visible {
+  outline: 3px solid #ffd600;
+  outline-offset: 2px;
+}
+
+.superGroupDialog {
+  max-width: 560px;
+  max-height: min(90vh, 680px);
+  overflow-y: auto;
+}
+
+.superGroupDialogDark {
+  background: #1e1e1e;
+  color: #fff;
+}
+
+.superGroupPreviewList {
+  margin: 18px 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #555;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.superGroupPreviewList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #555;
+}
+
+.superGroupPreviewList li:last-child {
+  border-bottom: none;
+}
+
+.superGroupPreviewList span {
+  white-space: nowrap;
+}
+
+.superGroupActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.superGroupError {
+  padding: 8px 10px;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  color: #ffb3b3;
+}
+
+@media (max-width: 768px) {
+  .superGroupHeader {
+    display: grid;
+    grid-template-columns: var(--despiece-grid-template);
+    margin: 8px 0;
+  }
+
+  .superGroupHeaderCell {
+    display: flex;
+    border-radius: 6px;
+  }
+
+  .superGroupHeaderActions {
+    margin-top: 0;
+  }
 }
 
 /* =========================================================
@@ -1926,4 +2054,125 @@ body.high-contrast .despieceItem p {
 .despiece-dialog select,
 .despiece-dialog button {
   max-width: 100%;
+}
+
+.moduleDetectionModal {
+  width: min(680px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.moduleDetectionTitle {
+  color: white;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.moduleDetectionHelp,
+.moduleDetectionHint,
+.moduleDetectionPreviewResult {
+  color: #ccc;
+  font-size: 12px;
+}
+
+.moduleDetectionHelp {
+  margin-bottom: 18px;
+}
+
+.moduleDetectionHint {
+  margin: -10px 0 14px;
+}
+
+.moduleDetectionLabel {
+  color: #f1f1f1;
+  margin-bottom: 5px;
+}
+
+.moduleDetectionPreview {
+  margin-top: 12px;
+  padding: 12px;
+  background: #2c303a;
+  border-radius: 6px;
+}
+
+.moduleDetectionPreviewResult {
+  margin: 8px 0 0;
+}
+
+.moduleDetectionPreviewResult strong {
+  color: #7dd3fc;
+}
+
+.moduleDetectionConflict {
+  margin-top: 14px;
+  padding: 12px;
+  color: #ffd6d6;
+  background: #5b2020;
+  border: 1px solid #ef5350;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.moduleDetectionConflict ul {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+
+.moduleDetectionConflict p {
+  margin: 8px 0 0;
+}
+
+.moduleDetectionDefaultOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: #f1f1f1;
+  font-size: 13px;
+}
+
+.moduleDetectionDefaultOption input {
+  width: auto;
+  margin: 0;
+}
+
+.moduleDetectionError {
+  margin-top: 12px;
+  color: #ffb3b3;
+  font-size: 13px;
+}
+
+.moduleDetectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.moduleDetectionActions .botonSubmit,
+.moduleDetectionActions .botonEliminar {
+  margin: 0;
+  min-width: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.moduleDetectionConfirm {
+  padding: 8px 14px;
+  color: #fff;
+  background: #b45309;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.moduleDetectionConfirm:focus-visible,
+.moduleDetectionActions button:focus-visible,
+.moduleDetectionModal input:focus-visible,
+.moduleDetectionModal select:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 2px;
 }
