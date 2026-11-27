@@ -24,6 +24,32 @@ import {
   normalizeModuleDetectionConfig
 } from './utils/moduleDetection';
 import ModuleDetectionSettingsModal from './components/Despieces/ModuleDetectionSettingsModal';
+import ServiceDictionaryImport from './components/Despieces/ServiceDictionaryImport';
+import SuperGroupDialog from './components/Despieces/SuperGroupDialog';
+import ServicePlanEditor from './components/Despieces/ServicePlanEditor';
+import {
+  applySuperGroupPreview,
+  createSuperGroupPreview,
+  reconcileSuperGroups,
+  resolveSelectedModules,
+  ungroupSuperGroup
+} from './utils/superGrouping';
+import { normalizeServiceText, validateServiceAliasCollisions } from './utils/serviceMatching';
+import { resolveServiceCatalog } from './utils/serviceCatalog';
+import {
+  applyServicePlanToDespieces,
+  cloneServicePlan,
+  createServicePlanSeed,
+  synchronizeServicePlanWithRow
+} from './utils/servicePlans';
+
+export const shouldApplyHydratedServiceCatalog = (loadVersion, currentVersion) => (
+  loadVersion === currentVersion
+);
+
+export const resolveServicePlanDespieceId = (editorState, activeDespieceId) => (
+  editorState?.despieceId || activeDespieceId
+);
 
 export const coordinateServiceSelection = (filas, services, selection, dependencies = { detectServiceOccurrences, applyValidatedService }) => {
   const result = dependencies.detectServiceOccurrences(filas, services, selection?.serviceId);
@@ -67,8 +93,51 @@ let despieceIdCounter = Date.now();
 const createNewDespiece = (name = "Despiece 1") => ({
   id: `tab_${despieceIdCounter++}`,
   nombre: name,
-  filas: [createNewRow()]
+  filas: [createNewRow()],
+  superGroups: []
 });
+
+export const getSelectedRowIdsForSuperGrouping = (rows = [], rowSelection) => {
+  const selectedIndexes = new Set(
+    rowSelection instanceof Set ? [...rowSelection] : Array.isArray(rowSelection) ? rowSelection : []
+  );
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row, index) => selectedIndexes.has(index) && row?.id != null)
+    .map((row) => row.id);
+};
+
+export const canCreateSuperGroup = (rows = [], rowSelection, configuration) => (
+  resolveSelectedModules(rows, getSelectedRowIdsForSuperGrouping(rows, rowSelection), configuration).length >= 2
+);
+
+export const buildVersionSnapshot = (datos = {}, configuration) => ({
+  datos: datos.despieces,
+  serviciosGuardados: datos.servicios,
+  proyecto: datos.proyecto,
+  cliente: datos.cliente,
+  ...buildModuleDetectionMetadata(configuration)
+});
+
+export const restoreVersionSnapshot = (version = {}, fallbackConfiguration) => {
+  const hasSavedConfiguration = Object.prototype.hasOwnProperty.call(version, 'moduleDetectionConfig');
+  const configuration = hasSavedConfiguration
+    ? getProjectModuleDetectionConfig(version)
+    : normalizeModuleDetectionConfig(fallbackConfiguration);
+  const despieces = Array.isArray(version.datos) ? version.datos.map((despiece) => ({
+    ...despiece,
+    superGroups: reconcileSuperGroups(
+      despiece?.filas || [],
+      despiece?.superGroups || [],
+      configuration
+    )
+  })) : [];
+
+  return {
+    despieces,
+    moduleDetectionConfig: configuration,
+    serviciosGuardados: version.serviciosGuardados
+  };
+};
 
 const normalizeStoredCantoValue = (value) => {
   if (value === true) return '1';
@@ -101,38 +170,55 @@ const normalizeReglasCantoConfig = (config) => {
   );
 };
 
-// Lista de servicios por defecto basados en Excel del cliente
-// Estructura: nomenclatura (principal), aliases (array de nombres alternativos), nombreOriginal, tipoCobro
-const DEFAULT_SERVICES = [
-  { nomenclatura: 'CSPERALM', nombreOriginal: 'PEGADO MANIJA ALUMINIO', tipoCobro: 'ml_largo_ancho' }, // Usualmente L o A, asumo unidad o ML
-  { nomenclatura: 'CSCANTOA', nombreOriginal: 'PEGADO CANTO ALUMINIO', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SRRANUPE', nombreOriginal: 'RANURAPE', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SERPERBIS', nombreOriginal: 'PERBIS', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSRANUFO', nombreOriginal: 'RANURAFO', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'RANULED', nombreOriginal: 'RANULED', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCURVA1', nombreOriginal: 'CURVA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SRNAR000', nombreOriginal: 'NARIZ', aliases: ['nariz', 'nar'], tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SRREPEGA', nombreOriginal: 'SANDUCHE CLAVILLO', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SERVREME', nombreOriginal: 'SANDUCHE PEGA', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SERVIMARCO', nombreOriginal: 'MARCO, ENGRUESE EN MELAMINA', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSCIRCULO', nombreOriginal: 'CIRCULOS', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SERANGUL', nombreOriginal: 'ANGULO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'CSCALADO', nombreOriginal: 'CALADO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'SRCALAEI', nombreOriginal: 'CALADO  INTERNO', tipoCobro: 'escala_60' },
-  { nomenclatura: 'SERVIENL', nombreOriginal: 'EN L', tipoCobro: 'unidad' },
-  { nomenclatura: 'CSCHAFLA', nombreOriginal: 'CHAFLAN', tipoCobro: 'unidad' },
-  { nomenclatura: 'SENCHAMANUAL', nombreOriginal: 'ENCHAPE MANUAL', aliases: ['senchamanual', 'enchape manual', 'enchape a pieza especial'], tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'SENCHACURVA', nombreOriginal: 'ENCHAPE CURVO', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSCANTOC2', nombreOriginal: 'Enchape Canto Curvo 2mm. (Rígido)', tipoCobro: 'ml_largo_ancho' },
-  { nomenclatura: 'CSINGLES', nombreOriginal: 'CAJA INGLESA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERVICENEFA', nombreOriginal: 'CAJA', aliases: ['caja'], tipoCobro: 'unidad' },
-  { nomenclatura: 'SERPASACABLE', nombreOriginal: 'PASACABLE', tipoCobro: 'unidad' },
-  { nomenclatura: 'MANICHAFLAN', nombreOriginal: 'MANICHAFLAN', tipoCobro: 'unidad' },
-  { nomenclatura: 'MANICRUS', nombreOriginal: 'MANIJA DE INCRUSTAR', tipoCobro: 'unidad' },
-  { nomenclatura: 'MANIGAVETA', nombreOriginal: 'MANIGAVETA', tipoCobro: 'unidad' },
-  { nomenclatura: 'SERCURML', nombreOriginal: 'CURVA MEDIA LUNA', tipoCobro: 'unidad' },
-  { nomenclatura: 'ENGNA', nombreOriginal: 'Engorde Nariz', aliases: ['engna', 'engorde', 'engordenariz'], tipoCobro: 'ml_largo_ancho' }
-];
+// El catálogo especial comienza vacío y sólo se completa mediante una importación explícita.
+export const DEFAULT_SERVICES = [];
+
+export const persistUserServiceCatalog = async (userId, services) => {
+  if (!userId) {
+    throw new Error('Debes estar autenticado para guardar el catálogo global.');
+  }
+
+  const userServicesRef = doc(db, 'userServices', userId);
+  await setDoc(userServicesRef, {
+    userId,
+    servicios: services,
+    fechaActualizacion: new Date().toLocaleDateString()
+  });
+};
+
+export const normalizeServiceAliases = (value) => (
+  String(value || '')
+    .split(',')
+    .map((alias) => alias.trim())
+    .filter(Boolean)
+);
+
+export const normalizeStoredService = (service) => {
+  if (typeof service === 'string') {
+    return { nombreOriginal: service, nomenclatura: service, tipoCobro: 'unidad' };
+  }
+  if (!service || typeof service !== 'object') return service;
+  return service.tipoCobro ? service : { ...service, tipoCobro: 'unidad' };
+};
+
+export const getServiceCollisionMessage = (collisions) => collisions
+  .map((collision) => collision.message)
+  .join(' ');
+
+export const buildServiceCollection = (services, nextService, editingService = null) => (
+  editingService
+    ? services.map((service) => service.nomenclatura === editingService ? { ...service, ...nextService } : service)
+    : [...services, nextService]
+);
+
+const hasDuplicateCanonicalServiceFields = (services) => (
+  services.some((service, index) => services.slice(index + 1).some((other) => (
+    ['nomenclatura', 'nombreOriginal'].some((field) => {
+      const value = normalizeServiceText(service?.[field]);
+      return value && value === normalizeServiceText(other?.[field]);
+    })
+  )))
+);
 
 const ModeloDespiece = () => {
   const { id } = useParams();
@@ -143,11 +229,14 @@ const ModeloDespiece = () => {
   const [creationDate, setCreationDate] = useState(new Date().toLocaleDateString());
   const [lastModifiedDate, setLastModifiedDate] = useState(new Date().toLocaleDateString());
   const [services, setServices] = useState(() => DEFAULT_SERVICES.map((service) => ({ ...service, serviceId: deterministicServiceId(service.nomenclatura) }))); // Initialize with canonical ids
+  const serviceCatalogVersionRef = useRef(0);
   const [newServiceNombre, setNewServiceNombre] = useState('');
   const [newServiceNomenclatura, setNewServiceNomenclatura] = useState('');
+  const [newServiceAliases, setNewServiceAliases] = useState('');
   const [newServiceTipoCobro, setNewServiceTipoCobro] = useState('unidad');
   const [editingService, setEditingService] = useState(null);
   const [showNomenclaturesModal, setShowNomenclaturesModal] = useState(false);
+  const [showServiceDictionaryImport, setShowServiceDictionaryImport] = useState(false);
   const [showModuleDetectionSettings, setShowModuleDetectionSettings] = useState(false);
   const [moduleDetectionConfig, setModuleDetectionConfig] = useState(() => normalizeModuleDetectionConfig(DEFAULT_MODULE_DETECTION_CONFIG));
   const [totalPieces, setTotalPieces] = useState(0);
@@ -193,7 +282,7 @@ const ModeloDespiece = () => {
     try {
       const userServicesRef = doc(db, 'userServices', currentUser.uid);
       const userServicesSnap = await getDoc(userServicesRef);
-      if (userServicesSnap.exists() && userServicesSnap.data()?.servicios) {
+      if (userServicesSnap.exists() && Array.isArray(userServicesSnap.data()?.servicios)) {
         return userServicesSnap.data().servicios;
       }
     } catch (error) {
@@ -209,12 +298,7 @@ const ModeloDespiece = () => {
       return;
     }
     try {
-      const userServicesRef = doc(db, 'userServices', currentUser.uid);
-      await setDoc(userServicesRef, {
-        userId: currentUser.uid,
-        servicios: services,
-        fechaActualizacion: new Date().toLocaleDateString()
-      });
+      await persistUserServiceCatalog(currentUser.uid, services);
       alert('Servicios guardados como tus valores por defecto.');
     } catch (error) {
       console.error('Error al guardar servicios del usuario:', error);
@@ -239,10 +323,10 @@ const ModeloDespiece = () => {
   useEffect(() => {
     if (!id) {
       const loadInitialServices = async () => {
+        const loadVersion = serviceCatalogVersionRef.current;
         const userServices = await loadUserServices();
-        if (userServices) {
-          setServices(userServices);
-        }
+        if (!shouldApplyHydratedServiceCatalog(loadVersion, serviceCatalogVersionRef.current)) return;
+        setServices(resolveServiceCatalog({ globalServices: userServices }).map(normalizeStoredService));
       };
       loadInitialServices();
     }
@@ -253,6 +337,7 @@ const ModeloDespiece = () => {
   const [pieceSearchAncho, setPieceSearchAncho] = useState('');
   const [pieceSearchType, setPieceSearchType] = useState('detalle'); // 'detalle' o 'medida'
   const [cobroExtraModal, setCobroExtraModal] = useState({ isOpen: false, rowIndex: null, value: '', label: '', targetField: '' });
+  const [servicePlanEditor, setServicePlanEditor] = useState(null);
   const [showModuleColors, setShowModuleColors] = useState(false);
   const editingValueRef = useRef({}); // Guarda el valor original cuando se entra en edición { "0_largo": "790", "1_cant": "2" }
   const { darkMode } = useTheme();
@@ -357,6 +442,11 @@ const ModeloDespiece = () => {
   const [versionSeleccionada, setVersionSeleccionada] = useState(null);
   const [showMenuAcciones, setShowMenuAcciones] = useState(false);
   const [showDespieceAutoModal, setShowDespieceAutoModal] = useState(false);
+  const [showSuperGroupDialog, setShowSuperGroupDialog] = useState(false);
+  const [superGroupPreview, setSuperGroupPreview] = useState(null);
+  const [superGroupError, setSuperGroupError] = useState('');
+  const superGroupTriggerRef = useRef(null);
+  const superGroupTableRef = useRef(null);
   const [despieceAutoModo, setDespieceAutoModo] = useState('cocina');
   const [despieceAutoOpcion, setDespieceAutoOpcion] = useState(1);
   
@@ -444,6 +534,25 @@ const ModeloDespiece = () => {
     });
   }, [despieces]);
 
+  const handleOpenServicePlan = useCallback((row, rowIndex) => {
+    const plan = row?.servicePlan
+      ? synchronizeServicePlanWithRow(row.servicePlan, row, services)
+      : createServicePlanSeed(row, services);
+    setServicePlanEditor({ row, rowIndex, plan, despieceId: activeDespieceId });
+  }, [activeDespieceId, services]);
+
+  const handleApplyServicePlan = useCallback((plan) => {
+    if (!servicePlanEditor) return;
+    saveToHistory();
+    setDespieces((previous) => applyServicePlanToDespieces(
+      previous,
+      resolveServicePlanDespieceId(servicePlanEditor, activeDespieceId),
+      servicePlanEditor.rowIndex,
+      plan
+    ));
+    setServicePlanEditor(null);
+  }, [activeDespieceId, saveToHistory, servicePlanEditor]);
+
   const undo = useCallback(() => {
     setHistory(prev => {
         if (prev.length === 0) return prev;
@@ -453,6 +562,69 @@ const ModeloDespiece = () => {
         return newHistory;
     });
   }, []);
+
+  const closeSuperGroupDialog = useCallback(() => {
+    setShowSuperGroupDialog(false);
+    setSuperGroupPreview(null);
+    setSuperGroupError('');
+    window.setTimeout(() => {
+      if (superGroupTriggerRef.current && !superGroupTriggerRef.current.disabled) {
+        superGroupTriggerRef.current.focus();
+      } else {
+        superGroupTableRef.current?.focus();
+      }
+    }, 0);
+  }, []);
+
+  const handleOpenSuperGroupDialog = useCallback(() => {
+    const activeDespiece = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+    const rows = activeDespiece?.filas || [];
+    const selectedRowIds = getSelectedRowIdsForSuperGrouping(rows, rowSelection);
+    if (!canCreateSuperGroup(rows, rowSelection, moduleDetectionConfig)) return;
+
+    const preview = createSuperGroupPreview(rows, selectedRowIds, moduleDetectionConfig, {
+      groupId: `super-group:${Date.now()}`,
+      existingSuperGroups: activeDespiece?.superGroups || []
+    });
+    setSuperGroupError('');
+    setSuperGroupPreview(preview);
+    setShowSuperGroupDialog(true);
+  }, [despieces, activeDespieceId, rowSelection, moduleDetectionConfig]);
+
+  const handleConfirmSuperGroup = useCallback((preview) => {
+    const activeDespiece = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+    if (!activeDespiece) return;
+
+    // Keep the pre-change tab snapshot before applying the stale-safe operation.
+    saveToHistory();
+    try {
+      const result = applySuperGroupPreview(activeDespiece.filas || [], preview, {
+        configuration: moduleDetectionConfig,
+        existingSuperGroups: activeDespiece.superGroups || []
+      });
+      setDespieces((previous) => previous.map((despiece) => (
+        despiece.id === activeDespieceId
+          ? { ...despiece, filas: result.rows, superGroups: result.superGroups }
+          : despiece
+      )));
+      setRowSelection(new Set());
+      setSelection(null);
+      setActiveCell(null);
+      setIsEditing(false);
+      closeSuperGroupDialog();
+    } catch (error) {
+      setSuperGroupError(error?.message || 'No se pudo aplicar la agrupación.');
+    }
+  }, [despieces, activeDespieceId, moduleDetectionConfig, saveToHistory, closeSuperGroupDialog]);
+
+  const handleUngroupSuperGroup = useCallback((groupId) => {
+    saveToHistory();
+    setDespieces((previous) => previous.map((despiece) => (
+      despiece.id === activeDespieceId
+        ? { ...despiece, superGroups: ungroupSuperGroup(despiece.superGroups || [], groupId) }
+        : despiece
+    )));
+  }, [activeDespieceId, saveToHistory]);
 
   useEffect(() => {
     const handleOpenModal = () => setShowNomenclaturesModal(true);
@@ -474,7 +646,8 @@ const ModeloDespiece = () => {
         const despieceSnap = await getDoc(despieceRef);
         if (despieceSnap.exists()) {
           const data = despieceSnap.data();
-          setModuleDetectionConfig(getProjectModuleDetectionConfig(data));
+          const projectModuleDetectionConfig = getProjectModuleDetectionConfig(data);
+          setModuleDetectionConfig(projectModuleDetectionConfig);
           setProjectName(data.proyecto || '');
           setClientName(data.cliente || '');
           setCreationDate(data.fechaCreacion || new Date().toLocaleDateString());
@@ -494,6 +667,7 @@ const ModeloDespiece = () => {
               const hydrated = hydrateDespieceSchema({ ...newTab, filas: loadedRows }, data.serviciosGuardados || []);
               newTab.filas = hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()];
               newTab.modules = hydrated.despiece.modules;
+              newTab.superGroups = [];
               setDespieces([newTab]);
               setActiveDespieceId(newTab.id);
           } else if (data.despieces && Array.isArray(data.despieces)) {
@@ -506,11 +680,17 @@ const ModeloDespiece = () => {
                       return { ...row, id: `row_${rowId}` };
                   });
                   const hydrated = hydrateDespieceSchema({ ...desp, filas: safeRows }, data.serviciosGuardados || []);
+                  const hydratedRows = hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()];
                   return {
                       ...desp,
                       id: desp.id || `tab_${despieceIdCounter++}`,
-                      filas: hydrated.despiece.filas.length ? hydrated.despiece.filas : [createNewRow()],
-                      modules: hydrated.despiece.modules
+                      filas: hydratedRows,
+                      modules: hydrated.despiece.modules,
+                      superGroups: reconcileSuperGroups(
+                        hydratedRows,
+                        desp.superGroups || [],
+                        projectModuleDetectionConfig
+                      )
                   };
               });
               setDespieces(loadedDespieces.length ? loadedDespieces : [createNewDespiece()]);
@@ -521,16 +701,16 @@ const ModeloDespiece = () => {
               setActiveDespieceId(def.id);
           }
           rowIdCounter = maxRowId;
-          // Cargar servicios guardados si existen. Soportar string plano legado y convertir a objecto.
-          if (data.serviciosGuardados) {
-            const parsedServices = hydrateDespieceSchema({ filas: [] }, data.serviciosGuardados).services;
+          // Priorizar el catálogo global; usar serviciosGuardados sólo como fallback legado.
+          const loadVersion = serviceCatalogVersionRef.current;
+          const userServices = await loadUserServices();
+          if (shouldApplyHydratedServiceCatalog(loadVersion, serviceCatalogVersionRef.current)) {
+            const resolvedServices = resolveServiceCatalog({
+              globalServices: userServices,
+              projectServices: data.serviciosGuardados
+            });
+            const parsedServices = hydrateDespieceSchema({ filas: [] }, resolvedServices).services.map(normalizeStoredService);
             setServices(parsedServices);
-          } else {
-            // Si no hay servicios en el proyecto, cargar servicios del usuario o defaults
-            const userServices = await loadUserServices();
-            if (userServices) {
-              setServices(userServices);
-            }
           }
         }
       } catch (err) {
@@ -538,8 +718,7 @@ const ModeloDespiece = () => {
       }
     };
     fetchDespiece();
-    // eslint-disable-next-line
-  }, [id]);
+  }, [id, loadUserServices]);
 
   // Calcular totales (piezas y servicios) sólo de la pestaña activa cada vez que cambien datos o de pestaña
   useEffect(() => {
@@ -552,45 +731,48 @@ const ModeloDespiece = () => {
 
   const handleAddService = (e) => {
     e.preventDefault();
-    if (newServiceNombre.trim() && newServiceNomenclatura.trim()) {
-      if (editingService) {
-         // Update existing
-         const exists = services.find(s => s.nomenclatura !== editingService && (s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase()));
-         if (exists) {
-            alert('Ya existe otro servicio con ese nombre o nomenclatura.');
-            return;
-         }
-         setServices(services.map(s => s.nomenclatura === editingService ? updateServiceDefinition(s, {
-             nombreOriginal: newServiceNombre.trim(),
-             nomenclatura: newServiceNomenclatura.trim(),
-             tipoCobro: newServiceTipoCobro
-          }) : s));
-         setEditingService(null);
-      } else {
-         // Add new
-         const exists = services.find(s => s.nomenclatura.toLowerCase() === newServiceNomenclatura.trim().toLowerCase() || s.nombreOriginal.toLowerCase() === newServiceNombre.trim().toLowerCase());
-         if (!exists) {
-             setServices([...services, updateServiceDefinition(null, {
-                  nombreOriginal: newServiceNombre.trim(),
-                 nomenclatura: newServiceNomenclatura.trim(),
-                 tipoCobro: newServiceTipoCobro
-             })]);
-         } else {
-            alert('Ya existe un servicio con ese nombre o nomenclatura.');
-            return;
-         }
-      }
-      setNewServiceNombre('');
-      setNewServiceNomenclatura('');
-      setNewServiceTipoCobro('unidad');
-    } else {
-        alert('Debes ingresar el nombre original y la nomenclatura.');
+    const nombreOriginal = newServiceNombre.trim();
+    const nomenclatura = newServiceNomenclatura.trim();
+    const aliases = normalizeServiceAliases(newServiceAliases);
+
+    if (!nombreOriginal || !nomenclatura) {
+      alert('Debes ingresar el nombre original y la nomenclatura.');
+      return;
     }
+
+    const existingService = editingService
+      ? services.find((service) => service.nomenclatura === editingService)
+      : null;
+    const nextService = updateServiceDefinition(existingService, {
+      nombreOriginal,
+      nomenclatura,
+      aliases,
+      tipoCobro: newServiceTipoCobro
+    });
+    const nextServices = buildServiceCollection(services, nextService, editingService);
+    if (hasDuplicateCanonicalServiceFields(nextServices)) {
+      alert('Ya existe otro servicio con ese nombre o nomenclatura.');
+      return;
+    }
+
+    const collisions = validateServiceAliasCollisions(nextServices);
+    if (collisions.length > 0) {
+      alert(getServiceCollisionMessage(collisions));
+      return;
+    }
+
+    setServices(nextServices);
+    setEditingService(null);
+    setNewServiceNombre('');
+    setNewServiceNomenclatura('');
+    setNewServiceAliases('');
+    setNewServiceTipoCobro('unidad');
   };
 
   const handleEditService = (service) => {
       setNewServiceNombre(service.nombreOriginal);
       setNewServiceNomenclatura(service.nomenclatura);
+      setNewServiceAliases(Array.isArray(service.aliases) ? service.aliases.join(', ') : '');
       setNewServiceTipoCobro(service.tipoCobro);
       setEditingService(service.nomenclatura);
   };
@@ -631,7 +813,7 @@ const ModeloDespiece = () => {
     validatePersistenceIdentity(projectName, clientName);
     const snapshot = snapshotFor(candidateDespieces, documentId);
     const history = includeSecondary && documentId ? () => guardarVersion(documentId, { despieces: candidateDespieces, servicios: services, proyecto: projectName, cliente: clientName }) : null;
-    const defaults = includeSecondary && currentUser?.uid ? () => setDoc(doc(db, 'userServices', currentUser.uid), { userId: currentUser.uid, servicios: services, fechaActualizacion: new Date().toLocaleDateString() }) : null;
+    const defaults = null;
     const result = await coordinateSnapshotPersistence(snapshot, (value, options) => persistDespieceSnapshot(value, { db, collection, doc, writeBatch }, options), {
       history,
       defaults,
@@ -686,6 +868,31 @@ const ModeloDespiece = () => {
   };
   const handleRenameModule = (module, opener) => { if (module) { renameOpenerRef.current = opener; setRenameModule(module); } };
 
+  const handleOpenServiceDictionaryImport = () => {
+    setShowNomenclaturesModal(false);
+    setShowServiceDictionaryImport(true);
+  };
+
+  const handleCancelServiceDictionaryImport = () => {
+    setShowServiceDictionaryImport(false);
+    setShowNomenclaturesModal(true);
+  };
+
+  const handleConfirmServiceDictionaryImport = async (importedServices) => {
+    try {
+      await persistUserServiceCatalog(currentUser?.uid, importedServices);
+    } catch (error) {
+      console.error('Error al guardar el catálogo global:', error);
+      throw new Error('No se pudo guardar el catálogo global. Verificá tu conexión y reintentá.');
+    }
+
+    serviceCatalogVersionRef.current += 1;
+    setServices(importedServices);
+    setShowServiceDictionaryImport(false);
+    setShowNomenclaturesModal(true);
+    setSearchTerm('');
+  };
+
   const handleInputChange = useCallback((index, field, value) => {
     // La validación de cant/largo/ancho se hace al confirmar con Enter (en handleKeyDown)
     
@@ -721,17 +928,26 @@ const ModeloDespiece = () => {
         }
       }
 
-      return { ...despiece, filas: newRows };
+      return {
+        ...despiece,
+        filas: newRows,
+        superGroups: reconcileSuperGroups(newRows, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [activeDespieceId, selection, despieces]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeDespieceId, selection, despieces, moduleDetectionConfig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemoveRow = useCallback((indexToRemove) => {
     saveToHistory();
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
-      return { ...despiece, filas: (despiece.filas || []).filter((_, index) => index !== indexToRemove) };
+      const filas = (despiece.filas || []).filter((_, index) => index !== indexToRemove);
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [activeDespieceId, saveToHistory]);
+  }, [activeDespieceId, saveToHistory, moduleDetectionConfig]);
 
   // Excel-style row selection: click on row number to select entire row
   const handleRowClick = useCallback((index, e) => {
@@ -776,10 +992,14 @@ const ModeloDespiece = () => {
     setDespieces((prevDespieces) => prevDespieces.map(despiece => {
       if (despiece.id !== activeDespieceId) return despiece;
       const filas = (despiece.filas || []).filter((_, i) => !rowSelection.has(i));
-      return { ...despiece, filas };
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
     setRowSelection(new Set());
-  }, [rowSelection, activeDespieceId, saveToHistory, handleCopyRows]);
+  }, [rowSelection, activeDespieceId, saveToHistory, handleCopyRows, moduleDetectionConfig]);
 
   // Paste rows from internal clipboard (insert after current position or at end)
   const handlePasteRows = useCallback(() => {
@@ -802,11 +1022,16 @@ const ModeloDespiece = () => {
         l2: row.l2 || '',
         a1: row.a1 || '',
         a2: row.a2 || '',
+        ...(row.servicePlan ? { servicePlan: cloneServicePlan(row.servicePlan) } : {})
       }));
       filas.splice(insertIndex + 1, 0, ...newRows);
-      return { ...despiece, filas };
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [rowClipboard, activeDespieceId, activeCell, saveToHistory]);
+  }, [rowClipboard, activeDespieceId, activeCell, saveToHistory, moduleDetectionConfig]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
@@ -916,7 +1141,11 @@ const ModeloDespiece = () => {
           nextRows[rowIdx] = updatedRow;
         });
 
-        return { ...despiece, filas: nextRows };
+        return {
+          ...despiece,
+          filas: nextRows,
+          superGroups: reconcileSuperGroups(nextRows, despiece.superGroups || [], moduleDetectionConfig)
+        };
       }));
 
       return;
@@ -948,13 +1177,23 @@ const ModeloDespiece = () => {
         prevRows.length === 1 &&
         Object.values(prevRows[0] || {}).every((v, i) => v === '' || (i === 0 && (typeof v === 'string' && /^row_/.test(v))))
       ) {
-        return { ...despiece, filas: newRows.length ? newRows : [createNewRow()] };
+        const filas = newRows.length ? newRows : [createNewRow()];
+        return {
+          ...despiece,
+          filas,
+          superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+        };
       }
 
       // Si no, agregar normalmente
-      return { ...despiece, filas: [...prevRows, ...newRows] };
+      const filas = [...prevRows, ...newRows];
+      return {
+        ...despiece,
+        filas,
+        superGroups: reconcileSuperGroups(filas, despiece.superGroups || [], moduleDetectionConfig)
+      };
     }));
-  }, [activeCell, activeDespieceId, isEditing, saveToHistory]);
+  }, [activeCell, activeDespieceId, isEditing, saveToHistory, moduleDetectionConfig]);
 
   // ==================== HISTORIAL DE VERSIONES ====================
   const guardarVersion = async (despieceId, datos) => {
@@ -967,16 +1206,13 @@ const ModeloDespiece = () => {
     const snapshot = await getDocs(q);
     const numVersion = snapshot.size + 1;
     
-    // Crear nueva versión
+    // Crear nueva versión junto con el parser que interpreta sus módulos.
     await addDoc(historialRef, {
       despieceId,
       version: numVersion,
       fecha: new Date().toLocaleString(),
       usuario: currentUser?.uid || 'anonimo',
-      datos: datos.despieces,
-      serviciosGuardados: datos.servicios,
-      proyecto: datos.proyecto,
-      cliente: datos.cliente
+      ...buildVersionSnapshot(datos, moduleDetectionConfig)
     });
     
     // Mantener solo últimas 5 versiones
@@ -1001,8 +1237,10 @@ const ModeloDespiece = () => {
 
   const restaurarVersion = (version) => {
     if (window.confirm(`¿Estás seguro que deseas restaurar la versión ${version.version} del ${version.fecha}? Los cambios actuales se perderán.`)) {
-      setDespieces(version.datos);
-      setServices(version.serviciosGuardados || DEFAULT_SERVICES);
+      const restored = restoreVersionSnapshot(version, moduleDetectionConfig);
+      setDespieces(restored.despieces);
+      setModuleDetectionConfig(restored.moduleDetectionConfig);
+      setServices((restored.serviciosGuardados || DEFAULT_SERVICES).map(normalizeStoredService));
       setShowHistorialModal(false);
       alert('Versión restaurada exitosamente. No olvides guardar los cambios.');
     }
@@ -1137,6 +1375,10 @@ const ModeloDespiece = () => {
     }
 
     setModuleDetectionConfig(normalizedConfig);
+    setDespieces((previous) => previous.map((despiece) => ({
+      ...despiece,
+      superGroups: reconcileSuperGroups(despiece.filas || [], despiece.superGroups || [], normalizedConfig)
+    })));
   }, [id, saveUserModuleDetectionDefault]);
 
   // -------- SISTEMA DE AUTOGUARDADO ---------
@@ -1583,6 +1825,12 @@ const ModeloDespiece = () => {
     () => despieces.flatMap((despiece) => (despiece.filas || []).map((row) => row?.detalle)),
     [despieces]
   );
+  const activeDespieceForGrouping = despieces.find((despiece) => despiece.id === activeDespieceId) || despieces[0];
+  const superGroupActionEnabled = canCreateSuperGroup(
+    activeDespieceForGrouping?.filas || [],
+    rowSelection,
+    moduleDetectionConfig
+  );
 
   return (
     <div className={`${estilos.modeloDespieceContainer} ${darkMode ? estilos.despiecesSectionDark : ''}`} style={{ marginTop: '50px' }}>
@@ -1593,17 +1841,47 @@ const ModeloDespiece = () => {
         isOpen={showModuleDetectionSettings}
         initialConfig={moduleDetectionConfig}
         details={moduleDetectionDetails}
+        superGroups={activeDespieceForGrouping?.superGroups || []}
         darkMode={darkMode}
         onClose={() => setShowModuleDetectionSettings(false)}
         onSave={handleModuleDetectionSave}
       />
 
+      <SuperGroupDialog
+        isOpen={showSuperGroupDialog}
+        preview={superGroupPreview}
+        darkMode={darkMode}
+        errorMessage={superGroupError}
+        onConfirm={handleConfirmSuperGroup}
+        onCancel={closeSuperGroupDialog}
+      />
+
+      <ServiceDictionaryImport
+        isOpen={showServiceDictionaryImport}
+        currentServices={services}
+        onCancel={handleCancelServiceDictionaryImport}
+        onConfirm={handleConfirmServiceDictionaryImport}
+      />
+
       {/* MODAL DE NOMENCLATURAS */}
-      {showNomenclaturesModal && (
+      {showNomenclaturesModal && !showServiceDictionaryImport && (
         <div className={estilos.modalOverlay}>
             <div className={estilos.modalContent} style={{ maxWidth: '600px' }}>
                 <button className={estilos.closeButton} onClick={() => setShowNomenclaturesModal(false)}>×</button>
                 <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>Gestión de Nomenclaturas (Servicios)</h3>
+                <div style={{ marginBottom: '15px' }}>
+                    <button
+                        type="button"
+                        onClick={handleOpenServiceDictionaryImport}
+                        className={estilos.botonAgregar}
+                        style={{ width: '100%' }}
+                    >
+                        Importar diccionario JSON
+                    </button>
+                    <p style={{ color: '#aaa', fontSize: '12px', margin: '6px 0 0' }}>
+                        La importación reemplaza el catálogo sólo después de una confirmación explícita.
+                    </p>
+                </div>
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'flex-start' }}>
                     <input
                         type="text"
@@ -1618,6 +1896,15 @@ const ModeloDespiece = () => {
                         value={newServiceNomenclatura}
                         onChange={(e) => setNewServiceNomenclatura(e.target.value)}
                         placeholder="Nomenclatura (ej: CAL)"
+                        className={estilos.controls}
+                        style={{ flex: 1, margin: 0, height: '40px' }}
+                    />
+                    <input
+                        type="text"
+                        value={newServiceAliases}
+                        onChange={(e) => setNewServiceAliases(e.target.value)}
+                        placeholder="Alias (separados por coma)"
+                        aria-label="Alias del servicio"
                         className={estilos.controls}
                         style={{ flex: 1, margin: 0, height: '40px' }}
                     />
@@ -1648,6 +1935,7 @@ const ModeloDespiece = () => {
                             onClick={() => {
                                 setNewServiceNombre('');
                                 setNewServiceNomenclatura('');
+                                setNewServiceAliases('');
                                 setNewServiceTipoCobro('unidad');
                                 setEditingService(null);
                             }}
@@ -1701,6 +1989,7 @@ const ModeloDespiece = () => {
                                     <th style={{ padding: '8px', width: '30px', textAlign: 'center' }}>✓</th>
                                     <th style={{ padding: '8px' }}>Nombre</th>
                                     <th style={{ padding: '8px' }}>Nom</th>
+                                    <th style={{ padding: '8px' }}>Alias</th>
                                     <th style={{ padding: '8px' }}>Cobro</th>
                                     <th style={{ padding: '8px', textAlign: 'center' }}>Acción</th>
                                 </tr>
@@ -1718,6 +2007,7 @@ const ModeloDespiece = () => {
                                         </td>
                                         <td style={{ padding: '8px' }}>{s.nombreOriginal}</td>
                                         <td style={{ padding: '8px' }}><strong>{s.nomenclatura}</strong></td>
+                                        <td style={{ padding: '8px', color: '#aaa', fontSize: '12px' }}>{Array.isArray(s.aliases) ? s.aliases.join(', ') : ''}</td>
                                         <td style={{ padding: '8px', color: '#888' }}>
                                             {s.tipoCobro === 'unidad' ? 'Unidad' : 
                                              s.tipoCobro === 'ml_largo' ? 'ML (Largo)' :
@@ -1921,6 +2211,30 @@ const ModeloDespiece = () => {
                 >
                   ⚙ Configurar módulos
                 </button>
+                <button
+                  ref={superGroupTriggerRef}
+                  type="button"
+                  onClick={handleOpenSuperGroupDialog}
+                  disabled={!superGroupActionEnabled}
+                  aria-haspopup="dialog"
+                  aria-controls="super-group-dialog"
+                  title={superGroupActionEnabled
+                    ? 'Agrupar los módulos de las filas seleccionadas'
+                    : 'Selecciona filas de al menos dos módulos'}
+                  style={{
+                    background: superGroupActionEnabled ? '#6f42c1' : (darkMode ? '#3a3f47' : '#e9ecef'),
+                    border: `1px solid ${superGroupActionEnabled ? '#6f42c1' : (darkMode ? '#666' : '#bbb')}`,
+                    color: superGroupActionEnabled ? '#fff' : (darkMode ? '#999' : '#777'),
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: superGroupActionEnabled ? 'pointer' : 'not-allowed',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    height: '28px'
+                  }}
+                >
+                  Agrupar módulos
+                </button>
               </div>
             </div>
 
@@ -1952,6 +2266,19 @@ const ModeloDespiece = () => {
               services={services}
               modules={activeDespiece?.modules}
               onRenameModule={(module, event) => handleRenameModule(module, event?.currentTarget)}
+              moduleDetectionConfig={moduleDetectionConfig}
+              focusReturnRef={superGroupTableRef}
+              superGroups={activeDespieceForGrouping?.superGroups || []}
+              onUngroupSuperGroup={handleUngroupSuperGroup}
+              onOpenServicePlan={handleOpenServicePlan}
+            />
+
+            <ServicePlanEditor
+              isOpen={Boolean(servicePlanEditor)}
+              plan={servicePlanEditor?.plan}
+              row={servicePlanEditor?.row}
+              onApply={handleApplyServicePlan}
+              onClose={() => setServicePlanEditor(null)}
             />
 
           </form>
