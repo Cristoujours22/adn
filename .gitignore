@@ -12,6 +12,12 @@
 /build
 /public/static
 
+# E2E artifacts and local emulator state
+/playwright-report
+/test-results
+/blob-report
+/.firebase
+
 # misc
 .DS_Store
 .env.local
