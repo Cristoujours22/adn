@@ -24,7 +24,10 @@
     "eject": "react-scripts eject",
     "release:patch": "npm version patch && git push origin feature/mejoras-adn --tags",
     "release:minor": "npm version minor && git push origin feature/mejoras-adn --tags",
-    "release:major": "npm version major && git push origin feature/mejoras-adn --tags"
+    "release:major": "npm version major && git push origin feature/mejoras-adn --tags",
+    "e2e:install": "playwright install --with-deps chromium",
+    "e2e:test": "playwright test",
+    "e2e:smoke": "firebase emulators:exec --project demo-adn-e2e --config firebase.e2e.json \"npm run e2e:test\""
   },
   "eslintConfig": {
     "extends": [
@@ -45,7 +48,9 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "1.58.2",
     "cross-env": "^7.0.3",
+    "firebase-tools": "15.33.0",
     "react-scripts": "^5.0.1",
     "webpack": "^5.88.2",
     "webpack-cli": "^6.0.1"
