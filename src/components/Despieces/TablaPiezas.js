@@ -4,6 +4,44 @@ import { FaTrash, FaTools, FaRulerCombined } from 'react-icons/fa';
 import { getModuleKey } from '../../utils/moduleDetection';
 import { getRowsForSuperGroup } from '../../utils/superGrouping';
 import { findServiceMatches, getServiceMatchSpans } from '../../utils/serviceMatching';
+import { canOpenServicePlan } from '../../utils/servicePlans';
+import ServicePlanContextMenu from './ServicePlanContextMenu';
+
+const parseHexColor = (color) => {
+    if (typeof color !== 'string') return null;
+
+    const normalized = color.trim().replace(/^#/, '');
+    const hex = normalized.length === 3
+        ? normalized.split('').map((value) => value + value).join('')
+        : normalized;
+
+    if (!/^[\da-f]{6}$/i.test(hex)) return null;
+
+    return {
+        red: parseInt(hex.slice(0, 2), 16),
+        green: parseInt(hex.slice(2, 4), 16),
+        blue: parseInt(hex.slice(4, 6), 16)
+    };
+};
+
+export const getContrastingTextColor = (backgroundColor, fallbackColor = '#666') => {
+    const rgb = parseHexColor(backgroundColor);
+    if (!rgb) return fallbackColor;
+
+    const toLinearChannel = (channel) => {
+        const value = channel / 255;
+        return value <= 0.03928
+            ? value / 12.92
+            : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (0.2126 * toLinearChannel(rgb.red))
+        + (0.7152 * toLinearChannel(rgb.green))
+        + (0.0722 * toLinearChannel(rgb.blue));
+    const blackContrast = (luminance + 0.05) / 0.05;
+    const whiteContrast = 1.05 / (luminance + 0.05);
+
+    return whiteContrast > blackContrast ? '#fff' : '#000';
+};
 
 const TablaPiezas = ({
     despieces,
@@ -36,7 +74,11 @@ const TablaPiezas = ({
     moduleDetectionConfig,
     focusReturnRef,
     superGroups = [],
-    onUngroupSuperGroup
+    onUngroupSuperGroup,
+    onOpenServicePlan,
+    onConfigureServicePlan,
+    onApplyServicePlanToAll,
+    onSplitServicePlanUnits
 }) => {
     // End dragging when mouse is released anywhere on the table
     const handleMouseUp = () => {
@@ -48,6 +90,7 @@ const TablaPiezas = ({
 
     const [collapsedModules, setCollapsedModules] = useState({});
     const [collapsedSuperGroups, setCollapsedSuperGroups] = useState({});
+    const [servicePlanMenu, setServicePlanMenu] = useState(null);
     
     const moduleColors = [
         { bg: '#4285f4', border: '#3367d6' },   // Azul vivo
@@ -359,6 +402,21 @@ const TablaPiezas = ({
                                     onClick={(e) => handleCellClick(index, field, e)}
                                     onDoubleClick={() => handleCellDoubleClick(index, field)}
                                     onKeyDown={(e) => handleKeyDown(e, index, field)}
+                                    onContextMenu={field === 'detalle' ? (event) => {
+                                        if (!canOpenServicePlan(safeRow, services || [])) return;
+                                        event.preventDefault();
+                                        const matchResult = findServiceMatches(safeRow.detalle || '', services || []);
+                                        const detectedServiceCount = new Set(
+                                            matchResult.matches.map((match) => match.serviceId)
+                                        ).size;
+                                        setServicePlanMenu({
+                                            row: safeRow,
+                                            rowIndex: index,
+                                            detectedServiceCount,
+                                            position: { x: event.clientX, y: event.clientY },
+                                            triggerRef: { current: event.currentTarget }
+                                        });
+                                    } : undefined}
                                     readOnly={!isActive || !isEditing} // Strict readOnly when not editing prevents caret showing
                                     style={inputStyle}
                                 />
@@ -389,7 +447,7 @@ const TablaPiezas = ({
                 return (
                     <React.Fragment key={safeRow.id || `row_${index}`}>
                         {superGroupHeader}
-                        {showModuleColors && currentModule && isFirstOfModule && (
+                        {showModuleColors && currentModule && isFirstOfModule && !currentSuperGroup && (
                             <div className={`${estilos.filaDespiece} ${estilos.moduleLabelRow}`}>
                                 <div className={estilos.moduleLabelCell}>
                                     <div
@@ -445,8 +503,10 @@ const TablaPiezas = ({
                             style={{ 
                                 padding: '0 4px',
                                 cursor: 'pointer',
-                                backgroundColor: rowSelection?.has(index) ? (darkMode ? '#1a73e8' : '#1a73e8') : undefined,
-                                color: rowSelection?.has(index) ? '#fff' : (darkMode ? '#888' : '#666'),
+                                backgroundColor: rowSelection?.has(index) ? '#1a73e8' : undefined,
+                                color: rowSelection?.has(index)
+                                    ? '#fff'
+                                    : getContrastingTextColor(moduleColor?.bg, darkMode ? '#888' : '#666'),
                                 fontSize: '11px',
                                 fontWeight: 'bold',
                                 textAlign: 'center',
@@ -562,6 +622,27 @@ const TablaPiezas = ({
                 );
             })}
             </div>
+            {servicePlanMenu && (
+                <ServicePlanContextMenu
+                    position={servicePlanMenu.position}
+                    detectedServiceCount={servicePlanMenu.detectedServiceCount}
+                    pieceQuantity={servicePlanMenu.row?.cant}
+                    triggerRef={servicePlanMenu.triggerRef}
+                    onOpenPlan={onOpenServicePlan
+                      ? () => onOpenServicePlan(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onConfigure={onConfigureServicePlan
+                      ? () => onConfigureServicePlan(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onApplyToAll={onApplyServicePlanToAll
+                      ? () => onApplyServicePlanToAll(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onSplitUnits={onSplitServicePlanUnits
+                      ? () => onSplitServicePlanUnits(servicePlanMenu.row, servicePlanMenu.rowIndex)
+                      : undefined}
+                    onClose={() => setServicePlanMenu(null)}
+                />
+            )}
         </div>
     );
 };

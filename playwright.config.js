@@ -37,6 +37,6 @@ module.exports = defineConfig({
     command: 'cross-env BROWSER=none REACT_APP_USE_FIREBASE_EMULATORS=true npm start',
     url: 'http://127.0.0.1:3000',
     timeout: 120000,
-    reuseExistingServer: !process.env.CI
+    reuseExistingServer: false
   }
 });

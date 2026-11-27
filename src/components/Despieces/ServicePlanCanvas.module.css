@@ -1,0 +1,78 @@
+.canvas {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid #cbd8e8;
+  border-radius: 9px;
+  background-color: #f8fbff;
+  background-image: linear-gradient(#e4edf7 1px, transparent 1px), linear-gradient(90deg, #e4edf7 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.piece {
+  fill: #fff;
+  stroke: #263956;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.cut {
+  fill: none;
+  stroke: #087e8b;
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.dimensions {
+  overflow: visible;
+}
+
+.extension {
+  stroke: #8191a8;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.dimension {
+  fill: none;
+  stroke: #315efb;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.dimensionText {
+  fill: #315efb;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.arrowHead {
+  fill: none;
+  stroke: #315efb;
+  stroke-width: 1.2;
+}
+
+.status {
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  padding: 20px;
+  border: 1px solid #d7dde7;
+  border-radius: 9px;
+  background: #f8fbff;
+  color: #536078;
+  text-align: center;
+}
+
+.canvas:focus-visible,
+.status:focus-visible {
+  outline: 3px solid #f79009;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas,
+  .status {
+    scroll-behavior: auto;
+  }
+}
